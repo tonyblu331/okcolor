@@ -1,0 +1,50 @@
+schema: spec-driven
+
+context: |
+  Tech stack: TypeScript (Node.js, Vite plugin, CLI), Rust (WASM core, DFA lexer), WebAssembly (wasm-pack)
+  Architecture: Build-time CSS transformer, Vite plugin hooking 'pre', CLI with audit/check/doctor commands
+  Testing: cargo test (Rust), vitest (TypeScript) — planned, not yet installed
+  Style: rustfmt (Rust), prettier (TS), eslint
+
+strict_tdd: false
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Load relevant coding skills for the project stack
+  verify:
+    - Run tests if test infrastructure exists
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)
+
+testing:
+  strict_tdd: false
+  detected: "2026-05-24"
+  runner:
+    command: "cargo test && npx vitest"
+    framework: "cargo + vitest"
+  layers:
+    unit: { available: true, tool: "cargo test / vitest" }
+    integration: { available: false, tool: "—" }
+    e2e: { available: false, tool: "—" }
+  coverage:
+    available: false
+    command: "—"
+  quality:
+    linter: { available: true, command: "eslint / cargo clippy" }
+    type_checker: { available: true, command: "tsc --noEmit / cargo check" }
+    formatter: { available: true, command: "prettier / rustfmt" }

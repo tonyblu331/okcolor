@@ -1,0 +1,925 @@
+/* Complex real-world CSS fixture */
+:root {
+  --c0: #3498db;
+  --c1: #e74c3c;
+  --c2: #f1c40f;
+  --c3: #2ecc71;
+  --c4: #9b59b6;
+  --c5: #1abc9c;
+  --c6: #e67e22;
+  --c7: #34495e;
+  --c8: #95a5a6;
+  --c9: #d35400;
+  --c10: rgb(255, 0, 0);
+  --c11: rgb(0, 255, 0);
+  --c12: rgb(0, 0, 255);
+  --c13: hsl(200, 80%, 50%);
+  --c14: hsl(120, 60%, 40%);
+  --c15: hwb(30 20% 10%);
+  --c16: hwb(150 30% 20%);
+  --c17: red;
+  --c18: blue;
+  --c19: green;
+  --c20: rebeccapurple;
+  --c21: #3498db;
+  --c22: #e74c3c;
+  --c23: #f1c40f;
+  --c24: #2ecc71;
+  --c25: #9b59b6;
+  --c26: #1abc9c;
+  --c27: #e67e22;
+  --c28: #34495e;
+  --c29: #95a5a6;
+  --c30: #d35400;
+  --c31: rgb(255, 0, 0);
+  --c32: rgb(0, 255, 0);
+  --c33: rgb(0, 0, 255);
+  --c34: hsl(200, 80%, 50%);
+  --c35: hsl(120, 60%, 40%);
+  --c36: hwb(30 20% 10%);
+  --c37: hwb(150 30% 20%);
+  --c38: red;
+  --c39: blue;
+  --c40: green;
+  --c41: rebeccapurple;
+  --c42: #3498db;
+  --c43: #e74c3c;
+  --c44: #f1c40f;
+  --c45: #2ecc71;
+  --c46: #9b59b6;
+  --c47: #1abc9c;
+  --c48: #e67e22;
+  --c49: #34495e;
+  --c50: #95a5a6;
+  --c51: #d35400;
+  --c52: rgb(255, 0, 0);
+  --c53: rgb(0, 255, 0);
+  --c54: rgb(0, 0, 255);
+  --c55: hsl(200, 80%, 50%);
+  --c56: hsl(120, 60%, 40%);
+  --c57: hwb(30 20% 10%);
+  --c58: hwb(150 30% 20%);
+  --c59: red;
+  --c60: blue;
+  --c61: green;
+  --c62: rebeccapurple;
+  --c63: #3498db;
+  --c64: #e74c3c;
+  --c65: #f1c40f;
+  --c66: #2ecc71;
+  --c67: #9b59b6;
+  --c68: #1abc9c;
+  --c69: #e67e22;
+  --c70: #34495e;
+  --c71: #95a5a6;
+  --c72: #d35400;
+  --c73: rgb(255, 0, 0);
+  --c74: rgb(0, 255, 0);
+  --c75: rgb(0, 0, 255);
+  --c76: hsl(200, 80%, 50%);
+  --c77: hsl(120, 60%, 40%);
+  --c78: hwb(30 20% 10%);
+  --c79: hwb(150 30% 20%);
+  --c80: red;
+  --c81: blue;
+  --c82: green;
+  --c83: rebeccapurple;
+  --c84: #3498db;
+  --c85: #e74c3c;
+  --c86: #f1c40f;
+  --c87: #2ecc71;
+  --c88: #9b59b6;
+  --c89: #1abc9c;
+  --c90: #e67e22;
+  --c91: #34495e;
+  --c92: #95a5a6;
+  --c93: #d35400;
+  --c94: rgb(255, 0, 0);
+  --c95: rgb(0, 255, 0);
+  --c96: rgb(0, 0, 255);
+  --c97: hsl(200, 80%, 50%);
+  --c98: hsl(120, 60%, 40%);
+  --c99: hwb(30 20% 10%);
+  --c100: hwb(150 30% 20%);
+  --c101: red;
+  --c102: blue;
+  --c103: green;
+  --c104: rebeccapurple;
+  --c105: #3498db;
+  --c106: #e74c3c;
+  --c107: #f1c40f;
+  --c108: #2ecc71;
+  --c109: #9b59b6;
+  --c110: #1abc9c;
+  --c111: #e67e22;
+  --c112: #34495e;
+  --c113: #95a5a6;
+  --c114: #d35400;
+  --c115: rgb(255, 0, 0);
+  --c116: rgb(0, 255, 0);
+  --c117: rgb(0, 0, 255);
+  --c118: hsl(200, 80%, 50%);
+  --c119: hsl(120, 60%, 40%);
+  --c120: hwb(30 20% 10%);
+  --c121: hwb(150 30% 20%);
+  --c122: red;
+  --c123: blue;
+  --c124: green;
+  --c125: rebeccapurple;
+  --c126: #3498db;
+  --c127: #e74c3c;
+  --c128: #f1c40f;
+  --c129: #2ecc71;
+  --c130: #9b59b6;
+  --c131: #1abc9c;
+  --c132: #e67e22;
+  --c133: #34495e;
+  --c134: #95a5a6;
+  --c135: #d35400;
+  --c136: rgb(255, 0, 0);
+  --c137: rgb(0, 255, 0);
+  --c138: rgb(0, 0, 255);
+  --c139: hsl(200, 80%, 50%);
+  --c140: hsl(120, 60%, 40%);
+  --c141: hwb(30 20% 10%);
+  --c142: hwb(150 30% 20%);
+  --c143: red;
+  --c144: blue;
+  --c145: green;
+  --c146: rebeccapurple;
+  --c147: #3498db;
+  --c148: #e74c3c;
+  --c149: #f1c40f;
+  --c150: #2ecc71;
+  --c151: #9b59b6;
+  --c152: #1abc9c;
+  --c153: #e67e22;
+  --c154: #34495e;
+  --c155: #95a5a6;
+  --c156: #d35400;
+  --c157: rgb(255, 0, 0);
+  --c158: rgb(0, 255, 0);
+  --c159: rgb(0, 0, 255);
+  --c160: hsl(200, 80%, 50%);
+  --c161: hsl(120, 60%, 40%);
+  --c162: hwb(30 20% 10%);
+  --c163: hwb(150 30% 20%);
+  --c164: red;
+  --c165: blue;
+  --c166: green;
+  --c167: rebeccapurple;
+  --c168: #3498db;
+  --c169: #e74c3c;
+  --c170: #f1c40f;
+  --c171: #2ecc71;
+  --c172: #9b59b6;
+  --c173: #1abc9c;
+  --c174: #e67e22;
+  --c175: #34495e;
+  --c176: #95a5a6;
+  --c177: #d35400;
+  --c178: rgb(255, 0, 0);
+  --c179: rgb(0, 255, 0);
+  --c180: rgb(0, 0, 255);
+  --c181: hsl(200, 80%, 50%);
+  --c182: hsl(120, 60%, 40%);
+  --c183: hwb(30 20% 10%);
+  --c184: hwb(150 30% 20%);
+  --c185: red;
+  --c186: blue;
+  --c187: green;
+  --c188: rebeccapurple;
+  --c189: #3498db;
+  --c190: #e74c3c;
+  --c191: #f1c40f;
+  --c192: #2ecc71;
+  --c193: #9b59b6;
+  --c194: #1abc9c;
+  --c195: #e67e22;
+  --c196: #34495e;
+  --c197: #95a5a6;
+  --c198: #d35400;
+  --c199: rgb(255, 0, 0);
+}
+
+.c0 {
+  color: #3498db;
+  background: #2ecc71;
+  border-color: #1abc9c;
+  box-shadow: 0 0 10px #3498db;
+}
+
+.c1 {
+  color: #e74c3c;
+  background: #9b59b6;
+  border-color: #e67e22;
+  box-shadow: 0 0 10px #e74c3c;
+}
+
+.c2 {
+  color: #f1c40f;
+  background: #1abc9c;
+  border-color: #34495e;
+  box-shadow: 0 0 10px #f1c40f;
+}
+
+.c3 {
+  color: #2ecc71;
+  background: #e67e22;
+  border-color: #95a5a6;
+  box-shadow: 0 0 10px #2ecc71;
+}
+
+.c4 {
+  color: #9b59b6;
+  background: #34495e;
+  border-color: #d35400;
+  box-shadow: 0 0 10px #9b59b6;
+}
+
+.c5 {
+  color: #1abc9c;
+  background: #95a5a6;
+  border-color: rgb(255, 0, 0);
+  box-shadow: 0 0 10px #1abc9c;
+}
+
+.c6 {
+  color: #e67e22;
+  background: #d35400;
+  border-color: rgb(0, 255, 0);
+  box-shadow: 0 0 10px #e67e22;
+}
+
+.c7 {
+  color: #34495e;
+  background: rgb(255, 0, 0);
+  border-color: rgb(0, 0, 255);
+  box-shadow: 0 0 10px #34495e;
+}
+
+.c8 {
+  color: #95a5a6;
+  background: rgb(0, 255, 0);
+  border-color: hsl(200, 80%, 50%);
+  box-shadow: 0 0 10px #95a5a6;
+}
+
+.c9 {
+  color: #d35400;
+  background: rgb(0, 0, 255);
+  border-color: hsl(120, 60%, 40%);
+  box-shadow: 0 0 10px #d35400;
+}
+
+.c10 {
+  color: rgb(255, 0, 0);
+  background: hsl(200, 80%, 50%);
+  border-color: hwb(30 20% 10%);
+  box-shadow: 0 0 10px rgb(255, 0, 0);
+}
+
+.c11 {
+  color: rgb(0, 255, 0);
+  background: hsl(120, 60%, 40%);
+  border-color: hwb(150 30% 20%);
+  box-shadow: 0 0 10px rgb(0, 255, 0);
+}
+
+.c12 {
+  color: rgb(0, 0, 255);
+  background: hwb(30 20% 10%);
+  border-color: red;
+  box-shadow: 0 0 10px rgb(0, 0, 255);
+}
+
+.c13 {
+  color: hsl(200, 80%, 50%);
+  background: hwb(150 30% 20%);
+  border-color: blue;
+  box-shadow: 0 0 10px hsl(200, 80%, 50%);
+}
+
+.c14 {
+  color: hsl(120, 60%, 40%);
+  background: red;
+  border-color: green;
+  box-shadow: 0 0 10px hsl(120, 60%, 40%);
+}
+
+.c15 {
+  color: hwb(30 20% 10%);
+  background: blue;
+  border-color: rebeccapurple;
+  box-shadow: 0 0 10px hwb(30 20% 10%);
+}
+
+.c16 {
+  color: hwb(150 30% 20%);
+  background: green;
+  border-color: #3498db;
+  box-shadow: 0 0 10px hwb(150 30% 20%);
+}
+
+.c17 {
+  color: red;
+  background: rebeccapurple;
+  border-color: #e74c3c;
+  box-shadow: 0 0 10px red;
+}
+
+.c18 {
+  color: blue;
+  background: #3498db;
+  border-color: #f1c40f;
+  box-shadow: 0 0 10px blue;
+}
+
+.c19 {
+  color: green;
+  background: #e74c3c;
+  border-color: #2ecc71;
+  box-shadow: 0 0 10px green;
+}
+
+.c20 {
+  color: rebeccapurple;
+  background: #f1c40f;
+  border-color: #9b59b6;
+  box-shadow: 0 0 10px rebeccapurple;
+}
+
+.c21 {
+  color: #3498db;
+  background: #2ecc71;
+  border-color: #1abc9c;
+  box-shadow: 0 0 10px #3498db;
+}
+
+.c22 {
+  color: #e74c3c;
+  background: #9b59b6;
+  border-color: #e67e22;
+  box-shadow: 0 0 10px #e74c3c;
+}
+
+.c23 {
+  color: #f1c40f;
+  background: #1abc9c;
+  border-color: #34495e;
+  box-shadow: 0 0 10px #f1c40f;
+}
+
+.c24 {
+  color: #2ecc71;
+  background: #e67e22;
+  border-color: #95a5a6;
+  box-shadow: 0 0 10px #2ecc71;
+}
+
+.c25 {
+  color: #9b59b6;
+  background: #34495e;
+  border-color: #d35400;
+  box-shadow: 0 0 10px #9b59b6;
+}
+
+.c26 {
+  color: #1abc9c;
+  background: #95a5a6;
+  border-color: rgb(255, 0, 0);
+  box-shadow: 0 0 10px #1abc9c;
+}
+
+.c27 {
+  color: #e67e22;
+  background: #d35400;
+  border-color: rgb(0, 255, 0);
+  box-shadow: 0 0 10px #e67e22;
+}
+
+.c28 {
+  color: #34495e;
+  background: rgb(255, 0, 0);
+  border-color: rgb(0, 0, 255);
+  box-shadow: 0 0 10px #34495e;
+}
+
+.c29 {
+  color: #95a5a6;
+  background: rgb(0, 255, 0);
+  border-color: hsl(200, 80%, 50%);
+  box-shadow: 0 0 10px #95a5a6;
+}
+
+.c30 {
+  color: #d35400;
+  background: rgb(0, 0, 255);
+  border-color: hsl(120, 60%, 40%);
+  box-shadow: 0 0 10px #d35400;
+}
+
+.c31 {
+  color: rgb(255, 0, 0);
+  background: hsl(200, 80%, 50%);
+  border-color: hwb(30 20% 10%);
+  box-shadow: 0 0 10px rgb(255, 0, 0);
+}
+
+.c32 {
+  color: rgb(0, 255, 0);
+  background: hsl(120, 60%, 40%);
+  border-color: hwb(150 30% 20%);
+  box-shadow: 0 0 10px rgb(0, 255, 0);
+}
+
+.c33 {
+  color: rgb(0, 0, 255);
+  background: hwb(30 20% 10%);
+  border-color: red;
+  box-shadow: 0 0 10px rgb(0, 0, 255);
+}
+
+.c34 {
+  color: hsl(200, 80%, 50%);
+  background: hwb(150 30% 20%);
+  border-color: blue;
+  box-shadow: 0 0 10px hsl(200, 80%, 50%);
+}
+
+.c35 {
+  color: hsl(120, 60%, 40%);
+  background: red;
+  border-color: green;
+  box-shadow: 0 0 10px hsl(120, 60%, 40%);
+}
+
+.c36 {
+  color: hwb(30 20% 10%);
+  background: blue;
+  border-color: rebeccapurple;
+  box-shadow: 0 0 10px hwb(30 20% 10%);
+}
+
+.c37 {
+  color: hwb(150 30% 20%);
+  background: green;
+  border-color: #3498db;
+  box-shadow: 0 0 10px hwb(150 30% 20%);
+}
+
+.c38 {
+  color: red;
+  background: rebeccapurple;
+  border-color: #e74c3c;
+  box-shadow: 0 0 10px red;
+}
+
+.c39 {
+  color: blue;
+  background: #3498db;
+  border-color: #f1c40f;
+  box-shadow: 0 0 10px blue;
+}
+
+.c40 {
+  color: green;
+  background: #e74c3c;
+  border-color: #2ecc71;
+  box-shadow: 0 0 10px green;
+}
+
+.c41 {
+  color: rebeccapurple;
+  background: #f1c40f;
+  border-color: #9b59b6;
+  box-shadow: 0 0 10px rebeccapurple;
+}
+
+.c42 {
+  color: #3498db;
+  background: #2ecc71;
+  border-color: #1abc9c;
+  box-shadow: 0 0 10px #3498db;
+}
+
+.c43 {
+  color: #e74c3c;
+  background: #9b59b6;
+  border-color: #e67e22;
+  box-shadow: 0 0 10px #e74c3c;
+}
+
+.c44 {
+  color: #f1c40f;
+  background: #1abc9c;
+  border-color: #34495e;
+  box-shadow: 0 0 10px #f1c40f;
+}
+
+.c45 {
+  color: #2ecc71;
+  background: #e67e22;
+  border-color: #95a5a6;
+  box-shadow: 0 0 10px #2ecc71;
+}
+
+.c46 {
+  color: #9b59b6;
+  background: #34495e;
+  border-color: #d35400;
+  box-shadow: 0 0 10px #9b59b6;
+}
+
+.c47 {
+  color: #1abc9c;
+  background: #95a5a6;
+  border-color: rgb(255, 0, 0);
+  box-shadow: 0 0 10px #1abc9c;
+}
+
+.c48 {
+  color: #e67e22;
+  background: #d35400;
+  border-color: rgb(0, 255, 0);
+  box-shadow: 0 0 10px #e67e22;
+}
+
+.c49 {
+  color: #34495e;
+  background: rgb(255, 0, 0);
+  border-color: rgb(0, 0, 255);
+  box-shadow: 0 0 10px #34495e;
+}
+
+.c50 {
+  color: #95a5a6;
+  background: rgb(0, 255, 0);
+  border-color: hsl(200, 80%, 50%);
+  box-shadow: 0 0 10px #95a5a6;
+}
+
+.c51 {
+  color: #d35400;
+  background: rgb(0, 0, 255);
+  border-color: hsl(120, 60%, 40%);
+  box-shadow: 0 0 10px #d35400;
+}
+
+.c52 {
+  color: rgb(255, 0, 0);
+  background: hsl(200, 80%, 50%);
+  border-color: hwb(30 20% 10%);
+  box-shadow: 0 0 10px rgb(255, 0, 0);
+}
+
+.c53 {
+  color: rgb(0, 255, 0);
+  background: hsl(120, 60%, 40%);
+  border-color: hwb(150 30% 20%);
+  box-shadow: 0 0 10px rgb(0, 255, 0);
+}
+
+.c54 {
+  color: rgb(0, 0, 255);
+  background: hwb(30 20% 10%);
+  border-color: red;
+  box-shadow: 0 0 10px rgb(0, 0, 255);
+}
+
+.c55 {
+  color: hsl(200, 80%, 50%);
+  background: hwb(150 30% 20%);
+  border-color: blue;
+  box-shadow: 0 0 10px hsl(200, 80%, 50%);
+}
+
+.c56 {
+  color: hsl(120, 60%, 40%);
+  background: red;
+  border-color: green;
+  box-shadow: 0 0 10px hsl(120, 60%, 40%);
+}
+
+.c57 {
+  color: hwb(30 20% 10%);
+  background: blue;
+  border-color: rebeccapurple;
+  box-shadow: 0 0 10px hwb(30 20% 10%);
+}
+
+.c58 {
+  color: hwb(150 30% 20%);
+  background: green;
+  border-color: #3498db;
+  box-shadow: 0 0 10px hwb(150 30% 20%);
+}
+
+.c59 {
+  color: red;
+  background: rebeccapurple;
+  border-color: #e74c3c;
+  box-shadow: 0 0 10px red;
+}
+
+.c60 {
+  color: blue;
+  background: #3498db;
+  border-color: #f1c40f;
+  box-shadow: 0 0 10px blue;
+}
+
+.c61 {
+  color: green;
+  background: #e74c3c;
+  border-color: #2ecc71;
+  box-shadow: 0 0 10px green;
+}
+
+.c62 {
+  color: rebeccapurple;
+  background: #f1c40f;
+  border-color: #9b59b6;
+  box-shadow: 0 0 10px rebeccapurple;
+}
+
+.c63 {
+  color: #3498db;
+  background: #2ecc71;
+  border-color: #1abc9c;
+  box-shadow: 0 0 10px #3498db;
+}
+
+.c64 {
+  color: #e74c3c;
+  background: #9b59b6;
+  border-color: #e67e22;
+  box-shadow: 0 0 10px #e74c3c;
+}
+
+.c65 {
+  color: #f1c40f;
+  background: #1abc9c;
+  border-color: #34495e;
+  box-shadow: 0 0 10px #f1c40f;
+}
+
+.c66 {
+  color: #2ecc71;
+  background: #e67e22;
+  border-color: #95a5a6;
+  box-shadow: 0 0 10px #2ecc71;
+}
+
+.c67 {
+  color: #9b59b6;
+  background: #34495e;
+  border-color: #d35400;
+  box-shadow: 0 0 10px #9b59b6;
+}
+
+.c68 {
+  color: #1abc9c;
+  background: #95a5a6;
+  border-color: rgb(255, 0, 0);
+  box-shadow: 0 0 10px #1abc9c;
+}
+
+.c69 {
+  color: #e67e22;
+  background: #d35400;
+  border-color: rgb(0, 255, 0);
+  box-shadow: 0 0 10px #e67e22;
+}
+
+.c70 {
+  color: #34495e;
+  background: rgb(255, 0, 0);
+  border-color: rgb(0, 0, 255);
+  box-shadow: 0 0 10px #34495e;
+}
+
+.c71 {
+  color: #95a5a6;
+  background: rgb(0, 255, 0);
+  border-color: hsl(200, 80%, 50%);
+  box-shadow: 0 0 10px #95a5a6;
+}
+
+.c72 {
+  color: #d35400;
+  background: rgb(0, 0, 255);
+  border-color: hsl(120, 60%, 40%);
+  box-shadow: 0 0 10px #d35400;
+}
+
+.c73 {
+  color: rgb(255, 0, 0);
+  background: hsl(200, 80%, 50%);
+  border-color: hwb(30 20% 10%);
+  box-shadow: 0 0 10px rgb(255, 0, 0);
+}
+
+.c74 {
+  color: rgb(0, 255, 0);
+  background: hsl(120, 60%, 40%);
+  border-color: hwb(150 30% 20%);
+  box-shadow: 0 0 10px rgb(0, 255, 0);
+}
+
+.c75 {
+  color: rgb(0, 0, 255);
+  background: hwb(30 20% 10%);
+  border-color: red;
+  box-shadow: 0 0 10px rgb(0, 0, 255);
+}
+
+.c76 {
+  color: hsl(200, 80%, 50%);
+  background: hwb(150 30% 20%);
+  border-color: blue;
+  box-shadow: 0 0 10px hsl(200, 80%, 50%);
+}
+
+.c77 {
+  color: hsl(120, 60%, 40%);
+  background: red;
+  border-color: green;
+  box-shadow: 0 0 10px hsl(120, 60%, 40%);
+}
+
+.c78 {
+  color: hwb(30 20% 10%);
+  background: blue;
+  border-color: rebeccapurple;
+  box-shadow: 0 0 10px hwb(30 20% 10%);
+}
+
+.c79 {
+  color: hwb(150 30% 20%);
+  background: green;
+  border-color: #3498db;
+  box-shadow: 0 0 10px hwb(150 30% 20%);
+}
+
+.c80 {
+  color: red;
+  background: rebeccapurple;
+  border-color: #e74c3c;
+  box-shadow: 0 0 10px red;
+}
+
+.c81 {
+  color: blue;
+  background: #3498db;
+  border-color: #f1c40f;
+  box-shadow: 0 0 10px blue;
+}
+
+.c82 {
+  color: green;
+  background: #e74c3c;
+  border-color: #2ecc71;
+  box-shadow: 0 0 10px green;
+}
+
+.c83 {
+  color: rebeccapurple;
+  background: #f1c40f;
+  border-color: #9b59b6;
+  box-shadow: 0 0 10px rebeccapurple;
+}
+
+.c84 {
+  color: #3498db;
+  background: #2ecc71;
+  border-color: #1abc9c;
+  box-shadow: 0 0 10px #3498db;
+}
+
+.c85 {
+  color: #e74c3c;
+  background: #9b59b6;
+  border-color: #e67e22;
+  box-shadow: 0 0 10px #e74c3c;
+}
+
+.c86 {
+  color: #f1c40f;
+  background: #1abc9c;
+  border-color: #34495e;
+  box-shadow: 0 0 10px #f1c40f;
+}
+
+.c87 {
+  color: #2ecc71;
+  background: #e67e22;
+  border-color: #95a5a6;
+  box-shadow: 0 0 10px #2ecc71;
+}
+
+.c88 {
+  color: #9b59b6;
+  background: #34495e;
+  border-color: #d35400;
+  box-shadow: 0 0 10px #9b59b6;
+}
+
+.c89 {
+  color: #1abc9c;
+  background: #95a5a6;
+  border-color: rgb(255, 0, 0);
+  box-shadow: 0 0 10px #1abc9c;
+}
+
+.c90 {
+  color: #e67e22;
+  background: #d35400;
+  border-color: rgb(0, 255, 0);
+  box-shadow: 0 0 10px #e67e22;
+}
+
+.c91 {
+  color: #34495e;
+  background: rgb(255, 0, 0);
+  border-color: rgb(0, 0, 255);
+  box-shadow: 0 0 10px #34495e;
+}
+
+.c92 {
+  color: #95a5a6;
+  background: rgb(0, 255, 0);
+  border-color: hsl(200, 80%, 50%);
+  box-shadow: 0 0 10px #95a5a6;
+}
+
+.c93 {
+  color: #d35400;
+  background: rgb(0, 0, 255);
+  border-color: hsl(120, 60%, 40%);
+  box-shadow: 0 0 10px #d35400;
+}
+
+.c94 {
+  color: rgb(255, 0, 0);
+  background: hsl(200, 80%, 50%);
+  border-color: hwb(30 20% 10%);
+  box-shadow: 0 0 10px rgb(255, 0, 0);
+}
+
+.c95 {
+  color: rgb(0, 255, 0);
+  background: hsl(120, 60%, 40%);
+  border-color: hwb(150 30% 20%);
+  box-shadow: 0 0 10px rgb(0, 255, 0);
+}
+
+.c96 {
+  color: rgb(0, 0, 255);
+  background: hwb(30 20% 10%);
+  border-color: red;
+  box-shadow: 0 0 10px rgb(0, 0, 255);
+}
+
+.c97 {
+  color: hsl(200, 80%, 50%);
+  background: hwb(150 30% 20%);
+  border-color: blue;
+  box-shadow: 0 0 10px hsl(200, 80%, 50%);
+}
+
+.c98 {
+  color: hsl(120, 60%, 40%);
+  background: red;
+  border-color: green;
+  box-shadow: 0 0 10px hsl(120, 60%, 40%);
+}
+
+.c99 {
+  color: hwb(30 20% 10%);
+  background: blue;
+  border-color: rebeccapurple;
+  box-shadow: 0 0 10px hwb(30 20% 10%);
+}
+
+.g0 { background: linear-gradient(to right, #3498db, #e74c3c); }
+.g1 { background: linear-gradient(to right, #e74c3c, #f1c40f); }
+.g2 { background: linear-gradient(to right, #f1c40f, #2ecc71); }
+.g3 { background: linear-gradient(to right, #2ecc71, #9b59b6); }
+.g4 { background: linear-gradient(to right, #9b59b6, #1abc9c); }
+.g5 { background: linear-gradient(to right, #1abc9c, #e67e22); }
+.g6 { background: linear-gradient(to right, #e67e22, #34495e); }
+.g7 { background: linear-gradient(to right, #34495e, #95a5a6); }
+.g8 { background: linear-gradient(to right, #95a5a6, #d35400); }
+.g9 { background: linear-gradient(to right, #d35400, rgb(255, 0, 0)); }
+.g10 { background: linear-gradient(to right, rgb(255, 0, 0), rgb(0, 255, 0)); }
+.g11 { background: linear-gradient(to right, rgb(0, 255, 0), rgb(0, 0, 255)); }
+.g12 { background: linear-gradient(to right, rgb(0, 0, 255), hsl(200, 80%, 50%)); }
+.g13 { background: linear-gradient(to right, hsl(200, 80%, 50%), hsl(120, 60%, 40%)); }
+.g14 { background: linear-gradient(to right, hsl(120, 60%, 40%), hwb(30 20% 10%)); }
+.g15 { background: linear-gradient(to right, hwb(30 20% 10%), hwb(150 30% 20%)); }
+.g16 { background: linear-gradient(to right, hwb(150 30% 20%), red); }
+.g17 { background: linear-gradient(to right, red, blue); }
+.g18 { background: linear-gradient(to right, blue, green); }
+.g19 { background: linear-gradient(to right, green, rebeccapurple); }
+.special { color: var(--primary); width: calc(100% - 20px); }

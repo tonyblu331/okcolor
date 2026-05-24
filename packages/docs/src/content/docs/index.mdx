@@ -1,0 +1,50 @@
+---
+title: ok-actually
+description: Zero-config build-time color modernizer for Vite and Tailwind CSS
+template: splash
+hero:
+  tagline: Convert legacy hex, rgb, hsl, and hwb colors to perceptually uniform OKLCH at build time. Zero runtime overhead.
+  image:
+    file: ../../assets/hero.svg
+  actions:
+    - text: Get Started
+      link: /ok-actually/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/ok-actually/ok-actually
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components'
+
+## Why OKLCH?
+
+<CardGrid stagger>
+  <Card title="Perceptually Uniform" icon="open-book">
+    OKLCH is designed for human perception. Changing the lightness channel actually makes colors look proportionally lighter — unlike HSL where `hsl(120 100% 50%)` and `hsl(120 100% 70%)` have wildly different perceived brightness.
+  </Card>
+  <Card title="Wide Gamut Ready" icon="seti:json">
+    OKLCH can represent every color visible to the human eye. As displays move beyond sRGB (Display P3, Rec. 2020), OKLCH future-proofs your design system.
+  </Card>
+  <Card title="Mathematically Correct" icon="open-book">
+    Our conversion engine uses the exact W3C CSS Color Module Level 4 matrices, verified against Culori to sub-ulp precision. Every coefficient is documented and provable.
+  </Card>
+  <Card title="Zero Runtime Cost" icon="rocket">
+    Everything happens at build time. The pure-JS engine scans and transforms your CSS in a single pass — ~10 MB/s throughput, sub-millisecond for typical files.
+  </Card>
+</CardGrid>
+
+## What gets converted
+
+| Input | Example | Output |
+|-------|---------|--------|
+| Hex | `#ff0000` | `oklch(62.8% 0.25768 29.23)` |
+| RGB | `rgb(255, 0, 0)` | `oklch(62.8% 0.25768 29.23)` |
+| HSL | `hsl(0, 100%, 50%)` | `oklch(62.8% 0.25768 29.23)` |
+| HWB | `hwb(0 0% 0%)` | `oklch(62.8% 0.25768 29.23)` |
+| Named | `red` | `oklch(62.8% 0.25768 29.23)` |
+| Gradients | `linear-gradient(#f00, #00f)` | `linear-gradient(in oklch, oklch(...), oklch(...))` |
+
+Modern colors like `oklch()`, `oklab()`, `lab()`, `lch()`, and `color(display-p3 ...)` pass through untouched.

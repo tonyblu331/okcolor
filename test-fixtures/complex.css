@@ -1,0 +1,204 @@
+/* ok-actually test fixture — complex real-world CSS */
+/* This file exercises every color format and edge case */
+
+:root {
+  /* Hex formats: short, short+alpha, long, long+alpha */
+  --hex-short: #f00;
+  --hex-short-alpha: #f008;
+  --hex-long: #ff0000;
+  --hex-long-alpha: #ff000080;
+  --hex-mixed: #3498db;
+
+  /* RGB/RGBA: legacy comma and modern space syntax */
+  --rgb-legacy: rgb(255, 128, 0);
+  --rgba-legacy: rgba(255, 128, 0, 0.75);
+  --rgb-modern: rgb(255 128 0);
+  --rgb-modern-alpha: rgb(255 128 0 / 50%);
+  --rgb-percent: rgb(100%, 50%, 0%);
+
+  /* HSL/HSLA */
+  --hsl-legacy: hsl(210, 100%, 50%);
+  --hsla-legacy: hsla(210, 100%, 50%, 0.6);
+  --hsl-modern: hsl(210 100% 50%);
+  --hsl-modern-alpha: hsl(210 100% 50% / 0.25);
+
+  /* HWB — CSS Color Module Level 4 */
+  --hwb-basic: hwb(210 0% 0%);
+  --hwb-alpha: hwb(210 0% 0% / 0.5);
+  --hwb-gray: hwb(0 50% 50%);
+
+  /* color(srgb ...) — CSS Color Module Level 5 */
+  --color-srgb: color(srgb 1 0.5 0);
+  --color-srgb-alpha: color(srgb 1 0.5 0 / 0.8);
+
+  /* Named colors */
+  --named-red: red;
+  --named-rebeccapurple: rebeccapurple;
+  --named-transparent: transparent;
+  --named-cornflowerblue: cornflowerblue;
+
+  /* Already-modern: must pass through UNCHANGED */
+  --modern-oklch: oklch(62.8% 0.2577 29.23);
+  --modern-oklch-alpha: oklch(62.8% 0.2577 29.23 / 0.5);
+  --modern-oklab: oklab(0.628 0.224 0.126);
+  --modern-lab: lab(53.2% 80.1 67.5);
+  --modern-lch: lch(53.2% 105.0 42.6);
+  --modern-wide: color(display-p3 1 0 0);
+
+  /* Safety bails: must pass through */
+  --dynamic: var(--primary);
+  --computed: calc(100% - 20px);
+  --env-based: env(safe-area-inset-top);
+  --current: currentColor;
+
+  /* String content: must NOT be touched */
+  --string-hex: "#ff0000";
+}
+
+/* ID selectors: must NOT be confused with hex colors */
+#main { color: red; }
+#sidebar { background: #333; }
+#ff0000 { display: none; } /* edge case: id looks like hex */
+
+/* Complex selectors with colors */
+.btn-primary {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: 2px solid rgba(52, 152, 219, 0.5);
+  box-shadow: 0 4px 6px hsla(210, 50%, 50%, 0.3);
+}
+
+.btn-danger {
+  background: linear-gradient(to right, #e74c3c, #c0392b);
+  color: #fff;
+}
+
+.btn-warning {
+  background: radial-gradient(circle, hwb(45 20% 0%), hwb(35 10% 10%));
+  color: black;
+}
+
+/* Gradients with mixed stops */
+.hero-banner {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    transparent 100%
+  );
+}
+
+/* Gradient that already has in oklab — must preserve */
+.modern-gradient {
+  background: linear-gradient(in oklab, #ff0000, #00ff00);
+}
+
+/* Gradient with var() stops — must skip var, still inject in oklch */
+.dynamic-gradient {
+  background: linear-gradient(to bottom, var(--start-color), var(--end-color));
+}
+
+/* Conic gradient */
+.pie-chart {
+  background: conic-gradient(
+    #ff0000 0deg 90deg,
+    #00ff00 90deg 180deg,
+    #0000ff 180deg 270deg,
+    #ffff00 270deg 360deg
+  );
+}
+
+/* Multiple colors in one declaration */
+.border-fancy {
+  border-color: #e74c3c #f39c12 #2ecc71 #3498db;
+}
+
+/* Box-shadow with colors */
+.card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Text-shadow */
+.glow {
+  text-shadow: 0 0 10px hsl(180, 100%, 50%), 0 0 20px hsl(180, 100%, 50%);
+}
+
+/* Ignore directive: this line must pass through */
+.legacy-brand { color: #bada55; } /* oklch-ignore */
+
+/* SVG fill/stroke */
+.icon path {
+  fill: rgb(100, 149, 237);
+  stroke: rgba(100, 149, 237, 0.5);
+}
+
+/* Filter with color */
+.tinted {
+  filter: drop-shadow(0 0 5px #ff6347);
+}
+
+/* backdrop-filter */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Complex nested function that should be bailed */
+.calc-color {
+  width: calc(100vw - 2rem);
+  margin: calc(var(--gap) * 2);
+}
+
+/* Media query with colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a;
+    --fg: #e0e0e0;
+    --accent: hsl(210, 80%, 60%);
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #2980b9, #1c5a85);
+  }
+}
+
+/* @supports with colors */
+@supports (color: oklch(0% 0 0)) {
+  .future-proof {
+    color: oklch(70% 0.15 250);
+  }
+}
+
+/* Animation keyframes with colors */
+@keyframes pulse {
+  0% { background: rgba(255, 0, 0, 1); }
+  50% { background: rgba(255, 0, 0, 0.5); }
+  100% { background: rgba(255, 0, 0, 1); }
+}
+
+@keyframes rainbow {
+  0% { color: #ff0000; }
+  16% { color: #ff7f00; }
+  33% { color: #ffff00; }
+  50% { color: #00ff00; }
+  66% { color: #0000ff; }
+  83% { color: #4b0082; }
+  100% { color: #9400d3; }
+}
+
+/* Very long gradient with many stops */
+.spectrum {
+  background: linear-gradient(
+    to right,
+    #ff0000,
+    #ff7f00,
+    #ffff00,
+    #00ff00,
+    #0000ff,
+    #4b0082,
+    #9400d3
+  );
+}

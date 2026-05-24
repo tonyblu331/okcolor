@@ -1,0 +1,126 @@
+---
+title: API Reference
+description: Complete API reference for ok-actually.
+sidebar:
+  order: 1
+---
+
+## `transformCss(input, options?)`
+
+Transforms a CSS string, converting legacy colors to OKLCH.
+
+```ts
+import { transformCss } from 'ok-actually/core'
+
+const result = transformCss(`
+  .card {
+    color: #ff0000;
+    background: linear-gradient(#f00, #00f);
+  }
+`, {
+  gradients: true,
+})
+
+console.log(result.css)
+// .card {
+//   color: oklch(62.8% 0.25768 29.23);
+//   background: linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05));
+// }
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input` | `string` | Raw CSS source |
+| `options` | `TransformOptions` | Optional configuration |
+
+### `TransformOptions`
+
+```ts
+interface TransformOptions {
+  /** Convert gradient stops with `in oklch` interpolation. @default true */
+  gradients?: boolean
+  /** Add `/* was: ... */` comments. @default false */
+  preserveComments?: boolean
+}
+```
+
+### Returns
+
+```ts
+interface TransformResult {
+  css: string
+  /** Number of colors converted */
+  count: number
+  /** Idempotent: true if a second pass would be a no-op */
+  idempotent: boolean
+}
+```
+
+---
+
+## `auditCss(input)`
+
+Scans CSS and reports legacy color usage without transforming.
+
+```ts
+import { auditCss } from 'ok-actually/core'
+
+const audit = auditCss(`
+  .btn { color: #3b82f6; }
+  .alert { border: 1px solid red; }
+`)
+
+console.log(audit.count)        // 2
+console.log(audit.hex)          // 1
+console.log(audit.rgb)          // 0
+console.log(audit.hsl)          // 0
+console.log(audit.hwb)          // 0
+console.log(audit.named)        // 1
+console.log(audit.colorSrgb)    // 0
+console.log(audit.gradients)    // 0
+```
+
+---
+
+## Vite Plugin
+
+```ts
+import { okActually } from 'ok-actually'
+
+// Default options
+okActually()
+
+// With options
+okActually({
+  include: ['src/**/*.css'],
+  exclude: ['src/vendor/**'],
+  gradients: true,
+  preserveComments: false,
+})
+```
+
+### `VitePluginOptions`
+
+```ts
+interface VitePluginOptions {
+  include?: string | string[]
+  exclude?: string | string[]
+  gradients?: boolean
+  preserveComments?: boolean
+}
+```
+
+---
+
+## CLI
+
+```bash
+# Transform
+npx ok-actually input.css -o output.css
+npx ok-actually input.css --no-gradients
+
+# Audit
+npx ok-actually audit input.css
+```

@@ -1,0 +1,62 @@
+---
+title: CLI
+description: Transform CSS files from the command line.
+sidebar:
+  order: 3
+---
+
+## Usage
+
+```bash
+npx ok-actually input.css -o output.css
+```
+
+## Commands
+
+### `transform`
+
+Transform a single CSS file (default command):
+
+```bash
+npx ok-actually transform input.css -o output.css
+```
+
+### `audit`
+
+Scan a CSS file and report how many legacy colors it contains:
+
+```bash
+npx ok-actually audit input.css
+```
+
+Output:
+```
+Found 42 legacy colors:
+  - 12 hex values
+  - 8 rgb() declarations
+  - 15 hsl() declarations
+  - 7 named colors
+```
+
+## Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-o, --output <path>` | Output file path | stdout |
+| `--no-gradients` | Skip gradient conversion | gradients enabled |
+| `--preserve-comments` | Add `/* was: ... */` comments | false |
+
+## Programmatic API
+
+```ts
+import { transformCss, auditCss } from 'ok-actually/core'
+
+const result = transformCss(`
+  .btn { color: #ff0000; }
+`)
+console.log(result.css)
+// .btn { color: oklch(62.8% 0.25768 29.23); }
+
+const audit = auditCss(source)
+console.log(audit.count) // number of legacy colors found
+```

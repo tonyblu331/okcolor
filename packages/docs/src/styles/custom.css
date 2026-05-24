@@ -1,0 +1,94 @@
+:root {
+  --sl-color-accent-low: #2e1a47;
+  --sl-color-accent: #7c3aed;
+  --sl-color-accent-high: #c4b5fd;
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #f3f4f6;
+  --sl-color-gray-2: #e5e7eb;
+  --sl-color-gray-3: #d1d5db;
+  --sl-color-gray-4: #9ca3af;
+  --sl-color-gray-5: #6b7280;
+  --sl-color-gray-6: #4b5563;
+  --sl-color-gray-7: #374151;
+  --sl-color-black: #111827;
+}
+
+[data-theme='dark'] {
+  --sl-color-accent-low: #1e1b4b;
+  --sl-color-accent: #8b5cf6;
+  --sl-color-accent-high: #ddd6fe;
+}
+
+.benchmark-bar {
+  background: linear-gradient(90deg, var(--sl-color-accent) 0%, var(--sl-color-accent-high) 100%);
+  border-radius: 4px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  transition: width 0.5s ease;
+}
+
+.benchmark-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 100px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sl-color-gray-3);
+}
+
+.benchmark-label {
+  font-weight: 500;
+  color: var(--sl-color-gray-6);
+}
+
+.benchmark-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--sl-color-accent);
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 0.3em;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.playground-input {
+  font-family: var(--sl-font-mono);
+  font-size: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-3);
+  background: var(--sl-color-gray-1);
+  color: var(--sl-color-black);
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.playground-output {
+  font-family: var(--sl-font-mono);
+  font-size: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--sl-color-black);
+  color: var(--sl-color-gray-1);
+  min-height: 120px;
+  overflow-x: auto;
+}
+
+[data-theme='dark'] .playground-input {
+  background: var(--sl-color-gray-7);
+  border-color: var(--sl-color-gray-6);
+  color: var(--sl-color-gray-1);
+}

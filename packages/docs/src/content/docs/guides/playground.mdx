@@ -1,0 +1,19 @@
+---
+title: Playground
+description: Try ok-actually in the browser.
+sidebar:
+  order: 2
+---
+
+This simulated example shows how ok-actually transforms legacy CSS colors into OKLCH. The real engine runs at build time in pure JavaScript with sub-millisecond latency.
+
+<div class="playground-demo">
+  <div>
+    <label><strong>Input CSS</strong></label>
+    <div class="playground-input"><code>.hero &#123;<br/>  color: #ff6b6b;<br/>  background: linear-gradient(#4ecdc4, #45b7d1);<br/>&#125;<br/><br/>.btn &#123;<br/>  border: 2px solid hsl(145, 63%, 49%);<br/>  box-shadow: 0 2px 4px rgb(0 0 0 / 20%);<br/>&#125;</code></div>
+  </div>
+  <div>
+    <label><strong>Output CSS</strong></label>
+    <div class="playground-output"><code>.hero &#123;<br/>  color: oklch(67.05% 0.19255 24.67);<br/>  background: linear-gradient(in oklch, oklch(76.68% 0.11253 192.72), oklch(72.56% 0.10187 226.86));<br/>&#125;<br/><br/>.btn &#123;<br/>  border: 2px solid oklch(67.72% 0.18951 152.54);<br/>  box-shadow: 0 2px 4px oklch(0% 0 0 / 0.2);<br/>&#125;</code></div>
+  </div>
+</div>

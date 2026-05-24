@@ -1,0 +1,54 @@
+---
+title: Tailwind CSS v4
+description: Using ok-actually with Tailwind CSS v4.
+sidebar:
+  order: 1
+---
+
+Tailwind CSS v4 ships with OKLCH-based colors out of the box. `ok-actually` only transforms legacy colors in your custom CSS — it leaves Tailwind's own utilities untouched.
+
+## What gets left alone
+
+```css
+/* Tailwind v4 utility classes use OKLCH internally */
+.bg-blue-500      /* oklch(...) inside Tailwind */
+.text-red-600     /* oklch(...) inside Tailwind */
+```
+
+## What gets converted
+
+```css
+/* Your custom CSS */
+.my-brand {
+  color: #1a1a2e;
+  background: hsl(250 80% 60%);
+}
+```
+
+becomes:
+
+```css
+.my-brand {
+  color: oklch(17.68% 0.06562 274.54);
+  background: oklch(53.8% 0.22014 268.54);
+}
+```
+
+## Configuration
+
+In `vite.config.ts`:
+
+```ts
+import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+import { okActually } from 'ok-actually'
+
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+    okActually(), // After Tailwind
+  ],
+})
+```
+
+Order does not matter for correctness — Vite's plugin ordering handles CSS pipeline stages correctly.

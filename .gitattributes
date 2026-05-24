@@ -1,0 +1,7 @@
+# Auto-detect text files
+* text=auto
+
+# Generated build outputs
+/dist/** linguist-generated
+/packages/core-wasm/pkg-nodejs/** linguist-generated
+/packages/core-wasm/target/** linguist-generated

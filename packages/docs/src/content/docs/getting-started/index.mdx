@@ -1,0 +1,43 @@
+---
+title: Getting Started
+description: Install and configure ok-actually in your project.
+sidebar:
+  order: 1
+---
+
+import { Tabs, TabItem, CardGrid, LinkCard } from '@astrojs/starlight/components'
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm">
+    ```bash
+    npm install -D ok-actually
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add -D ok-actually
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add -D ok-actually
+    ```
+  </TabItem>
+</Tabs>
+
+## Choose your workflow
+
+<CardGrid>
+  <LinkCard
+    title="Vite Plugin"
+    description="Drop-in plugin for Vite, Rollup, and any Vite-based framework (Astro, SvelteKit, Nuxt, etc.)"
+    href="/ok-actually/getting-started/vite/"
+  />
+  <LinkCard
+    title="CLI"
+    description="Transform CSS files from the command line or integrate into custom build pipelines"
+    href="/ok-actually/getting-started/cli/"
+  />
+</CardGrid>

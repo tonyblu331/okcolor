@@ -1,0 +1,17 @@
+{
+  "name": "@ok-actually/docs",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx astro dev",
+    "start": "npx astro dev",
+    "build": "npx astro build",
+    "preview": "npx astro preview",
+    "astro": "npx astro"
+  },
+  "dependencies": {
+    "astro": "5.18.1",
+    "@astrojs/starlight": "0.32.6",
+    "sharp": "0.33.5"
+  }
+}

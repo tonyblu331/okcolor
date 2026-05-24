@@ -1,0 +1,41 @@
+/* Test fixture for ok-actually */
+:root {
+  --primary: #3498db;
+  --danger: rgb(231, 76, 60);
+  --warning: hsl(45, 100%, 51%);
+}
+
+.btn-primary {
+  background-color: #3498db;
+  color: white;
+  border: 1px solid #2980b9;
+}
+
+.btn-danger {
+  background-color: rgb(231, 76, 60);
+  color: #ffffff; /* oklch-ignore */
+}
+
+.btn-warning {
+  background-color: hsl(45, 100%, 51%);
+  color: black;
+}
+
+.badge {
+  background-color: var(--primary);
+  border-color: currentColor;
+  width: calc(100% - 10px);
+}
+
+.alert {
+  background-color: red;
+  border-left: 4px solid crimson;
+}
+
+.hero {
+  background: linear-gradient(to right, #ff0000, #00ff00);
+}
+
+.banner {
+  background: radial-gradient(circle, rgb(255,0,0), blue);
+}
