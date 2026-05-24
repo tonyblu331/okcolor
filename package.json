@@ -58,6 +58,8 @@
   },
   "devDependencies": {
     "@types/node": "22.19.19",
+    "colorjs.io": "^0.6.1",
+    "culori": "^4.0.2",
     "eslint": "9.39.4",
     "prettier": "3.8.3",
     "tsdown": "0.10.2",

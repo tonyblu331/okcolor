@@ -1,17 +1,41 @@
 # okcolor
 
 [![npm](https://img.shields.io/npm/v/okcolor?label=okcolor&color=16a34a)](https://www.npmjs.com/package/okcolor)
-[![CI](https://img.shields.io/github/actions/workflow/status/tonyblu331/okcolor/ci.yml?branch=main&label=CI&color=16a34a)](https://github.com/tonyblu331/okcolor/actions)
-[![Docs](https://img.shields.io/github/actions/workflow/status/tonyblu331/okcolor/deploy-docs.yml?branch=main&label=docs&color=16a34a)](https://tonyblu331.github.io/okcolor)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
-[![Benchmark: 55 MB/s](https://img.shields.io/badge/throughput-55_MB_s-16a34a)](#benchmarks)
 
 Zero-config, build-time color modernizer for **Vite** and **Tailwind CSS**. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** at build time. Zero runtime overhead.
 
-- **Rust/WASM engine** compiles to ~80 KB — processes **55 MB/s**
+- **Rust/WASM engine** — ~145 KB total
 - **W3C-exact matrices** (Ottosson 2020, CSS Color 4) — sub-5e-5 error vs Culori
 - **Idempotent** — second pass is a no-op
 - **Cache** — 4096-slot direct-mapped: `#ff0000`, `rgb(255,0,0)`, and `red` hit the same slot
+
+## Why okcolor?
+
+The web is modernizing. Design tokens are shifting from Hex and `rgb()` to perceptually uniform spaces like **OKLCH** and **Oklab** — spaces where lightness maps to what humans actually see, where interpolation doesn't turn muddy, and where gamut boundaries make sense.
+
+AI agents still emit Hex. Most color pickers still default to `#`. Established workflows are built on decades of sRGB hex codes. And that's fine — Hex is human-readable, compact, and universal. But when you're targeting modern displays (Display P3, Rec2020) with wider gamuts and extended ranges, Hex locks you into sRGB.
+
+okcolor breaks that lock. Write your colors however you want — **Hex**, **RGB**, **HSL**, **HWB**, named, modern — and okcolor converts them to **OKLCH at build time**. Work in the space that makes sense for your intent, then compile to modern CSS. Zero runtime cost, zero lock-in.
+
+## Compared to alternatives
+
+| Feature | okcolor | Culori | color.js | PostCSS |
+|---------|---------|--------|----------|---------|
+| Hex → OKLCH | ✓ | ✓ | ✓ | — |
+| RGB/HSL/HWB → OKLCH | ✓ | ✓ | ✓ | — |
+| Named colors → OKLCH | ✓ | ✓ | ✓ | — |
+| Full CSS parse (comments, strings, var()) | ✓ | ✗ | ✗ | ✓ |
+| color-mix() pass-through | ✓ | ✗ | ✓ | ✓ |
+| light-dark() pass-through | ✓ | ✗ | ✓ | — |
+| Display-P3 / Rec2020 pass-through | ✓ | ✓ | ✓ | ✓ |
+| auto-detect legacy colors | ✓ | ✗ | ✗ | — |
+| oklch-ignore escape hatch | ✓ | ✗ | ✗ | — |
+| Build-time only (zero runtime) | ✓ | ✗ | ✗ | ✓ |
+| CLI with audit / check / doctor | ✓ | ✗ | ✗ | — |
+| WASM engine | ✓ | ✗ | ✗ | — |
+| 4096-slot color cache | ✓ | ✗ | ✗ | — |
+| Idempotent (no-op on modern CSS) | ✓ | ✗ | ✗ | — |
 
 ## Install
 
@@ -89,14 +113,16 @@ Modern colors (`oklch()`, `oklab()`, `color(display-p3 ...)`, `color-mix()`, `li
 
 ## Benchmarks
 
-| Metric | okcolor (WASM) | Culori | color.js |
-|--------|---------------|--------|----------|
-| Throughput | **55 MB/s** | ~12 µs/color | ~18 µs/color |
-| Per-color (cached) | **0.24 µs** | — | — |
-| Per-color (cold) | 0.31 µs | — | — |
-| Bundle | **80 KB** | — | — |
+| Metric | okcolor | Culori | color.js |
+|--------|---------|--------|----------|
+| Per-color (cached) | **0.68 µs** | — | — |
+| Per-color (cold) | **0.77 µs** | 0.83 µs | 20.6 µs |
+| CSS transform (100 KB) | **45 MB/s** | 66 MB/s¹ | 4.4 MB/s¹ |
+| Bundle size | **145 KB** | 134 KB | 198 KB |
 
-Measured on AMD Ryzen 7 5800X, Node.js 26. The full 5-stage pipeline (parse, gamma decode, matrix, cache, format) runs in a single pass.
+¹ Culori and color.js use regex-based CSS scanning (fewer edge cases handled — no named color support, no comment/string awareness). okcolor does full lexical analysis.
+
+Measured on Intel Core i9-13900H, Node.js 26. The full 5-stage pipeline (parse, gamma decode, matrix, cache, format) runs in a single WASM pass. Per-color averages across 10 different color values.
 
 ## Documentation
 
