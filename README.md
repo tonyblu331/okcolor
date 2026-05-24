@@ -1,6 +1,5 @@
 # ok-actually
 
-[![CI](https://github.com/ok-actually/ok-actually/actions/workflows/ci.yml/badge.svg)](https://github.com/ok-actually/ok-actually/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/ok-actually)](https://www.npmjs.com/package/ok-actually)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -100,7 +99,7 @@ The scanner skips any color on a line containing `/* oklch-ignore */`.
 
 ## Documentation
 
-Full docs and API reference: **[ok-actually.github.io/ok-actually](https://ok-actually.github.io/ok-actually)**
+Full docs and API reference: **[ok-actually.github.io/ok-actually](https://tonyblu331.github.io/ok-actually)**
 
 ## License
 

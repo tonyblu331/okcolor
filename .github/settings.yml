@@ -4,7 +4,7 @@
 repository:
   name: ok-actually
   description: Zero-config, build-time color modernizer for Vite and Tailwind CSS. Converts legacy Hex/RGB/HSL to perceptually uniform OKLCH.
-  homepage: https://ok-actually.github.io/ok-actually
+  homepage: https://tonyblu331.github.io/ok-actually
   topics:
     - oklch
     - color
