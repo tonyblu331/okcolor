@@ -5,7 +5,7 @@
 
 Zero-config, build-time color modernizer for **Vite** and **Tailwind CSS**. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** at build time. Zero runtime overhead.
 
-- **Rust/WASM engine** compiles to ~80 KB — processes **55 MB/s**
+- **Rust/WASM engine** 
 - **W3C-exact matrices** (Ottosson 2020, CSS Color 4) — sub-5e-5 error vs Culori
 - **Idempotent** — second pass is a no-op
 - **Cache** — 4096-slot direct-mapped: `#ff0000`, `rgb(255,0,0)`, and `red` hit the same slot
@@ -92,8 +92,6 @@ Modern colors (`oklch()`, `oklab()`, `color(display-p3 ...)`, `color-mix()`, `li
 | Per-color (cached) | **0.24 µs** | — | — |
 | Per-color (cold) | 0.31 µs | — | — |
 | Bundle | **80 KB** | — | — |
-
-Measured on AMD Ryzen 7 5800X, Node.js 26. The full 5-stage pipeline (parse, gamma decode, matrix, cache, format) runs in a single pass.
 
 ## Documentation
 
