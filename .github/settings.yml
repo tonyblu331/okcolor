@@ -3,7 +3,7 @@
 
 repository:
   name: okcolor
-  description: Zero-config, build-time color modernizer for Vite and Tailwind CSS. Converts legacy Hex/RGB/HSL to perceptually uniform OKLCH.
+  description: Zero-config, build-time color modernizer for Vite and Tailwind CSS. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform OKLCH.
   homepage: https://tonyblu331.github.io/okcolor
   topics:
     - oklch
