@@ -4,14 +4,56 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prepatch
+          - preminor
+          - premajor
 
 permissions:
   contents: write
   id-token: write
 
 jobs:
+  prepare-release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Bump version and push tag
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version ${{ inputs.version }}
+          git push --follow-tags
+          echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
   test:
     name: Test
+    needs: [prepare-release]
+    if: always() && (needs.prepare-release.result == 'success' || needs.prepare-release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,13 +104,23 @@ jobs:
 
   release:
     name: GitHub Release
-    needs: [test, publish-npm]
+    needs: [test, publish-npm, prepare-release]
+    if: always() && (needs.prepare-release.result == 'success' || needs.prepare-release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Determine tag
+        id: tag
+        run: |
+          TAG="${{ needs.prepare-release.outputs.tag }}"
+          if [[ -z "$TAG" ]]; then
+            TAG="${{ github.ref_name }}"
+          fi
+          echo "name=$TAG" >> "$GITHUB_OUTPUT"
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag.outputs.name }}
           generate_release_notes: true
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
