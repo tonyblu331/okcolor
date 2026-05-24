@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Zero-config, build-time color modernizer for Vite and Tailwind CSS",
   "license": "MIT",
-  "author": "okcolor contributors",
+  "author": "Antonio Bonet",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tonyblu331/okcolor.git"
+    "url": "git+https://github.com/tonyblu331/okcolor.git"
   },
   "bugs": {
     "url": "https://github.com/tonyblu331/okcolor/issues"
@@ -42,7 +42,7 @@
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "bin": {
-    "okcolor": "./dist/cli.js"
+    "okcolor": "dist/cli.js"
   },
   "files": [
     "dist"

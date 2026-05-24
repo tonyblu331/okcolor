@@ -8,6 +8,14 @@ Zero-config build-time color modernizer. Converts legacy Hex, RGB, HSL, HWB, and
 ## Install
 
 ```bash
+pnpm add -D okcolor
+```
+
+```bash
+bun add -D okcolor
+```
+
+```bash
 npm install -D okcolor
 ```
 
