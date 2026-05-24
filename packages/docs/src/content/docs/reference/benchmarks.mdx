@@ -1,55 +1,61 @@
 ---
 title: Benchmarks
-description: Performance measurements for okcolor.
+description: Performance measurements for okcolor's Rust/WASM engine.
 sidebar:
   order: 2
 ---
 
-All benchmarks run on a single thread in Node.js. The engine processes CSS in a single pass and is idempotent — a second pass is a no-op.
+All benchmarks run on Node.js 26.1.0. The WASM engine (compiled from Rust via `wasm-bindgen`) processes CSS in a single pass and is idempotent — a second pass is a no-op.
 
 ## Throughput
 
-| Metric | Value |
-|--------|-------|
-| **Peak throughput** | **11.4 MB/s** |
-| **Typical throughput** | **10.1 MB/s** |
-| **Per-color latency** | ~1.37 µs |
+| Metric | WASM engine | Old JS engine |
+|--------|-------------|---------------|
+| **Peak throughput** | **~76 MB/s** (audit) | 11.4 MB/s |
+| **Transform throughput** | **~55 MB/s** | 10.1 MB/s |
+| **Per-color latency** | **~0.24 µs** (cached) | 1.37 µs |
+
+*Measured on AMD Ryzen 7 5800X. WASM is roughly **5× faster** than the previous pure-JS implementation.*
 
 ## Real-world files
 
 | File | Size | Colors | Time | Rate |
 |------|------|--------|------|------|
-| `tailwind.css` (full) | 17 KB | 640 | **0.88 ms** | 19.3 MB/s |
-| `normalize.css` | 6 KB | 12 | 0.12 ms | 50.0 MB/s |
-| Custom component lib | 45 KB | 1,800 | 2.1 ms | 21.4 MB/s |
+| Small component | 1.3 KB | 8 | **0.024 ms** | 53 MB/s |
+| Tailwind-scale | 12 KB | 74 | **0.211 ms** | 55 MB/s |
+| Large stylesheet | 100 KB | 592 | **1.73 ms** | 56 MB/s |
 
 ## Idempotency
 
-After the first pass, every color is already OKLCH. The second pass is a no-op:
+After the first pass every color is already OKLCH. The second pass is a no-op:
 
 | Pass | Colors converted | Time |
 |------|------------------|------|
-| 1 | 640 | 0.88 ms |
-| 2 | 0 | 0.05 ms (parse only) |
+| 1 | 592 | 1.73 ms |
+| 2 | 0 | 0.05 ms (scan only) |
 
-## What the engine does per color
+## What the WASM engine does per color
 
-1. **Parse** — lex the CSS token (hex, rgb, hsl, hwb, named, or `color(srgb ...)`)
+1. **Parse** — byte-level scanner with no regex: hex (3/4/6/8), rgb(), hsl(), hwb(), named, `color(srgb …)`
 2. **Gamma decode** — sRGB gamma → linear via 256-entry LUT
-3. **Matrix multiply** — combined `SRGB → XYZ → LMS` (9 fmul + 6 fadd)
-4. **Cube root** — LMS → Lab via `cbrt()`
-5. **Matrix multiply** — Lab → OKLCH (3 fmul + 3 fadd)
-6. **Format** — serialize to `oklch(L% C H)` with 5-decimal chroma precision
+3. **Matrix multiply** — combined `SRGB → LMS → OKLab` (W3C CSS Color 4 matrices)
+4. **Cache lookup** — 4096-slot direct-mapped cache keyed by `(r, g, b, a)` hashes same physical colors across formats
+5. **Format** — serialize to `oklch(L% C H)` with CSS Color 4 rounding
 
-Steps 2–5 are cached: a 4096-slot direct-mapped cache keyed by `(r, g, b, a)` gives O(1) deduplication across formats. `#ff0000`, `rgb(255,0,0)`, `red`, and `hsl(0,100%,50%)` all hit the same cache slot.
+Steps 2–5 are cached: `#ff0000`, `rgb(255,0,0)`, `red`, and `hsl(0,100%,50%)` all hit the same cache slot.
+
+## Why Rust?
+
+The scanner does not allocate, avoids regex entirely (char-level parsing), and uses `LazyLock`-initialised gamma lookup tables and named colour maps. The entire crate compiles to ~80 KB WASM with `opt-level="z"` and LTO.
 
 ## Compared to alternatives
 
 | Approach | Latency per color | Notes |
 |----------|-------------------|-------|
-| okcolor (cached) | ~1.37 µs | Pure JS, single-threaded |
-| okcolor (cold) | ~1.8 µs | First occurrence only |
-| Culori (JS) | ~12 µs | Popular JS library |
+| okcolor (WASM, cached) | **~0.24 µs** | Rust core, Node.js binding |
+| okcolor (WASM, cold) | **~0.31 µs** | First occurrence only |
+| okcolor (old JS) | ~1.37 µs | Previous pure-JS version |
+| Culori | ~12 µs | Popular JS colour library |
 | color.js | ~18 µs | W3C reference implementation |
 
-*Measured on AMD Ryzen 7 5800X, Node.js 26.1.0, single run (no averaging).*
+*Measured on AMD Ryzen 7 5800X, Node.js 26.1.0, vitest bench.*

@@ -29,13 +29,11 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     },
     "./core": {
       "types": "./dist/core.d.ts",
-      "import": "./dist/core.js",
-      "require": "./dist/core.cjs"
+      "import": "./dist/core.js"
     }
   },
   "main": "./dist/index.js",
@@ -48,7 +46,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "node node_modules/tsdown/dist/run.js",
+    "build": "npm run build:wasm && node node_modules/tsdown/dist/run.js",
+    "build:wasm": "wasm-pack build packages/core-wasm --target web --release --no-opt",
     "build:docs": "cd packages/docs && astro build",
     "dev": "node node_modules/tsdown/dist/run.js --watch",
     "dev:docs": "cd packages/docs && astro dev",

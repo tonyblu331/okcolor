@@ -6,8 +6,9 @@ export interface OkColorOptions {
   ignoreComment?: string
 }
 
-/** Color audit statistics for a single file or project. */
-export interface AuditStats {
+/** Colour usage statistics returned by auditCss. */
+export interface ScanResult {
+  css: string
   legacy_count: number
   hex_count: number
   rgb_count: number
@@ -25,5 +26,5 @@ export interface OkColorApi {
   /** Transform CSS string (uses fresh interner). */
   transform: (css: string) => string
   /** Audit CSS string and return statistics. */
-  audit: (css: string) => AuditStats
+  audit: (css: string) => ScanResult
 }

@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite'
-import { transformCss } from './engine/index.js'
+import { transformCss } from './wasm.js'
 import type { OkColorOptions } from './types.js'
 
 const CSS_RE = /\.(css|scss|sass|less|styl|stylus)$/i
@@ -15,6 +15,10 @@ export function okColor(_options?: OkColorOptions): Plugin {
   return {
     name,
     enforce: 'pre',
+
+    async buildStart() {
+      await ensureWasm()
+    },
 
     async transform(code, id) {
       // Plain CSS files
@@ -35,7 +39,7 @@ export function okColor(_options?: OkColorOptions): Plugin {
 }
 
 /**
- * Extract and transform `<style>` blocks from framework files.
+ * Extract and transform <style> blocks from framework files.
  * This is a lightweight regex-based approach for the MVP.
  */
 function transformEmbeddedStyles(source: string): string {

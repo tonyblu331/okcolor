@@ -5,17 +5,21 @@ sidebar:
   order: 3
 ---
 
+import TerminalDemo from '../../../components/TerminalDemo.astro'
+
 ## Usage
 
 ```bash
 npx okcolor input.css -o output.css
 ```
 
+<TerminalDemo />
+
 ## Commands
 
 ### `transform`
 
-Transform a single CSS file (default command):
+Transform a single CSS file. This is the default command:
 
 ```bash
 npx okcolor transform input.css -o output.css
@@ -23,10 +27,10 @@ npx okcolor transform input.css -o output.css
 
 ### `audit`
 
-Scan a CSS file and report how many legacy colors it contains:
+Scan CSS files and report legacy color usage:
 
 ```bash
-npx okcolor audit input.css
+npx okcolor audit ./src
 ```
 
 Output:
@@ -38,6 +42,22 @@ Found 42 legacy colors:
   - 7 named colors
 ```
 
+### `check`
+
+CI gate. Fails with exit code 1 if legacy colors exceed the limit:
+
+```bash
+npx okcolor check --max-legacy-colors=10
+```
+
+### `doctor`
+
+Diagnose color issues: malformed values, low contrast, or unexpected patterns:
+
+```bash
+npx okcolor doctor ./src
+```
+
 ## Options
 
 | Flag | Description | Default |
@@ -45,6 +65,8 @@ Found 42 legacy colors:
 | `-o, --output <path>` | Output file path | stdout |
 | `--no-gradients` | Skip gradient conversion | gradients enabled |
 | `--preserve-comments` | Add `/* was: ... */` comments | false |
+| `--format <format>` | Output format (`text`, `json`) | `text` |
+| `--max-legacy-colors <n>` | Fail if more than n legacy colors (check) | — |
 
 ## Programmatic API
 
@@ -54,9 +76,9 @@ import { transformCss, auditCss } from 'okcolor/core'
 const result = transformCss(`
   .btn { color: #ff0000; }
 `)
-console.log(result.css)
+console.log(result)
 // .btn { color: oklch(62.8% 0.25768 29.23); }
 
 const audit = auditCss(source)
-console.log(audit.count) // number of legacy colors found
+console.log(audit.legacy_count) // number of legacy colors found
 ```

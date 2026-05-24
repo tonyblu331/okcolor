@@ -5,6 +5,8 @@ sidebar:
   order: 2
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components'
+
 ## Setup
 
 Add the plugin to your `vite.config.ts`:
@@ -25,27 +27,27 @@ That's it. Every `.css` file processed by Vite will have legacy colors automatic
 ## Options
 
 ```ts
-interface okColorOptions {
-  /** 
-   * Include only files matching these glob patterns.
-   * @default ['**/*.css']
+interface OkColorOptions {
+  /**
+   * Only process files matching these glob patterns.
+   * @default ['**'/'*.css']
    */
   include?: string | string[]
 
-  /** 
-   * Exclude files matching these glob patterns.
-   * @default ['node_modules/**']
+  /**
+   * Skip files matching these glob patterns.
+   * @default ['node_modules/'*'*']
    */
   exclude?: string | string[]
 
   /**
-   * Whether to add `in oklch` to linear-gradient() stops.
+   * Add `in oklch` to gradient color stops.
    * @default true
    */
   gradients?: boolean
 
   /**
-   * Preserve original color comments next to converted values.
+   * Preserve original color as comments next to converted values.
    * @default false
    */
   preserveComments?: boolean

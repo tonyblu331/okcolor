@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { resolve, extname, join } from 'path'
-import { transformCss, auditCss } from './engine/index.js'
-import type { ScanResult } from './engine/index.js'
+import { transformCss, auditCss } from './wasm.js'
+import type { ScanResult } from './types.js'
 
 const CSS_EXTS = new Set(['.css', '.scss', '.sass', '.less', '.styl', '.stylus', '.vue', '.svelte', '.astro'])
 

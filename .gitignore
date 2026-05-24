@@ -7,3 +7,9 @@ dist/
 coverage/
 .vscode/
 .idea/
+
+.commandcode/
+
+# Rust / WASM build artifacts
+packages/core-wasm/target/
+packages/core-wasm/pkg/
