@@ -1,10 +1,7 @@
 # okcolor
 
 [![npm](https://img.shields.io/npm/v/okcolor?label=okcolor&color=16a34a)](https://www.npmjs.com/package/okcolor)
-[![CI](https://img.shields.io/github/actions/workflow/status/tonyblu331/okcolor/ci.yml?branch=main&label=CI&color=16a34a)](https://github.com/tonyblu331/okcolor/actions)
-[![Docs](https://img.shields.io/github/actions/workflow/status/tonyblu331/okcolor/deploy-docs.yml?branch=main&label=docs&color=16a34a)](https://tonyblu331.github.io/okcolor)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
-[![Benchmark: 55 MB/s](https://img.shields.io/badge/throughput-55_MB_s-16a34a)](#benchmarks)
 
 Zero-config, build-time color modernizer for **Vite** and **Tailwind CSS**. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** at build time. Zero runtime overhead.
 
