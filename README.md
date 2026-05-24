@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/ok-actually)](https://www.npmjs.com/package/ok-actually)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> Zero-config build-time color modernizer. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** before they reach the browser.
+Zero-config build-time color modernizer. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** before they reach the browser.
 
 ## Install
 
