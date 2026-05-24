@@ -1,6 +1,6 @@
 ---
 title: Vite Plugin
-description: Use ok-actually as a Vite plugin.
+description: Use okcolor as a Vite plugin.
 sidebar:
   order: 2
 ---
@@ -11,11 +11,11 @@ Add the plugin to your `vite.config.ts`:
 
 ```ts
 import { defineConfig } from 'vite'
-import { okActually } from 'ok-actually'
+import { okColor } from 'okcolor'
 
 export default defineConfig({
   plugins: [
-    okActually(),
+    okColor(),
   ],
 })
 ```
@@ -25,7 +25,7 @@ That's it. Every `.css` file processed by Vite will have legacy colors automatic
 ## Options
 
 ```ts
-interface OkActuallyOptions {
+interface okColorOptions {
   /** 
    * Include only files matching these glob patterns.
    * @default ['**/*.css']
@@ -55,11 +55,11 @@ interface OkActuallyOptions {
 ### Example with options
 
 ```ts
-import { okActually } from 'ok-actually'
+import { okColor } from 'okcolor'
 
 export default defineConfig({
   plugins: [
-    okActually({
+    okColor({
       include: ['src/**/*.css'],
       exclude: ['src/vendor/**'],
       gradients: true,
@@ -70,7 +70,7 @@ export default defineConfig({
 
 ## Tailwind CSS v4
 
-Tailwind CSS v4 uses OKLCH for its own color utilities, so ok-actually leaves them alone. It only transforms legacy colors in your custom CSS:
+Tailwind CSS v4 uses OKLCH for its own color utilities, so okcolor leaves them alone. It only transforms legacy colors in your custom CSS:
 
 ```css
 /* Input */
@@ -98,4 +98,4 @@ Tailwind CSS v4 uses OKLCH for its own color utilities, so ok-actually leaves th
 | Next.js | No | Uses webpack / turbopack |
 | Create React App | No | Uses webpack |
 
-For Next.js or webpack projects, use the [CLI](/ok-actually/getting-started/cli/) instead.
+For Next.js or webpack projects, use the [CLI](/okcolor/getting-started/cli/) instead.

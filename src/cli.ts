@@ -101,7 +101,7 @@ async function runAudit(args: CliArgs): Promise<void> {
     return
   }
 
-  console.log('\n  📊  ok-actually audit\n')
+  console.log('\n  📊  okcolor audit\n')
   console.log(`  Scanned ${files.length} file(s)`)
   console.log(`  ──────────────────────────────`)
   console.log(`  Total legacy colors : ${totals.legacyCount}`)
@@ -195,7 +195,7 @@ async function runDoctor(args: CliArgs): Promise<void> {
     process.exit(issues.some((i) => i.severity === 'error') ? 1 : 0)
   }
 
-  console.log('\n  🔬  ok-actually doctor\n')
+  console.log('\n  🔬  okcolor doctor\n')
   console.log(`  Scanned ${files.length} file(s)`)
 
   if (issues.length === 0) {
@@ -229,7 +229,7 @@ async function main(): Promise<void> {
       break
     default:
       console.log(`Unknown command: ${args.command}`)
-      console.log('Usage: ok-actually <audit|check|doctor> [path] [options]')
+      console.log('Usage: okcolor <audit|check|doctor> [path] [options]')
       process.exit(1)
   }
 }

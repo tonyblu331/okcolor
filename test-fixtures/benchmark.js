@@ -60,7 +60,7 @@ function generateCrossFormatCss(uniqueColors, repetitions) {
   return css
 }
 
-console.log('═══ ok-actually Performance Benchmarks ═══\n')
+console.log('═══ okcolor Performance Benchmarks ═══\n')
 console.log(`Node ${process.version}\n`)
 
 const small = generateComplexCss(10)

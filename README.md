@@ -1,14 +1,14 @@
-# ok-actually
+# okColor
 
-[![npm](https://img.shields.io/npm/v/ok-actually)](https://www.npmjs.com/package/ok-actually)
+[![npm](https://img.shields.io/npm/v/okcolor)](https://www.npmjs.com/package/okcolor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Zero-config build-time color modernizer. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** before they reach the browser.
+Zero-config build-time color modernizer. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** before they reach the browser. Conversions use **W3C-exact matrices** with sign-preserving gamma correction for sub-5e-5 accuracy against the Culori reference.
 
 ## Install
 
 ```bash
-npm install -D ok-actually
+npm install -D okcolor
 ```
 
 ## Usage
@@ -18,10 +18,10 @@ npm install -D ok-actually
 ```ts
 // vite.config.ts
 import { defineConfig } from 'vite'
-import { okActually } from 'ok-actually'
+import { okColor } from 'okcolor'
 
 export default defineConfig({
-  plugins: [okActually()],
+  plugins: [okColor()],
 })
 ```
 
@@ -31,20 +31,20 @@ Place it **before** the Tailwind CSS v4 plugin so Oxide receives wide-gamut sour
 
 ```bash
 # Audit color debt
-npx ok-actually audit
-npx ok-actually audit ./src/styles --format=json
+npx okcolor audit
+npx okcolor audit ./src/styles --format=json
 
 # Gate CI pipelines
-npx ok-actually check --max-legacy-colors=10
+npx okcolor check --max-legacy-colors=10
 
 # Diagnose malformed colors
-npx ok-actually doctor ./src/styles
+npx okcolor doctor ./src/styles
 ```
 
 ### Programmatic API
 
 ```ts
-import { transformCss, auditCss } from 'ok-actually/core'
+import { transformCss, auditCss } from 'okcolor/core'
 
 const transformed = transformCss(`
   .btn { color: #ff0000; }
@@ -85,6 +85,17 @@ console.log(stats.legacy_count) // 1
 }
 ```
 
+### Supported conversions
+
+| Input | Example | Output |
+|-------|---------|--------|
+| Hex | `#ff0000` | `oklch(62.8% 0.2577 29.23)` |
+| RGB | `rgb(255, 0, 0)` | `oklch(62.8% 0.2577 29.23)` |
+| HSL | `hsl(0, 100%, 50%)` | `oklch(62.8% 0.2577 29.23)` |
+| HWB | `hwb(0 0% 0%)` | `oklch(62.8% 0.2577 29.23)` |
+| Named | `red` | `oklch(62.8% 0.2577 29.23)` |
+| Gradient | `linear-gradient(red, blue)` | `linear-gradient(in oklch, oklch(...), oklch(...))` |
+
 Modern colors (`oklch()`, `oklab()`, `color(display-p3 ...)`, `color-mix()`, `light-dark()`, `relative-color()`) pass through untouched.
 
 ## Escape hatch
@@ -99,8 +110,8 @@ The scanner skips any color on a line containing `/* oklch-ignore */`.
 
 ## Documentation
 
-Full docs and API reference: **[ok-actually.github.io/ok-actually](https://tonyblu331.github.io/ok-actually)**
+Full docs and API reference: **[tonyblu331.github.io/okcolor](https://tonyblu331.github.io/okcolor)**
 
 ## License
 
-MIT © ok-actually contributors
+MIT © okcolor contributors

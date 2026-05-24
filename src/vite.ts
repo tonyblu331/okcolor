@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite'
 import { transformCss } from './engine/index.js'
-import type { OkActuallyOptions } from './types.js'
+import type { OkColorOptions } from './types.js'
 
 const CSS_RE = /\.(css|scss|sass|less|styl|stylus)$/i
 const STYLE_RE = /\.(vue|svelte|astro)$/i
@@ -9,8 +9,8 @@ const STYLE_RE = /\.(vue|svelte|astro)$/i
  * Create a Vite plugin that transforms legacy CSS colors to OKLCH
  * during the `pre` build phase.
  */
-export function okActually(_options?: OkActuallyOptions): Plugin {
-  const name = 'ok-actually'
+export function okColor(_options?: OkColorOptions): Plugin {
+  const name = 'okcolor'
 
   return {
     name,

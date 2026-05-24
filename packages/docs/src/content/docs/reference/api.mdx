@@ -1,6 +1,6 @@
 ---
 title: API Reference
-description: Complete API reference for ok-actually.
+description: Complete API reference for okcolor.
 sidebar:
   order: 1
 ---
@@ -10,7 +10,7 @@ sidebar:
 Transforms a CSS string, converting legacy colors to OKLCH.
 
 ```ts
-import { transformCss } from 'ok-actually/core'
+import { transformCss } from 'okcolor/core'
 
 const result = transformCss(`
   .card {
@@ -65,7 +65,7 @@ interface TransformResult {
 Scans CSS and reports legacy color usage without transforming.
 
 ```ts
-import { auditCss } from 'ok-actually/core'
+import { auditCss } from 'okcolor/core'
 
 const audit = auditCss(`
   .btn { color: #3b82f6; }
@@ -87,13 +87,13 @@ console.log(audit.gradients)    // 0
 ## Vite Plugin
 
 ```ts
-import { okActually } from 'ok-actually'
+import { okColor } from 'okcolor'
 
 // Default options
-okActually()
+okColor()
 
 // With options
-okActually({
+okColor({
   include: ['src/**/*.css'],
   exclude: ['src/vendor/**'],
   gradients: true,
@@ -118,9 +118,9 @@ interface VitePluginOptions {
 
 ```bash
 # Transform
-npx ok-actually input.css -o output.css
-npx ok-actually input.css --no-gradients
+npx okcolor input.css -o output.css
+npx okcolor input.css --no-gradients
 
 # Audit
-npx ok-actually audit input.css
+npx okcolor audit input.css
 ```

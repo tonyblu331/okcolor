@@ -1,7 +1,7 @@
 import type { Plugin } from 'vite'
 
-/** Options for the ok-actually Vite plugin. */
-export interface OkActuallyOptions {
+/** Options for the okColor Vite plugin. */
+export interface OkColorOptions {
   /** Inline comment that prevents conversion on the current line. */
   ignoreComment?: string
 }
@@ -19,9 +19,9 @@ export interface AuditStats {
 }
 
 /** Public API shape. */
-export interface OkActuallyApi {
+export interface OkColorApi {
   /** Create a Vite plugin instance. */
-  vite: (options?: OkActuallyOptions) => Plugin
+  vite: (options?: OkColorOptions) => Plugin
   /** Transform CSS string (uses fresh interner). */
   transform: (css: string) => string
   /** Audit CSS string and return statistics. */

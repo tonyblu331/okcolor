@@ -1,17 +1,17 @@
 {
-  "name": "ok-actually",
+  "name": "okcolor",
   "version": "1.0.0",
   "description": "Zero-config, build-time color modernizer for Vite and Tailwind CSS",
   "license": "MIT",
-  "author": "ok-actually contributors",
+  "author": "okcolor contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tonyblu331/ok-actually.git"
+    "url": "https://github.com/tonyblu331/okcolor.git"
   },
   "bugs": {
-    "url": "https://github.com/tonyblu331/ok-actually/issues"
+    "url": "https://github.com/tonyblu331/okcolor/issues"
   },
-  "homepage": "https://tonyblu331.github.io/ok-actually",
+  "homepage": "https://tonyblu331.github.io/okcolor",
   "keywords": [
     "oklch",
     "color",
@@ -42,7 +42,7 @@
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "bin": {
-    "ok-actually": "./dist/cli.js"
+    "okcolor": "./dist/cli.js"
   },
   "files": [
     "dist"

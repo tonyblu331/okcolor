@@ -8,7 +8,7 @@ sidebar:
 ## Usage
 
 ```bash
-npx ok-actually input.css -o output.css
+npx okcolor input.css -o output.css
 ```
 
 ## Commands
@@ -18,7 +18,7 @@ npx ok-actually input.css -o output.css
 Transform a single CSS file (default command):
 
 ```bash
-npx ok-actually transform input.css -o output.css
+npx okcolor transform input.css -o output.css
 ```
 
 ### `audit`
@@ -26,7 +26,7 @@ npx ok-actually transform input.css -o output.css
 Scan a CSS file and report how many legacy colors it contains:
 
 ```bash
-npx ok-actually audit input.css
+npx okcolor audit input.css
 ```
 
 Output:
@@ -49,7 +49,7 @@ Found 42 legacy colors:
 ## Programmatic API
 
 ```ts
-import { transformCss, auditCss } from 'ok-actually/core'
+import { transformCss, auditCss } from 'okcolor/core'
 
 const result = transformCss(`
   .btn { color: #ff0000; }

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in contributing to ok-actually!
+Thanks for your interest in contributing to okcolor!
 
 ## Development Setup
 
@@ -54,4 +54,4 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## Questions?
 
-Open a [discussion](https://github.com/ok-actually/ok-actually/discussions) or [issue](https://github.com/ok-actually/ok-actually/issues).
+Open a [discussion](https://github.com/tonyblu331/okcolor/discussions) or [issue](https://github.com/tonyblu331/okcolor/issues).

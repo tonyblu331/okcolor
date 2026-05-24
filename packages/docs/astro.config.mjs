@@ -2,20 +2,20 @@ import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 
 export default defineConfig({
-  site: 'https://ok-actually.github.io',
-  base: '/ok-actually',
+  site: 'https://okcolor.github.io',
+  base: '/okcolor',
   integrations: [
     starlight({
-      title: 'ok-actually',
+      title: 'okcolor',
       description: 'Zero-config build-time color modernizer for Vite and Tailwind CSS',
       logo: {
         src: './src/assets/hero.svg',
       },
       social: {
-        github: 'https://github.com/ok-actually/ok-actually',
+        github: 'https://github.com/tonyblu331/okcolor',
       },
       editLink: {
-        baseUrl: 'https://github.com/ok-actually/ok-actually/edit/main/packages/docs/',
+        baseUrl: 'https://github.com/tonyblu331/okcolor/edit/main/packages/docs/',
       },
       sidebar: [
         {

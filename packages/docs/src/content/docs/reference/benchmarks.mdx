@@ -1,6 +1,6 @@
 ---
 title: Benchmarks
-description: Performance measurements for ok-actually.
+description: Performance measurements for okcolor.
 sidebar:
   order: 2
 ---
@@ -47,8 +47,8 @@ Steps 2–5 are cached: a 4096-slot direct-mapped cache keyed by `(r, g, b, a)` 
 
 | Approach | Latency per color | Notes |
 |----------|-------------------|-------|
-| ok-actually (cached) | ~1.37 µs | Pure JS, single-threaded |
-| ok-actually (cold) | ~1.8 µs | First occurrence only |
+| okcolor (cached) | ~1.37 µs | Pure JS, single-threaded |
+| okcolor (cold) | ~1.8 µs | First occurrence only |
 | Culori (JS) | ~12 µs | Popular JS library |
 | color.js | ~18 µs | W3C reference implementation |
 
