@@ -151,13 +151,17 @@ async function processFiles<T>(
     chunks.push(files.slice(i, i + CONCURRENCY))
   }
   for (const chunk of chunks) {
-    const batch = await Promise.all(chunk.map(async (file) => {
+    const batch = await Promise.allSettled(chunk.map(async (file) => {
       const css = extractStyles(await readFile(file, 'utf-8'), file)
       if (!css.trim()) return null
       return { file, result: fn(css, file) }
     }))
     for (const item of batch) {
-      if (item) results.push(item)
+      if (item.status === 'fulfilled' && item.value) {
+        results.push(item.value)
+      } else if (item.status === 'rejected') {
+        console.warn(`Warning: failed to process ${(item.reason as any)?.path ?? 'unknown file'}:`, item.reason instanceof Error ? item.reason.message : String(item.reason))
+      }
     }
   }
   return results

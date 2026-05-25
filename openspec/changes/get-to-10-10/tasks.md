@@ -23,10 +23,10 @@
 
 ## Phase 4: Architecture Polish
 
-- [ ] 4.1 Add `#[cfg(not(target_arch = "wasm32"))]` to cache.rs for `RefCell` (native) / `Mutex` (wasm) conditional
+- [x] 4.1 Add `#[cfg(not(target_arch = "wasm32"))]` to cache.rs for `RwLock` (native) / `Mutex` (wasm) conditional
 - [ ] 4.2 Move named color bypass (`# ` prefix hack) from JS `wasm.ts` into Rust scan pre-filter
 - [ ] 4.3 Split `scan.rs` into module: `scanner/tokenize.rs`, `scanner/replace.rs`, `scanner/audit.rs`
-- [ ] 4.4 Replace `Promise.all` in `processFiles` (cli.ts) with per-file try-catch for resilience
+- [x] 4.4 Replace `Promise.all` in `processFiles` (cli.ts) with `Promise.allSettled` for resilience
 
 ## Phase 5: Testing Hardening
 

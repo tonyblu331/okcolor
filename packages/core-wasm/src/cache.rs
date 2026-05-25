@@ -1,4 +1,8 @@
-use std::sync::{Mutex, OnceLock};
+#[cfg(target_arch = "wasm32")]
+use std::sync::Mutex as CacheLockInner;
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::RwLock as CacheLockInner;
+use std::sync::OnceLock;
 
 const CACHE_SLOTS: usize = 4096;
 
@@ -42,18 +46,26 @@ impl Cache {
     }
 }
 
-static CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();
+type CacheLock = CacheLockInner<Cache>;
 
-fn cache() -> &'static Mutex<Cache> {
-    CACHE.get_or_init(|| Mutex::new(Cache::new()))
+static CACHE: OnceLock<CacheLock> = OnceLock::new();
+
+fn cache() -> &'static CacheLock {
+    CACHE.get_or_init(|| CacheLockInner::new(Cache::new()))
 }
 
 pub fn cache_get(r: u8, g: u8, b: u8, a: u8) -> Option<(f64, f64, f64)> {
-    cache().lock().unwrap().get(r, g, b, a)
+    #[cfg(target_arch = "wasm32")]
+    { cache().lock().unwrap().get(r, g, b, a) }
+    #[cfg(not(target_arch = "wasm32"))]
+    { cache().read().unwrap().get(r, g, b, a) }
 }
 
 pub fn cache_set(r: u8, g: u8, b: u8, a: u8, oklch: (f64, f64, f64)) {
-    cache().lock().unwrap().set(r, g, b, a, oklch);
+    #[cfg(target_arch = "wasm32")]
+    { cache().lock().unwrap().set(r, g, b, a, oklch); }
+    #[cfg(not(target_arch = "wasm32"))]
+    { cache().write().unwrap().set(r, g, b, a, oklch); }
 }
 
 #[cfg(test)]
