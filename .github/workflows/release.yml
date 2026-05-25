@@ -61,9 +61,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - run: npm ci
-      - run: npm run test
+      - run: npx tsc --noEmit
       - run: npm run build
+      - run: npm run test
 
   publish-npm:
     name: Publish to npm
@@ -76,6 +81,10 @@ jobs:
           node-version: 22
           cache: npm
           registry-url: 'https://registry.npmjs.org'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - run: npm ci
       - run: npm run build
       - run: npm publish --provenance
@@ -96,6 +105,10 @@ jobs:
           node-version: 22
           cache: npm
           registry-url: 'https://npm.pkg.github.com'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - run: npm ci
       - run: npm run build
       - run: npm publish

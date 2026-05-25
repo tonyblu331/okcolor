@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: Test
+    name: Test (TS + Rust)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,11 +20,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
       - run: npm run test
+      - run: cargo test --manifest-path packages/core-wasm/Cargo.toml
 
-  build:
-    name: Build Package
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +39,28 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: npm ci
+      - run: cargo clippy --manifest-path packages/core-wasm/Cargo.toml -- -D warnings
+
+  bench:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - run: npm ci
       - run: npm run build
+      - run: npm run bench
 
   color-check:
     name: Color Debt Gate
@@ -44,6 +71,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - run: npm ci
       - run: npm run build
       - run: node dist/cli.js check test/fixtures --max-legacy-colors=20

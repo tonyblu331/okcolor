@@ -32,7 +32,7 @@ let convertColorFn: (s: string, space: string) => string | null
     const WASM_DIR = resolveWasmDir()
     const wasmBytes = readFileSync(resolve(WASM_DIR, 'okcolor_core_bg.wasm')).buffer
     const glue = await import(pathToFileURL(resolve(WASM_DIR, 'okcolor_core.js')).href)
-    ;(glue.initSync as (opts: { module: BufferSource }) => void)({ module: wasmBytes })
+    ;(glue.initSync as (opts: { module: unknown }) => void)({ module: wasmBytes })
     transformCssFn = glue.transform_css as (s: string) => string
     auditCssFn = glue.audit_css as (s: string) => string
     colorToOklchFn = glue.color_to_oklch as (s: string) => string | null
