@@ -16,9 +16,9 @@
 
 ## Phase 3: Performance Profiling
 
-- [ ] 3.1 Profile `scan.rs` hot path with `cargo bench` or `perf`, identify bottlenecks
-- [ ] 3.2 Benchmark `aho-corasick` vs raw `match` for named color detection
-- [ ] 3.3 Optimize scanner hot path based on profiling data
+- [x] 3.1 Profile `scan.rs` hot path with `cargo bench` or `perf`, identify bottlenecks
+- [x] 3.2 Benchmark `aho-corasick` vs raw `match` for named color detection
+- [x] 3.3 Optimize scanner hot path based on profiling data
 - [ ] 3.4 Target: 1,000+ ops/s in `npm run bench` transform metric
 
 ## Phase 4: Architecture Polish

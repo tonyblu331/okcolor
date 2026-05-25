@@ -1,7 +1,11 @@
 import { describe, bench } from 'vitest'
 import { transformCss, colorToOklch, auditCss } from '../src/wasm.js'
-import * as culori from 'culori'
-import Color from 'colorjs.io'
+
+let culori: any, Color: any
+try { culori = await import('culori') } catch { /* optional peer comparison */ }
+try {
+  Color = (await import('colorjs.io')).default
+} catch { /* optional peer comparison */ }
 
 const colors = [
   '#ff0000', '#00ff00', '#0000ff', '#ffffff', '#000000',
@@ -58,7 +62,7 @@ describe('okcolor cached — #ff0000 × 100', () => {
 
 describe('Culori — per-color', () => {
   for (const c of colors) {
-    bench(`Culori: ${c}`, () => culoriToOklch(c))
+    if (culori) bench(`Culori: ${c}`, () => culoriToOklch(c))
   }
 })
 
@@ -70,7 +74,7 @@ describe('color.js — per-color', () => {
 
 describe('Whole-file transform (100 KB)', () => {
   bench('okcolor', () => transformCss(lg))
-  bench('Culori', () => culoriTransform(lg))
+  if (culori) bench('Culori', () => culoriTransform(lg))
   bench('color.js', () => colorjsTransform(lg))
 })
 
