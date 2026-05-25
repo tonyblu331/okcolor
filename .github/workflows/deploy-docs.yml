@@ -34,11 +34,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install docs dependencies
+        run: cd packages/docs && npm ci
+
       - name: Build package
         run: npm run build
 
+      - name: Run benchmarks
+        run: npm run bench -- --outputJson bench-results.json
+
+      - name: Process benchmark data for docs
+        run: node scripts/process-benchmarks.mjs bench-results.json
+
       - name: Build docs
-        run: cd packages/docs && npm run build
+        run: npm run build --workspace=packages/docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

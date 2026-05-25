@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 
 export default defineConfig({
-  site: 'https://okcolor.github.io',
+  site: 'https://tonyblu331.github.io',
   base: '/okcolor',
   integrations: [
     starlight({

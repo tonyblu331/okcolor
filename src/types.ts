@@ -18,13 +18,3 @@ export interface ScanResult {
   gradient_count: number
   unique_count: number
 }
-
-/** Public API shape. */
-export interface OkColorApi {
-  /** Create a Vite plugin instance. */
-  vite: (options?: OkColorOptions) => Plugin
-  /** Transform CSS string (uses fresh interner). */
-  transform: (css: string) => string
-  /** Audit CSS string and return statistics. */
-  audit: (css: string) => ScanResult
-}

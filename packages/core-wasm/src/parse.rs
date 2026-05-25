@@ -177,11 +177,10 @@ fn parse_u8(s: &str) -> Option<u8> {
 }
 
 fn parse_percent(s: &str) -> f64 {
-    let num = match s.strip_suffix('%') {
+    match s.strip_suffix('%') {
         Some(rest) => rest.parse::<f64>().unwrap_or(0.0),
         None => s.parse::<f64>().unwrap_or(0.0),
-    };
-    num
+    }
 }
 
 fn parse_angle(s: &str) -> f64 {

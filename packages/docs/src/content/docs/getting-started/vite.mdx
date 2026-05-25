@@ -1,11 +1,12 @@
 ---
 title: Vite Plugin
-description: Use okcolor as a Vite plugin.
+description: Drop-in okcolor plugin for Vite and Vite-based frameworks.
 sidebar:
   order: 2
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components'
+import TerminalDemo from '../../../components/TerminalDemo.astro'
 
 ## Setup
 
@@ -16,45 +17,25 @@ import { defineConfig } from 'vite'
 import { okColor } from 'okcolor'
 
 export default defineConfig({
-  plugins: [
-    okColor(),
-  ],
+  plugins: [okColor()],
 })
 ```
 
-That's it. Every `.css` file processed by Vite will have legacy colors automatically converted to OKLCH.
+Every `.css` file processed by Vite will have legacy colors converted to OKLCH automatically. No config needed.
+
+<TerminalDemo scenario="transform" />
 
 ## Options
 
 ```ts
 interface OkColorOptions {
-  /**
-   * Only process files matching these glob patterns.
-   * @default ['**'/'*.css']
-   */
-  include?: string | string[]
-
-  /**
-   * Skip files matching these glob patterns.
-   * @default ['node_modules/'*'*']
-   */
-  exclude?: string | string[]
-
-  /**
-   * Add `in oklch` to gradient color stops.
-   * @default true
-   */
-  gradients?: boolean
-
-  /**
-   * Preserve original color as comments next to converted values.
-   * @default false
-   */
-  preserveComments?: boolean
+  /** Inline comment that prevents conversion on that line.
+   *  @default 'oklch-ignore' */
+  ignoreComment?: string
 }
 ```
 
-### Example with options
+The `ignoreComment` option lets you customize the comment that triggers the escape hatch:
 
 ```ts
 import { okColor } from 'okcolor'
@@ -62,17 +43,46 @@ import { okColor } from 'okcolor'
 export default defineConfig({
   plugins: [
     okColor({
-      include: ['src/**/*.css'],
-      exclude: ['src/vendor/**'],
-      gradients: true,
+      ignoreComment: 'keep-legacy',
     }),
   ],
 })
 ```
 
+```css
+/* keep-legacy */
+.my-color { color: #ff0000; } /* this color stays as hex */
+```
+
+## Framework compatibility
+
+| Framework | Works | Notes |
+|---|---|---|
+| Vite | Yes | Native plugin |
+| Astro | Yes | Built on Vite |
+| SvelteKit | Yes | Built on Vite |
+| Nuxt | Yes | Built on Vite |
+| Remix | Yes | Vite compiler |
+| SolidStart | Yes | Built on Vite |
+| Qwik | Yes | Built on Vite |
+| Next.js | — | Uses webpack/turbopack. Use the CLI instead |
+| Create React App | — | Uses webpack. Use the CLI instead |
+
+## Supported file types
+
+| Extension | Processed as | Notes |
+|---|---|---|
+| `.css` | Plain CSS | Full scan |
+| `.scss`, `.sass` | Plain CSS | Preprocessor output |
+| `.less` | Plain CSS | Preprocessor output |
+| `.styl`, `.stylus` | Plain CSS | Preprocessor output |
+| `.vue` | SFC | `<style>` blocks only |
+| `.svelte` | SFC | `<style>` blocks only |
+| `.astro` | Component | `<style>` blocks only |
+
 ## Tailwind CSS v4
 
-Tailwind CSS v4 uses OKLCH for its own color utilities, so okcolor leaves them alone. It only transforms legacy colors in your custom CSS:
+Tailwind v4 uses OKLCH internally, so okcolor leaves its utilities alone. It only transforms colors in your custom CSS:
 
 ```css
 /* Input */
@@ -88,16 +98,4 @@ Tailwind CSS v4 uses OKLCH for its own color utilities, so okcolor leaves them a
 }
 ```
 
-## Framework compatibility
-
-| Framework | Works? | Notes |
-|-----------|--------|-------|
-| Vite | Yes | Native plugin |
-| Astro | Yes | Built on Vite |
-| SvelteKit | Yes | Built on Vite |
-| Nuxt | Yes | Built on Vite |
-| Remix | Yes | With Vite compiler |
-| Next.js | No | Uses webpack / turbopack |
-| Create React App | No | Uses webpack |
-
-For Next.js or webpack projects, use the [CLI](/okcolor/getting-started/cli/) instead.
+Order in your plugin array does not matter — Vite's plugin system handles CSS pipeline stages correctly regardless of declaration order.

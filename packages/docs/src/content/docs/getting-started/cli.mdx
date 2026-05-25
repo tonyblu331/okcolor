@@ -13,62 +13,94 @@ import TerminalDemo from '../../../components/TerminalDemo.astro'
 npx okcolor input.css -o output.css
 ```
 
-<TerminalDemo />
+The CLI is a thin wrapper around the same Rust/WASM engine used by the Vite plugin. Every color that passes through gets the exact same W3C-compliant conversion.
+
+<TerminalDemo scenario="transform" />
 
 ## Commands
 
-### `transform`
+### `okcolor <input> [output]`
 
-Transform a single CSS file. This is the default command:
+Transform a CSS file. This is the default command — you can omit the `transform` keyword:
 
 ```bash
-npx okcolor transform input.css -o output.css
+okcolor input.css -o output.css
 ```
 
-### `audit`
+If `-o` is omitted, output goes to stdout.
 
-Scan CSS files and report legacy color usage:
+### `okcolor audit <path>`
+
+Scan CSS files and report legacy color usage. Recursively walks directories:
 
 ```bash
 npx okcolor audit ./src
 ```
 
-Output:
-```
-Found 42 legacy colors:
-  - 12 hex values
-  - 8 rgb() declarations
-  - 15 hsl() declarations
-  - 7 named colors
-```
+<TerminalDemo scenario="audit" />
 
-### `check`
-
-CI gate. Fails with exit code 1 if legacy colors exceed the limit:
+Output options:
 
 ```bash
-npx okcolor check --max-legacy-colors=10
+# JSON output for automation
+npx okcolor audit ./src --format=json
 ```
 
-### `doctor`
+### `okcolor check <path>`
 
-Diagnose color issues: malformed values, low contrast, or unexpected patterns:
+CI gate. Fails with exit code 1 if legacy colors exceed a limit. Use this to enforce color modernization in your pipeline:
+
+```bash
+npx okcolor check ./src --max-legacy-colors=10
+```
+
+```bash
+# Allow named colors (gray, white, black are often fine as-is)
+npx okcolor check ./src --max-legacy-colors=10 --allow-named
+```
+
+### `okcolor doctor <path>`
+
+Diagnose color issues in your stylesheets: malformed values, extreme lightness, or unusual patterns:
 
 ```bash
 npx okcolor doctor ./src
 ```
 
+<TerminalDemo scenario="doctor" />
+
 ## Options
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-o, --output <path>` | Output file path | stdout |
-| `--no-gradients` | Skip gradient conversion | gradients enabled |
-| `--preserve-comments` | Add `/* was: ... */` comments | false |
-| `--format <format>` | Output format (`text`, `json`) | `text` |
-| `--max-legacy-colors <n>` | Fail if more than n legacy colors (check) | — |
+<table class="api-table">
+  <thead>
+    <tr>
+      <th>Flag</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>-o, --output</code> &lt;path&gt;</td>
+      <td>Output file path (default: stdout)</td>
+    </tr>
+    <tr>
+      <td><code>--format</code> &lt;format&gt;</td>
+      <td>Output format: <code>text</code> or <code>json</code></td>
+    </tr>
+    <tr>
+      <td><code>--max-legacy-colors</code> &lt;n&gt;</td>
+      <td>Fail if more than <em>n</em> legacy colors found (check command)</td>
+    </tr>
+    <tr>
+      <td><code>--allow-named</code></td>
+      <td>Don't count named colors toward the limit (check command)</td>
+    </tr>
+  </tbody>
+</table>
 
 ## Programmatic API
+
+The same engine is available programmatically via `okcolor/core`:
 
 ```ts
 import { transformCss, auditCss } from 'okcolor/core'
@@ -79,6 +111,13 @@ const result = transformCss(`
 console.log(result)
 // .btn { color: oklch(62.8% 0.25768 29.23); }
 
-const audit = auditCss(source)
-console.log(audit.legacy_count) // number of legacy colors found
+const stats = auditCss(`
+  .btn { color: #3b82f6; }
+  .alert { border-color: red; }
+`)
+console.log(stats.legacy_count) // 2
+console.log(stats.hex_count)    // 1
+console.log(stats.named_count)  // 1
 ```
+
+See the [API Reference](/okcolor/reference/api/) for the full interface.

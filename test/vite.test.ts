@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { okColor } from '../src/vite.js'
+import * as wasm from '../src/wasm.js'
 
 describe('Vite plugin', () => {
   it('has correct plugin name and enforce order', () => {
@@ -26,9 +27,48 @@ describe('Vite plugin', () => {
     expect(result).toContain('<template>')
   })
 
-  it('returns undefined for unchanged files', async () => {
+  it('returns undefined for files without colors', async () => {
     const plugin = okColor()
     const result = await plugin.transform?.('/* no colors here */', 'test.css')
     expect(result).toBeUndefined()
+  })
+
+  it('returns cached result on cache hit (same code, same id, no WASM call)', async () => {
+    const spy = vi.spyOn(wasm, 'transformCss')
+    const plugin = okColor()
+
+    const first = await plugin.transform?.('color: #ff0000;', 'test.css')
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    const second = await plugin.transform?.('color: #ff0000;', 'test.css')
+    expect(second).toBe(first) // same transformed string
+    expect(spy).toHaveBeenCalledTimes(1) // didn't call WASM again
+
+    spy.mockRestore()
+  })
+
+  it('re-transforms on cache miss (different code)', async () => {
+    const spy = vi.spyOn(wasm, 'transformCss')
+    const plugin = okColor()
+
+    await plugin.transform?.('color: #ff0000;', 'test.css')
+    await plugin.transform?.('color: #00ff00;', 'test.css')
+    expect(spy).toHaveBeenCalledTimes(2)
+
+    spy.mockRestore()
+  })
+
+  it('caches per file id independently', async () => {
+    const spy = vi.spyOn(wasm, 'transformCss')
+    const plugin = okColor()
+
+    await plugin.transform?.('color: #ff0000;', 'a.css')
+    await plugin.transform?.('color: #ff0000;', 'b.css')
+    expect(spy).toHaveBeenCalledTimes(2)
+
+    await plugin.transform?.('color: #ff0000;', 'a.css')
+    expect(spy).toHaveBeenCalledTimes(2) // cache hit for a.css
+
+    spy.mockRestore()
   })
 })

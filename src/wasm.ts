@@ -1,29 +1,30 @@
 import { readFileSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import type { ScanResult } from './types.js'
 
-function findPkgDir(): string {
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+function resolveWasmDir(): string {
   try {
-    const d = resolve(dirname(fileURLToPath(import.meta.url)), '../../packages/core-wasm/pkg')
-    readFileSync(resolve(d, 'okcolor_core_bg.wasm'))
-    return d
-  } catch { /* fall through */ }
-  const d = resolve(process.cwd(), 'packages/core-wasm/pkg')
-  readFileSync(resolve(d, 'okcolor_core_bg.wasm'))
-  return d
+    readFileSync(resolve(__dirname, 'okcolor_core_bg.wasm'))
+    return __dirname
+  } catch { /* not in dist/, try dev layout */ }
+  const pkgDir = resolve(__dirname, '..', 'packages/core-wasm/pkg')
+  readFileSync(resolve(pkgDir, 'okcolor_core_bg.wasm'))
+  return pkgDir
 }
 
-const PKG_DIR = findPkgDir()
+const WASM_DIR = resolveWasmDir()
 
-const glue = await import(resolve(PKG_DIR, 'okcolor_core.js'))
-const wasmBytes = readFileSync(resolve(PKG_DIR, 'okcolor_core_bg.wasm')).buffer
+const wasmBytes = readFileSync(resolve(WASM_DIR, 'okcolor_core_bg.wasm')).buffer
+const glue = await import(pathToFileURL(resolve(WASM_DIR, 'okcolor_core.js')).href)
 ;(glue.initSync as (opts: { module: BufferSource }) => void)({ module: wasmBytes })
 
-const transformCssFn   = glue.transform_css   as (s: string) => string
-const auditCssFn       = glue.audit_css       as (s: string) => string
-const colorToOklchFn   = glue.color_to_oklch   as (s: string) => string | null
-const convertColorFn   = glue.convert_color   as (s: string, space: string) => string | null
+const transformCssFn = glue.transform_css as (s: string) => string
+const auditCssFn = glue.audit_css as (s: string) => string
+const colorToOklchFn = glue.color_to_oklch as (s: string) => string | null
+const convertColorFn = glue.convert_color as (s: string, space: string) => string | null
 
 // ── WASM pre-scan bail-out workaround ──────────────────────────────────
 // The WASM pre-scan bails out when input has no `#`, `rgb(`, `hsl(`, etc.

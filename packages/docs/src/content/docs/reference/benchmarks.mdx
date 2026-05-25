@@ -1,61 +1,137 @@
 ---
 title: Benchmarks
-description: Performance measurements for okcolor's Rust/WASM engine.
+description: Performance measurements for the Rust/WASM engine.
 sidebar:
   order: 2
 ---
 
-All benchmarks run on Node.js 26.1.0. The WASM engine (compiled from Rust via `wasm-bindgen`) processes CSS in a single pass and is idempotent — a second pass is a no-op.
+import benchData from '../../data/benchmarks.json'
+
+The okcolor engine compiles from Rust to WASM via `wasm-bindgen` and processes CSS in a single character-level pass. No regex, no DOM, no allocations beyond the output string.
+
+Benchmarks auto-update on each `main` push via GitHub Actions — numbers below reflect the most recent run.
 
 ## Throughput
 
-| Metric | WASM engine | Old JS engine |
-|--------|-------------|---------------|
-| **Peak throughput** | **~76 MB/s** (audit) | 11.4 MB/s |
-| **Transform throughput** | **~55 MB/s** | 10.1 MB/s |
-| **Per-color latency** | **~0.24 µs** (cached) | 1.37 µs |
+<div class="bench-grid">
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.throughput.transform ? `${(benchData.throughput.transform.hz / 1000).toFixed(1)}K` : '—'}</div>
+    <div class="bench-stat-label">Mixed Transform</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.throughput.audit ? `${(benchData.throughput.audit.hz / 1000).toFixed(1)}K` : '—'}</div>
+    <div class="bench-stat-label">Mixed Audit</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.throughput.hexOnly ? `${(benchData.throughput.hexOnly.hz / 1000).toFixed(1)}K` : '—'}</div>
+    <div class="bench-stat-label">Hex Only</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.throughput.namedOnly ? `${(benchData.throughput.namedOnly.hz / 1000).toFixed(1)}K` : '—'}</div>
+    <div class="bench-stat-label">Named Only</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.throughput.noColors ? `${(benchData.throughput.noColors.hz / 1000).toFixed(1)}K` : '—'}</div>
+    <div class="bench-stat-label">No-colors fast path</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.throughput.gradientTransform ? `${(benchData.throughput.gradientTransform.hz / 1000).toFixed(1)}K` : '—'}</div>
+    <div class="bench-stat-label">Gradient Transform</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.throughput.gradientAudit ? `${(benchData.throughput.gradientAudit.hz / 1000).toFixed(1)}K` : '—'}</div>
+    <div class="bench-stat-label">Gradient Audit</div>
+  </div>
+</div>
 
-*Measured on AMD Ryzen 7 5800X. WASM is roughly **5× faster** than the previous pure-JS implementation.*
+<div class="bench-grid">
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.realWorld.wholeFile100kb ? `${benchData.realWorld.wholeFile100kb.hz.toFixed(0)}` : '—'} ops/s</div>
+    <div class="bench-stat-label">100 KB Transform</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.realWorld.audit100kb ? `${benchData.realWorld.audit100kb.hz.toFixed(0)}` : '—'} ops/s</div>
+    <div class="bench-stat-label">100 KB Audit</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.cache ? `${benchData.cache.perColorUs.toFixed(2)}` : '—'} us</div>
+    <div class="bench-stat-label">Per Color (cached ×100)</div>
+  </div>
+</div>
 
-## Real-world files
+| Metric | Value |
+|---|---|
+| Transform throughput | **{benchData.throughput.transform ? `${(benchData.throughput.transform.hz / 1000).toFixed(1)}K ops/s` : '—'}** |
+| Audit throughput | **{benchData.throughput.audit ? `${(benchData.throughput.audit.hz / 1000).toFixed(1)}K ops/s` : '—'}** |
+| Per-color latency (cached ×100) | **{benchData.cache ? `${benchData.cache.perColorUs.toFixed(2)}` : '—'} us** |
+| No-colors fast path | **{benchData.throughput.noColors ? `${(benchData.throughput.noColors.hz / 1000).toFixed(1)}K ops/s` : '—'}** |
 
-| File | Size | Colors | Time | Rate |
-|------|------|--------|------|------|
-| Small component | 1.3 KB | 8 | **0.024 ms** | 53 MB/s |
-| Tailwind-scale | 12 KB | 74 | **0.211 ms** | 55 MB/s |
-| Large stylesheet | 100 KB | 592 | **1.73 ms** | 56 MB/s |
-
-## Idempotency
-
-After the first pass every color is already OKLCH. The second pass is a no-op:
-
-| Pass | Colors converted | Time |
-|------|------------------|------|
-| 1 | 592 | 1.73 ms |
-| 2 | 0 | 0.05 ms (scan only) |
-
-## What the WASM engine does per color
-
-1. **Parse** — byte-level scanner with no regex: hex (3/4/6/8), rgb(), hsl(), hwb(), named, `color(srgb …)`
-2. **Gamma decode** — sRGB gamma → linear via 256-entry LUT
-3. **Matrix multiply** — combined `SRGB → LMS → OKLab` (W3C CSS Color 4 matrices)
-4. **Cache lookup** — 4096-slot direct-mapped cache keyed by `(r, g, b, a)` hashes same physical colors across formats
-5. **Format** — serialize to `oklch(L% C H)` with CSS Color 4 rounding
-
-Steps 2–5 are cached: `#ff0000`, `rgb(255,0,0)`, `red`, and `hsl(0,100%,50%)` all hit the same cache slot.
-
-## Why Rust?
-
-The scanner does not allocate, avoids regex entirely (char-level parsing), and uses `LazyLock`-initialised gamma lookup tables and named colour maps. The entire crate compiles to ~80 KB WASM with `opt-level="z"` and LTO.
+*Last updated: {new Date(benchData.timestamp).toLocaleString()}*
 
 ## Compared to alternatives
 
-| Approach | Latency per color | Notes |
-|----------|-------------------|-------|
-| okcolor (WASM, cached) | **~0.24 µs** | Rust core, Node.js binding |
-| okcolor (WASM, cold) | **~0.31 µs** | First occurrence only |
-| okcolor (old JS) | ~1.37 µs | Previous pure-JS version |
-| Culori | ~12 µs | Popular JS colour library |
-| color.js | ~18 µs | W3C reference implementation |
+<div class="bench-grid">
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.comparison.okcolor ? `${benchData.comparison.okcolor.hz.toFixed(0)}` : '—'} ops/s</div>
+    <div class="bench-stat-label">okcolor 100 KB</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.comparison.culori ? `${benchData.comparison.culori.hz.toFixed(0)}` : '—'} ops/s</div>
+    <div class="bench-stat-label">Culori 100 KB</div>
+  </div>
+  <div class="bench-stat">
+    <div class="bench-stat-value">{benchData.comparison.colorjs ? `${benchData.comparison.colorjs.hz.toFixed(0)}` : '—'} ops/s</div>
+    <div class="bench-stat-label">color.js 100 KB</div>
+  </div>
+</div>
 
-*Measured on AMD Ryzen 7 5800X, Node.js 26.1.0, vitest bench.*
+| Approach | Throughput (100 KB) | Bundle size |
+|---|---|---|
+| okcolor (WASM) | **{benchData.comparison.okcolor ? `${benchData.comparison.okcolor.hz.toFixed(0)} ops/s` : '—'}** | WASM (compiled) |
+| Culori (JS) | **{benchData.comparison.culori ? `${benchData.comparison.culori.hz.toFixed(0)} ops/s` : '—'}** | JS bundle |
+| color.js (JS) | **{benchData.comparison.colorjs ? `${benchData.comparison.colorjs.hz.toFixed(0)} ops/s` : '—'}** | JS bundle |
+
+## Cache efficiency
+
+The 4096-slot direct-mapped cache means equivalent colors hit the same slot:
+
+| Input 1 | Input 2 | Same physical color | Cache hit |
+|---|---|---|---|
+| `#ff0000` | `rgb(255, 0, 0)` | Yes | Yes |
+| `#ff0000` | `red` | Yes | Yes |
+| `#ff0000` | `hsl(0, 100%, 50%)` | Yes | Yes |
+| `#ff000080` | `#ff0000` | No (different alpha) | No |
+
+The cache key packs `(r, g, b, a)` into a single u32. Hash is `key % 4096` via bitmask.
+
+## Why Rust/WASM?
+
+The scanner does not allocate intermediate objects. It walks the input byte-by-byte, dispatching to typed matchers at word boundaries. The gamma decode uses a precomputed 256-entry lookup table. All math is inlined with no function call overhead for hot paths.
+
+The single-pass design means the engine touches each byte exactly once — compare with regex-based approaches that may backtrack or scan multiple times.
+
+<style>
+  .bench-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .bench-stat {
+    background: var(--sl-color-gray-6);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+  }
+  .bench-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--sl-color-white);
+  }
+  .bench-stat-label {
+    font-size: 0.8rem;
+    color: var(--sl-color-gray-3);
+    margin-top: 0.25rem;
+  }
+</style>

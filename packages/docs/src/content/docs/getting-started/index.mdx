@@ -5,41 +5,71 @@ sidebar:
   order: 1
 ---
 
-import { Tabs, TabItem, CardGrid, LinkCard } from '@astrojs/starlight/components'
+import { CardGrid, LinkCard } from '@astrojs/starlight/components'
+import CopyButton from '../../../components/CopyButton.astro'
 
 ## Installation
 
-<div class="install-center">
-<Tabs>
-  <TabItem label="npm">
-    ```bash
-    npm install -D okcolor
-    ```
-  </TabItem>
-  <TabItem label="pnpm">
-    ```bash
-    pnpm add -D okcolor
-    ```
-  </TabItem>
-  <TabItem label="yarn">
-    ```bash
-    yarn add -D okcolor
-    ```
-  </TabItem>
-</Tabs>
+<div class="install-block">
+  <CopyButton pkg="pnpm" cmd="pnpm add -D okcolor" />
+  <CopyButton pkg="npm" cmd="npm install -D okcolor" />
+  <CopyButton pkg="yarn" cmd="yarn add -D okcolor" />
 </div>
+
+Each button copies the command to your clipboard. Works with pnpm, npm, and yarn.
 
 ## Choose your workflow
 
 <CardGrid>
   <LinkCard
     title="Vite Plugin"
-    description="Drop-in plugin for Vite, Rollup, and any Vite-based framework (Astro, SvelteKit, Nuxt, etc.)"
+    description="Drop-in plugin for Vite and any Vite-based framework (Astro, SvelteKit, Nuxt, Remix)."
     href="/okcolor/getting-started/vite/"
   />
   <LinkCard
     title="CLI"
-    description="Transform CSS files from the command line or integrate into custom build pipelines"
+    description="Transform CSS from the command line. Audit files. Gate your CI pipeline. Full programmatic API."
     href="/okcolor/getting-started/cli/"
   />
 </CardGrid>
+
+## What happens under the hood
+
+Every legacy color goes through a 5-stage pipeline:
+
+<div class="pipeline-steps">
+  <div class="pipeline-step">
+    <div class="pipeline-step-num">1</div>
+    <div class="pipeline-step-title">Parse</div>
+    <div class="pipeline-step-desc">Byte-level scanner finds hex, rgb, hsl, hwb, named, and color(srgb) values. No regex.</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="pipeline-step-num">2</div>
+    <div class="pipeline-step-title">Gamma Decode</div>
+    <div class="pipeline-step-desc">sRGB gamma to linear via 256-entry LUT (IEC 61966-2-1 piecewise transfer function).</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="pipeline-step-num">3</div>
+    <div class="pipeline-step-title">Matrix Multiply</div>
+    <div class="pipeline-step-desc">Folded sRGB to LMS to OKLab using Ottosson 2020 coefficients (CSS Color 4).</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="pipeline-step-num">4</div>
+    <div class="pipeline-step-title">Cache</div>
+    <div class="pipeline-step-desc">4096-slot direct-mapped cache. #ff0000, rgb(255,0,0), and red all hit the same slot.</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="pipeline-step-num">5</div>
+    <div class="pipeline-step-title">Format</div>
+    <div class="pipeline-step-desc">Serialize to oklch(L% C H) following CSS Color 4 rounding and powerless-hue rules.</div>
+  </div>
+</div>
+
+## Requirements
+
+| Requirement | Minimum |
+|---|---|
+| Node.js | >= 18.0.0 |
+| Vite (for plugin) | >= 4.0.0 |
+
+No other dependencies. The Rust/WASM engine compiles to ~80 KB and is bundled with the package.

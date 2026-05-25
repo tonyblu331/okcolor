@@ -1,77 +1,73 @@
-//! Character-level CSS scanner.
+//! AC-driven CSS scanner.
 //!
-//! Walks the input byte-by-byte without any regex crate. Dispatches to
-//! gradient, hex, function-colour, and named-colour matchers at word
-//! boundaries. In transform mode it rewrites matches in-place into
-//! `oklch(...)`; in audit mode it only tallies.
+//! Uses a single Aho-Corasick automaton (161 patterns) to find all legacy
+//! colour indicators (`#`, function colours, gradient names, and 148 named
+//! colours) in a single linear pass.  Comments and strings are pre-scanned
+//! into skip ranges so patterns inside them are ignored.
 //!
-//! ## Performance
-//!
-//! A pre-scan with `memchr`, `memmem`, and `AhoCorasick` checks whether
-//! the input contains any legacy colour indicator (`#`, `rgb(`, `hsl(`,
-//! `hwb(`, `color(`, or any of 148 named colour strings).  If none exist
-//! and there's no `oklch-ignore` marker, the entire scan loop is skipped
-//! — the input is returned unchanged.  This makes second-pass (idempotent)
-//! and modern-only CSS practically free.
+//! In transform mode each match is dispatched to the appropriate parser +
+//! formatter; in audit mode only the counters are incremented.  When no
+//! legacy indicators exist and there's no `oklch-ignore` marker the input
+//! is returned verbatim — making second-pass and modern-only CSS free.
 
+use std::str;
 use std::sync::LazyLock;
 
-use memchr::{memchr, memchr_iter, memmem};
+use aho_corasick::{AhoCorasick, MatchKind};
 
 use crate::format::oklch_to_css;
 use crate::math;
 use crate::named;
 use crate::parse;
 
-// ── Pre-scan legacy-color indicators ────────────────────────────────────
+// ── Aho-Corasick patterns ───────────────────────────────────────────────
 
-/// `memmem::Finder` instances pre-compiled once for fast substring search.
-static FUNC_FINDERS: LazyLock<[memmem::Finder<'static>; 6]> = LazyLock::new(|| {
-    [
-        memmem::Finder::new(b"rgb("),
-        memmem::Finder::new(b"rgba("),
-        memmem::Finder::new(b"hsl("),
-        memmem::Finder::new(b"hsla("),
-        memmem::Finder::new(b"hwb("),
-        memmem::Finder::new(b"color("),
-    ]
+const PATTERN_HEX: usize = 0;
+const PATTERN_RGB: usize = 1;
+const PATTERN_COLOR_FN: usize = 6;
+
+/// Aho-Corasick automaton for all 161 patterns: `#`, 6 function colours,
+/// 6 gradient names, and 148 named colours.
+/// Used only by `has_legacy_indicators` and `count_legacy_indicators`.
+static SCAN_AHO: LazyLock<AhoCorasick> = LazyLock::new(|| {
+    let mut patterns: Vec<&[u8]> = Vec::new();
+    patterns.push(b"#");
+    patterns.extend_from_slice(&[b"rgb(", b"rgba(", b"hsl(", b"hsla(", b"hwb(", b"color("]);
+    patterns.extend_from_slice(&[
+        b"linear-gradient(",
+        b"radial-gradient(",
+        b"conic-gradient(",
+        b"repeating-linear-gradient(",
+        b"repeating-radial-gradient(",
+        b"repeating-conic-gradient(",
+    ]);
+    for (name, _) in named::NAMED_PAIRS {
+        patterns.push(name.as_bytes());
+    }
+    AhoCorasick::builder()
+        .match_kind(MatchKind::LeftmostLongest)
+        .ascii_case_insensitive(true)
+        .build(&patterns)
+        .expect("valid AC patterns")
 });
 
 /// Quick check: does `bytes` contain any legacy colour indicator?
-///
-/// Returns `true` if there's a `#` (potential hex colour), any of the
-/// function-colour prefixes (`rgb(`, `rgba(`, `hsl(`, `hsla(`, `hwb(`,
-/// `color(`), or any named colour string (via Aho-Corasick).
-///
-/// This is a **conservative** check: false positives are fine (full scan
-/// runs with zero extra cost), but false negatives would break transforms.
 fn has_legacy_indicators(bytes: &[u8]) -> bool {
-    // Hex: # (fastest single-byte SIMD search)
-    if memchr(b'#', bytes).is_some() {
-        return true;
-    }
-    // Function colours: substring search
-    for finder in FUNC_FINDERS.iter() {
-        if finder.find(bytes).is_some() {
-            return true;
-        }
-    }
-    // Named colours: Aho-Corasick (single linear scan, no false negatives)
-    if named::has_named(bytes) {
-        return true;
-    }
-    false
+    SCAN_AHO.is_match(bytes)
 }
 
 /// Count legacy colour indicators (conservative upper bound).
-///
-/// Returns `(hex_count, func_count, named_count)` for output capacity
-/// pre-allocation.  Over-counting is safe (wastes a few bytes of
-/// capacity); under-counting would cause reallocation.
 fn count_legacy_indicators(bytes: &[u8]) -> (usize, usize, usize) {
-    let hex = memchr_iter(b'#', bytes).count();
-    let func: usize = FUNC_FINDERS.iter().map(|f| f.find_iter(bytes).count()).sum();
-    let named = named::count_named(bytes);
+    let mut hex = 0usize;
+    let mut func = 0usize;
+    let mut named = 0usize;
+    for m in SCAN_AHO.find_iter(bytes) {
+        match m.pattern().as_usize() {
+            PATTERN_HEX => hex += 1,
+            PATTERN_RGB..=PATTERN_COLOR_FN => func += 1,
+            _ => named += 1,
+        }
+    }
     (hex, func, named)
 }
 
@@ -117,6 +113,31 @@ fn find_ignore_ranges(input: &str) -> Vec<(usize, usize)> {
     ranges
 }
 
+// ── Scanner helpers ──────────────────────────────────────────────────────
+
+const GRADIENT_NAMES: &[&str] = &[
+    "linear-gradient",
+    "radial-gradient",
+    "conic-gradient",
+    "repeating-linear-gradient",
+    "repeating-radial-gradient",
+    "repeating-conic-gradient",
+];
+
+/// Check whether `bytes[i..]` starts with one of the gradient names.
+fn gradient_at(bytes: &[u8], i: usize) -> Option<&'static str> {
+    for &name in GRADIENT_NAMES {
+        if bytes[i..].starts_with(name.as_bytes()) {
+            let after = i + name.len();
+            if after < bytes.len() && bytes[after] == b'(' {
+                return Some(name);
+            }
+            return None;
+        }
+    }
+    None
+}
+
 // ── Main scan loops ──────────────────────────────────────────────────────
 
 fn scan_transform_impl(input: &str) -> ScanResult {
@@ -135,70 +156,111 @@ fn scan_transform_impl(input: &str) -> ScanResult {
     let estimated_growth = (hex_c + func_c + named_c) * 15;
     let mut out = String::with_capacity(len + estimated_growth);
 
-    // Pre-scan for oklch-ignore ranges (transform only)
     let ignore_ranges = if has_ignore { find_ignore_ranges(input) } else { Vec::new() };
-
-    let mut i    = 0;
-    let mut ir_idx = 0;
+    let mut ir_idx = 0usize;
+    let mut i = 0usize;
 
     while i < len {
-        // ── Skip oklch-ignore lines verbatim ─────────────────────
+        // ── Skip comments — push to output unchanged ───────────────
+        if i + 1 < len && bytes[i] == b'/' && bytes[i + 1] == b'*' {
+            out.push_str(&input[i..i + 2]); i += 2;
+            while i + 1 < len && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
+                out.push(bytes[i] as char); i += 1;
+            }
+            if i + 1 < len { out.push_str(&input[i..i + 2]); i += 2; }
+            continue;
+        }
+        if i + 1 < len && bytes[i] == b'/' && bytes[i + 1] == b'/' {
+            while i < len && bytes[i] != b'\n' { out.push(bytes[i] as char); i += 1; }
+            continue;
+        }
+
+        // ── Skip strings — push to output unchanged ────────────────
+        if bytes[i] == b'"' || bytes[i] == b'\'' {
+            let q = bytes[i]; out.push(q as char); i += 1;
+            while i < len {
+                if bytes[i] == b'\\' { out.push(bytes[i] as char); i += 1; if i < len { out.push(bytes[i] as char); i += 1; } }
+                else if bytes[i] == q { out.push(q as char); i += 1; break; }
+                else { out.push(bytes[i] as char); i += 1; }
+            }
+            continue;
+        }
+
+        // ── Ignore ranges (oklch-ignore pragma) ────────────────────
         if ir_idx < ignore_ranges.len() && i == ignore_ranges[ir_idx].0 {
-            let end = ignore_ranges[ir_idx].1;
-            out.push_str(&input[i..end]);
-            i = end;
+            out.push_str(&input[i..ignore_ranges[ir_idx].1]);
+            i = ignore_ranges[ir_idx].1;
             ir_idx += 1;
             continue;
         }
 
-        // ── Block comment ─────────────────────────────────────────
-        if i + 1 < len && bytes[i] == b'/' && bytes[i + 1] == b'*' {
-            let start = i;
-            i += 2;
-            while i + 1 < len && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
-                i += 1;
+        // ── Hex colour ─────────────────────────────────────────────
+        if bytes[i] == b'#' {
+            if let Some(end) = replace_at_transform(bytes, i, &mut stat, &mut out, false) {
+                i = end;
+                continue;
             }
-            if i + 1 < len { i += 2; }
-            out.push_str(&input[start..i]);
-            continue;
-        }
-
-        // ── Line comment ──────────────────────────────────────────
-        if i + 1 < len && bytes[i] == b'/' && bytes[i + 1] == b'/' {
-            let start = i;
-            while i < len && bytes[i] != b'\n' { i += 1; }
-            out.push_str(&input[start..i]);
-            continue;
-        }
-
-        // ── String literal ────────────────────────────────────────
-        if bytes[i] == b'"' || bytes[i] == b'\'' {
-            let q   = bytes[i];
-            let beg = i;
+            out.push('#');
             i += 1;
-            while i < len {
-                if bytes[i] == b'\\' { i += 2; }
-                else if bytes[i] == q { i += 1; break; }
-                else { i += 1; }
+            continue;
+        }
+
+        // ── Gradient or function or named colour at word boundary ──
+        if is_word_boundary(bytes, i) && bytes[i].is_ascii_alphabetic() {
+            // Gradient
+            if let Some(grad_name) = gradient_at(bytes, i) {
+                let name_end = i + grad_name.len();
+                let paren_pos = name_end;
+                debug_assert!(paren_pos < len && bytes[paren_pos] == b'(');
+                let close = match find_close_paren(bytes, paren_pos) {
+                    Some(c) => c,
+                    None => { out.push(bytes[i] as char); i += 1; continue; }
+                };
+                let inner = &bytes[name_end + 1..close]; // skip '('
+                let inner_s = match std::str::from_utf8(inner) {
+                    Ok(s) => s,
+                    Err(_) => { out.push(bytes[i] as char); i += 1; continue; }
+                };
+                let already_ok = {
+                    let start = inner.iter().position(|&b| !b.is_ascii_whitespace()).unwrap_or(inner.len());
+                    let needle = if inner.len() - start >= 8 { &inner[start..start + 8] } else { &[] };
+                    needle.eq_ignore_ascii_case(b"in oklch") || needle.eq_ignore_ascii_case(b"in oklab")
+                };
+                stat.gradient_count += 1;
+                out.push_str(grad_name);
+                out.push('(');
+                if !already_ok { out.push_str("in oklch, "); }
+                process_gradient_inner(inner_s, &mut stat, &mut out);
+                out.push(')');
+                i = close + 1;
+                continue;
             }
-            out.push_str(&input[beg..i]);
-            continue;
-        }
 
-        // ── Gradient ──────────────────────────────────────────────
-        if let Some(end) = match_gradient_transform(bytes, i, &mut out, &mut stat) {
-            i = end;
-            continue;
-        }
+            // Function colour
+            if let Some(end) = replace_at_transform(bytes, i, &mut stat, &mut out, false) {
+                i = end;
+                continue;
+            }
 
-        // ── Individual colour ─────────────────────────────────────
-        if let Some(end) = replace_at_transform(bytes, i, &mut stat, &mut out, false) {
-            i = end;
-            continue;
+            // Named colour
+            if let Some(end) = replace_at_transform(bytes, i, &mut stat, &mut out, false) {
+                i = end;
+                continue;
+            }
         }
 
         out.push(bytes[i] as char);
         i += 1;
+    }
+
+    // Flush any pending ignore ranges
+    while ir_idx < ignore_ranges.len() {
+        if i < ignore_ranges[ir_idx].0 {
+            out.push_str(&input[i..ignore_ranges[ir_idx].0]);
+        }
+        out.push_str(&input[ignore_ranges[ir_idx].0..ignore_ranges[ir_idx].1]);
+        i = ignore_ranges[ir_idx].1;
+        ir_idx += 1;
     }
 
     stat.css = out;
@@ -213,38 +275,27 @@ fn scan_audit_impl(input: &str) -> ScanResult {
     let len = bytes.len();
     let mut stat = ScanResult::default();
 
-    // ── Quick bail-out ─────────────────────────────────────────────
-    // Skip bail-out too: we still need accurate counts even for
-    // all-modern input. Only bail if there's nothing to count.
-    if !bytes.windows(12).any(|w| w.eq_ignore_ascii_case(b"oklch-ignore"))
-        && !has_legacy_indicators(bytes)
-    {
+    if !has_legacy_indicators(bytes) {
         return stat;
     }
 
-    let mut i = 0;
-
+    let mut i = 0usize;
     while i < len {
-        // ── Block comment ─────────────────────────────────────────
+        // ── Skip comments ──────────────────────────────────────────
         if i + 1 < len && bytes[i] == b'/' && bytes[i + 1] == b'*' {
             i += 2;
-            while i + 1 < len && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
-                i += 1;
-            }
+            while i + 1 < len && !(bytes[i] == b'*' && bytes[i + 1] == b'/') { i += 1; }
             if i + 1 < len { i += 2; }
             continue;
         }
-
-        // ── Line comment ──────────────────────────────────────────
         if i + 1 < len && bytes[i] == b'/' && bytes[i + 1] == b'/' {
             while i < len && bytes[i] != b'\n' { i += 1; }
             continue;
         }
 
-        // ── String literal ────────────────────────────────────────
+        // ── Skip strings ───────────────────────────────────────────
         if bytes[i] == b'"' || bytes[i] == b'\'' {
-            let q = bytes[i];
-            i += 1;
+            let q = bytes[i]; i += 1;
             while i < len {
                 if bytes[i] == b'\\' { i += 2; }
                 else if bytes[i] == q { i += 1; break; }
@@ -253,16 +304,46 @@ fn scan_audit_impl(input: &str) -> ScanResult {
             continue;
         }
 
-        // ── Gradient (audit: count colours inside, no output) ────
-        if let Some(end) = match_gradient_audit(bytes, i, &mut stat) {
-            i = end;
+        // ── Hex ────────────────────────────────────────────────────
+        if bytes[i] == b'#' {
+            if let Some(end) = replace_at_audit(bytes, i, &mut stat, false) {
+                i = end;
+                continue;
+            }
+            i += 1;
             continue;
         }
 
-        // ── Individual colour ─────────────────────────────────────
-        if let Some(end) = replace_at_audit(bytes, i, &mut stat, false) {
-            i = end;
-            continue;
+        // ── Gradient / function / named at word boundary ───────────
+        if is_word_boundary(bytes, i) && bytes[i].is_ascii_alphabetic() {
+            // Gradient
+            if let Some(grad_name) = gradient_at(bytes, i) {
+                let name_end = i + grad_name.len();
+                let paren_pos = name_end;
+                debug_assert!(paren_pos < len && bytes[paren_pos] == b'(');
+                let close = match find_close_paren(bytes, paren_pos) {
+                    Some(c) => c,
+                    None => { i += 1; continue; }
+                };
+                stat.gradient_count += 1;
+                let inner = &bytes[name_end + 1..close];
+                let mut j = 0;
+                while j < inner.len() {
+                    if let Some(end) = replace_at_audit(inner, j, &mut stat, true) {
+                        j = end;
+                    } else {
+                        j += 1;
+                    }
+                }
+                i = close + 1;
+                continue;
+            }
+
+            // Function or named
+            if let Some(end) = replace_at_audit(bytes, i, &mut stat, false) {
+                i = end;
+                continue;
+            }
         }
 
         i += 1;
@@ -298,15 +379,6 @@ fn hex_digit_count(bytes: &[u8], mut i: usize) -> usize {
     while i < bytes.len() && bytes[i].is_ascii_hexdigit() { i += 1; }
     i - start
 }
-
-const GRADIENT_NAMES: &[&[u8]] = &[
-    b"linear-gradient",
-    b"radial-gradient",
-    b"conic-gradient",
-    b"repeating-linear-gradient",
-    b"repeating-radial-gradient",
-    b"repeating-conic-gradient",
-];
 
 const MODERN_FUNCS: &[&[u8]] = &[
     b"oklch", b"oklab", b"lab", b"lch", b"color-mix",
@@ -381,72 +453,6 @@ fn in_value_context(bytes: &[u8], i: usize, in_paren_ctx: bool) -> bool {
     }
 }
 
-// ── Gradient matcher ────────────────────────────────────────────────────
-
-fn match_gradient_transform(
-    bytes: &[u8], i: usize,
-    out: &mut String,
-    stat: &mut ScanResult,
-) -> Option<usize> {
-    if !is_word_boundary(bytes, i) { return None; }
-    let after_name = func_at(bytes, i, GRADIENT_NAMES)?;
-    let mut pos = after_name;
-    skip_whitespace(bytes, &mut pos);
-    if pos >= bytes.len() || bytes[pos] != b'(' { return None; }
-
-    let close = find_close_paren(bytes, pos)?;
-    let inner   = &bytes[pos + 1 .. close];
-    let inner_s = std::str::from_utf8(inner).ok()?;
-
-    let already_ok = {
-        let start = inner.iter().position(|&b| !b.is_ascii_whitespace()).unwrap_or(inner.len());
-        let trimmed = &inner[start..];
-        let needle = if trimmed.len() >= 8 { &trimmed[..8] } else { &trimmed[..0] };
-        needle.eq_ignore_ascii_case(b"in oklch") || needle.eq_ignore_ascii_case(b"in oklab")
-    };
-
-    stat.gradient_count += 1;
-
-    let gradient_name = std::str::from_utf8(&bytes[i..after_name]).ok()?;
-    out.push_str(gradient_name);
-    out.push('(');
-    if !already_ok {
-        out.push_str("in oklch, ");
-    }
-    process_gradient_inner(inner_s, stat, out);
-    out.push(')');
-
-    Some(close + 1)
-}
-
-fn match_gradient_audit(
-    bytes: &[u8], i: usize,
-    stat: &mut ScanResult,
-) -> Option<usize> {
-    if !is_word_boundary(bytes, i) { return None; }
-    let after_name = func_at(bytes, i, GRADIENT_NAMES)?;
-    let mut pos = after_name;
-    skip_whitespace(bytes, &mut pos);
-    if pos >= bytes.len() || bytes[pos] != b'(' { return None; }
-
-    let close = find_close_paren(bytes, pos)?;
-    let inner = &bytes[pos + 1 .. close];
-
-    stat.gradient_count += 1;
-
-    // Walk inner content counting colours via replace_at_audit, no output
-    let mut j = 0;
-    while j < inner.len() {
-        if let Some(end) = replace_at_audit(inner, j, stat, true) {
-            j = end;
-        } else {
-            j += 1;
-        }
-    }
-
-    Some(close + 1)
-}
-
 /// Walk gradient inner content, replacing colours (skip nested modern funcs).
 /// Writes directly to `out` instead of returning a new String.
 fn process_gradient_inner(content: &str, stat: &mut ScanResult, out: &mut String) {
@@ -480,13 +486,12 @@ fn process_gradient_inner(content: &str, stat: &mut ScanResult, out: &mut String
             if let Some(after) = func_at(bytes, i, MODERN_FUNCS) {
                 let mut pos = after;
                 skip_whitespace(bytes, &mut pos);
-                if pos < bytes.len() && bytes[pos] == b'(' {
-                    if let Some(close) = find_close_paren(bytes, pos) {
+                if pos < bytes.len() && bytes[pos] == b'('
+                    && let Some(close) = find_close_paren(bytes, pos) {
                         out.push_str(&content[i..close + 1]);
                         i = close + 1;
                         continue;
                     }
-                }
             }
 
             // Replaced colour inside gradient
@@ -655,7 +660,7 @@ fn replace_at_audit(
             "color" => parse::parse_color_srgb(&toks),
             _       => None,
         };
-        if raw.is_none() { return None; }
+        raw.as_ref()?;
 
         *match kind {
             "rgb"   => &mut stat.rgb_count,

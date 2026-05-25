@@ -5,47 +5,51 @@ import type { OkColorOptions } from './types.js'
 const CSS_RE = /\.(css|scss|sass|less|styl|stylus)$/i
 const STYLE_RE = /\.(vue|svelte|astro)$/i
 
-/**
- * Create a Vite plugin that transforms legacy CSS colors to OKLCH
- * during the `pre` build phase.
- */
-export function okColor(_options?: OkColorOptions): Plugin {
+function fnv1a(input: string): number {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
+export function okColor(options?: OkColorOptions): Plugin {
   const name = 'okcolor'
+  const cache = new Map<string, { hash: number; output: string | undefined }>()
+  const ignoreComment = options?.ignoreComment
 
   return {
     name,
     enforce: 'pre',
 
-    async buildStart() {
-      await ensureWasm()
-    },
-
     async transform(code, id) {
-      // Plain CSS files
+      if (!CSS_RE.test(id) && !STYLE_RE.test(id)) return undefined
+
+      const hash = fnv1a(code)
+      const cached = cache.get(id)
+      if (cached && cached.hash === hash) return cached.output
+
+      let output: string | undefined
+
       if (CSS_RE.test(id)) {
-        const transformed = transformCss(code)
-        return transformed === code ? undefined : transformed
+        const transformed = transformCss(code, ignoreComment)
+        output = transformed === code ? undefined : transformed
+      } else {
+        const transformed = transformEmbeddedStyles(code, ignoreComment)
+        output = transformed === code ? undefined : transformed
       }
 
-      // Embedded styles in Vue/Svelte/Astro
-      if (STYLE_RE.test(id)) {
-        const transformed = transformEmbeddedStyles(code)
-        return transformed === code ? undefined : transformed
-      }
-
-      return undefined
+      cache.set(id, { hash, output })
+      return output
     },
   }
 }
 
-/**
- * Extract and transform <style> blocks from framework files.
- * This is a lightweight regex-based approach for the MVP.
- */
-function transformEmbeddedStyles(source: string): string {
+function transformEmbeddedStyles(source: string, ignoreComment?: string): string {
   const styleRe = /(<style[^>]*>)([\s\S]*?)(<\/style>)/gi
   return source.replace(styleRe, (_match, open, css, close) => {
-    const transformed = transformCss(css)
+    const transformed = transformCss(css, ignoreComment)
     return open + transformed + close
   })
 }

@@ -3,7 +3,7 @@ title: okcolor
 description: Zero-config build-time color modernizer for Vite and Tailwind CSS
 template: splash
 hero:
-  tagline: Convert legacy hex, rgb, hsl, and hwb colors to perceptually uniform OKLCH at build time. Zero runtime overhead.
+  tagline: Your CSS colors, upgraded. Hex, RGB, HSL, and named colors become perceptually uniform OKLCH at build time. Zero runtime cost.
   image:
     file: ../../assets/hero.svg
   actions:
@@ -18,33 +18,112 @@ hero:
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components'
+import TerminalDemo from '../../components/TerminalDemo.astro'
 
 ## Why OKLCH?
 
 <CardGrid stagger>
   <Card title="Perceptually Uniform" icon="open-book">
-    OKLCH is designed for human perception. Changing the lightness channel actually makes colors look proportionally lighter — unlike HSL where `hsl(120 100% 50%)` and `hsl(120 100% 70%)` have wildly different perceived brightness.
+    Equal steps in OKLCH lightness look equally different to the human eye. `oklch(0.5 0.2 180)` is visually halfway between black and white — unlike HSL where `lightness: 50%` varies wildly by hue.
   </Card>
   <Card title="Wide Gamut Ready" icon="seti:json">
-    OKLCH can represent every color visible to the human eye. As displays move beyond sRGB (Display P3, Rec. 2020), OKLCH future-proofs your design system.
+    OKLCH covers every color the human eye can see. As displays move from sRGB to Display P3 and Rec. 2020, your design system is already there.
   </Card>
-  <Card title="Mathematically Correct" icon="open-book">
-    Our conversion engine uses the exact W3C CSS Color Module Level 4 matrices, verified against Culori to sub-ulp precision. Every coefficient is documented and provable.
+  <Card title="Verified Math" icon="open-book">
+    Every conversion uses the exact W3C CSS Color Module Level 4 matrices. Verified against Culori — the reference implementation — with sub-5e-5 error across the entire sRGB gamut.
   </Card>
-  <Card title="Zero Runtime Cost" icon="rocket">
-    Everything happens at build time. The WASM engine scans and transforms your CSS in a single pass — **~55 MB/s** throughput, sub-millisecond for typical files.
+  <Card title="Zero Runtime Overhead" icon="rocket">
+    All processing happens at build time in Rust via WASM. Your users download the result, never the engine. **~55 MB/s** throughput. Sub-millisecond for typical stylesheets.
   </Card>
 </CardGrid>
 
+## See it in action
+
+<TerminalDemo scenario="audit" />
+
 ## What gets converted
 
-| Input | Example | Output |
-|-------|---------|--------|
-| Hex | `#ff0000` | `oklch(62.8% 0.25768 29.23)` |
-| RGB | `rgb(255, 0, 0)` | `oklch(62.8% 0.25768 29.23)` |
-| HSL | `hsl(0, 100%, 50%)` | `oklch(62.8% 0.25768 29.23)` |
-| HWB | `hwb(0 0% 0%)` | `oklch(62.8% 0.25768 29.23)` |
-| Named | `red` | `oklch(62.8% 0.25768 29.23)` |
-| Gradients | `linear-gradient(#f00, #00f)` | `linear-gradient(in oklch, oklch(...), oklch(...))` |
+<table class="conversion-table">
+  <thead>
+    <tr>
+      <th>Format</th>
+      <th>Input</th>
+      <th>Output</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="fmt-label">Hex</td>
+      <td><code>#ff0000</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+    </tr>
+    <tr>
+      <td class="fmt-label">RGB</td>
+      <td><code>rgb(255, 0, 0)</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+    </tr>
+    <tr>
+      <td class="fmt-label">HSL</td>
+      <td><code>hsl(0, 100%, 50%)</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+    </tr>
+    <tr>
+      <td class="fmt-label">HWB</td>
+      <td><code>hwb(0 0% 0%)</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+    </tr>
+    <tr>
+      <td class="fmt-label">Named</td>
+      <td><code>red</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+    </tr>
+    <tr>
+      <td class="fmt-label">Gradients</td>
+      <td><code>linear-gradient(#f00, #00f)</code></td>
+      <td><code>linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05))</code></td>
+    </tr>
+  </tbody>
+</table>
 
-Modern colors like `oklch()`, `oklab()`, `lab()`, `lch()`, and `color(display-p3 ...)` pass through untouched.
+Modern CSS functions pass through untouched: `oklch()`, `oklab()`, `lab()`, `lch()`, `color-mix()`, `light-dark()`, `var()`, `calc()`.
+
+## Real-world demo
+
+<div class="playground-grid">
+  <div class="playground-pane playground-pane-input">
+    <span class="playground-pane-label">Input</span>
+    <pre>{`.hero {
+  color: #ff0000;
+  background: linear-gradient(#00ff00, #0000ff);
+}
+.btn {
+  border: 2px solid hsl(145, 63%, 49%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
+}
+.badge {
+  background: rebeccapurple;
+  color: white;
+}`}</pre>
+  </div>
+  <div class="playground-pane playground-pane-output">
+    <span class="playground-pane-label">Output</span>
+    <pre>{`.hero {
+  color: oklch(62.8% 0.25768 29.23);
+  background: linear-gradient(in oklch, oklch(86.64% 0.29483 142.5), oklch(45.2% 0.31321 264.05));
+}
+.btn {
+  border: 2px solid oklch(67.72% 0.19 152.54);
+  box-shadow: 0 2px 4px oklch(0% 0 0 / 0.2);
+}
+.badge {
+  background: oklch(38.31% 0.14883 299.97);
+  color: oklch(100% 0 0);
+}`}</pre>
+  </div>
+</div>
+
+Running the conversion a second time produces the exact same output. **The engine is idempotent.**
+
+<div class="callout-card">
+  <strong>Escape hatch:</strong> Add <code>/* oklch-ignore */</code> on any line to preserve the original color unchanged.
+</div>

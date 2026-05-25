@@ -5,12 +5,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['test/**/*.test.ts'],
-  },
-  resolve: {
-    alias: {
-      // Ensure WASM imports resolve correctly in tests
-      '../packages/core-wasm/pkg-nodejs/ok_actually_core.js':
-        './packages/core-wasm/pkg-nodejs/ok_actually_core.js',
+    benchmark: {
+      include: ['bench/**/*.bench.ts'],
     },
   },
 })

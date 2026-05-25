@@ -1,0 +1,130 @@
+---
+id: jobs-table
+title: "Job Stories & Coverage Map"
+status: proposal
+created: 2026-05-25
+---
+
+# Job Stories & Coverage Map
+
+## Legend
+
+| Icon | Meaning |
+|------|---------|
+| ✅ | Implemented + tested |
+| 🟡 | Implemented, untested |
+| 🔴 | Not implemented |
+| ⚪ | Not applicable / pass-through |
+
+---
+
+## Color Formats — Core Transformation Jobs
+
+| # | Job Story | Coverage | Tests | API | Notes |
+|---|-----------|----------|-------|-----|-------|
+| 1 | When I write `#rgb`, transform to `oklch()` | ✅ | Rust + TS | `transformCss()` | 3-digit hex → 8-bit → OKLCH |
+| 2 | When I write `#rrggbb`, transform to `oklch()` | ✅ | Rust + TS | `transformCss()` | Full 6-digit hex |
+| 3 | When I write `#rgba`, transform with alpha | ✅ | Rust + TS | `transformCss()` | 4-digit alpha |
+| 4 | When I write `#rrggbbaa`, transform with alpha | ✅ | Rust + TS | `transformCss()` | 8-digit alpha |
+| 5 | When I write `rgb(r g b)`, transform | ✅ | Rust + TS | `transformCss()` | Space-separated modern syntax |
+| 6 | When I write `rgb(r, g, b)`, transform | ✅ | Rust + TS | `transformCss()` | Legacy comma syntax |
+| 7 | When I write `rgba(r g b / a)`, transform | ✅ | Rust + TS | `transformCss()` | rgba → oklch with alpha |
+| 8 | When I write `hsl(h s l)`, transform | ✅ | Rust + TS | `transformCss()` | HSL → sRGB → OKLCH (expensive path) |
+| 9 | When I write `hsla(h s l / a)`, transform | ✅ | Rust + TS | `transformCss()` | With alpha |
+| 10 | When I write `hwb(h w b)`, transform | ✅ | Rust + TS | `transformCss()` | HWB → HSL → sRGB → OKLCH (most expensive) |
+| 11 | When I write `color(srgb r g b)`, transform | ✅ | Rust + TS | `transformCss()` | color() function, srgb colorspace only |
+| 12 | When I use a named color, transform | ✅ | Rust + TS | `transformCss()` | 148 named → OKLCH via lookup table |
+| 13 | When I use `transparent`, preserve it | ✅ | Rust | `transformCss()` | Explicitly excluded from named map |
+| 14 | When I use `currentColor`, preserve it | ✅ | Rust + TS | `transformCss()` | Not a named color |
+| 15 | When I have a single color value, convert it | ✅ | Rust + TS | `colorToOklch()` | Direct API for single color values |
+
+---
+
+## Gradients
+
+| # | Job Story | Coverage | Tests | API | Notes |
+|---|-----------|----------|-------|-----|-------|
+| 16 | When I use `linear-gradient(red, blue)`, inject `in oklch` + transform colors | ✅ | Rust + TS | `transformCss()` | Recursive scan of gradient body |
+| 17 | When I use `radial-gradient(...)`, inject `in oklch` | ✅ | Rust | `transformCss()` | Same pattern |
+| 18 | When I use `conic-gradient(...)`, inject `in oklch` | ✅ | Rust | `transformCss()` | Same pattern |
+| 19 | When I use `repeating-linear-gradient(...)`, inject `in oklch` | ✅ | Rust | `transformCss()` | Repeating variants |
+| 20 | When I use `repeating-radial-gradient(...)`, inject `in oklch` | ✅ | Rust | `transformCss()` | Same pattern |
+| 21 | When I use `repeating-conic-gradient(...)`, inject `in oklch` | ✅ | Rust | `transformCss()` | Same pattern |
+| 22 | When gradient already has `in oklch`, don't double-inject | ✅ | Rust + TS | `transformCss()` | Case-insensitive check |
+| 23 | When gradient contains `var()`, preserve it | ✅ | Rust + TS | `transformCss()` | Pass-through inside gradient |
+
+---
+
+## Modern Color Pass-Through (No-Op)
+
+| # | Job Story | Coverage | Tests | API | Notes |
+|---|-----------|----------|-------|-----|-------|
+| 24 | When I write `oklch()`, leave it alone | ✅ | Rust + TS | `transformCss()` | Fast path bail-out |
+| 25 | When I write `oklab()`, leave it alone | ✅ | Rust + TS | `transformCss()` | Same |
+| 26 | When I write `lab()`, leave it alone | ✅ | Rust + TS | `transformCss()` | Same |
+| 27 | When I write `lch()`, leave it alone | ✅ | Rust + TS | `transformCss()` | Same |
+| 28 | When I write `color-mix()`, leave it alone | ✅ | Rust | `transformCss()` | Pass-through |
+| 29 | When I write `light-dark()`, leave it alone | ✅ | Rust | `transformCss()` | Pass-through |
+
+---
+
+## CSS Syntax Boundaries
+
+| # | Job Story | Coverage | Tests | API | Notes |
+|---|-----------|----------|-------|-----|-------|
+| 30 | When `#hex` is in a comment `/* */`, skip it | ✅ | Rust + TS | `transformCss()` | Block comment state machine |
+| 31 | When `#hex` is in a string `""` or `''`, skip it | ✅ | Rust + TS | `transformCss()` | String state machine |
+| 32 | When `#hex` is in a selector (`#id`), skip it | ✅ | Rust + TS | `transformCss()` | Boundary check after `#` |
+| 33 | When a named color is part of a word, skip it | ✅ | Rust | `transformCss()` | `is_word_boundary()` check |
+| 34 | When `//` line comment contains a color, skip it | ✅ | Rust | `transformCss()` | Line comment state |
+
+---
+
+## Escape Hatches & Controls
+
+| # | Job Story | Coverage | Tests | API | Notes |
+|---|-----------|----------|-------|-----|-------|
+| 35 | When I add `/* oklch-ignore */`, skip that CSS block | ✅ | Rust + TS | `transformCss()` | Multi-line range; fast path check first |
+| 36 | When I customize the ignore comment, respect it | ✅ | TS only | `transformCss(css, ignoreComment)` | TS wrapper override |
+| 37 | When I run audit, get JSON stats without transforming | ✅ | Rust + TS | `auditCss()` | Only counts, no output file |
+| 38 | When I use `check` in CI, fail on excess legacy colors | ✅ | TS only | CLI `check` | `--max-legacy-colors` threshold |
+| 39 | When I use `doctor`, diagnose malformed colors | ✅ | TS only | CLI `doctor` | Syntax error detection |
+| 40 | When I use the Vite plugin, transform during build | ✅ | TS only | `okColor()` | `enforce: 'pre'`, file-type filter |
+
+---
+
+## CLI Usage Contexts
+
+| # | Job Story | Coverage | Tests | API | Notes |
+|---|-----------|----------|-------|-----|-------|
+| 41 | When I scan a single CSS file, get results | ✅ | TS | CLI `audit file.css` | |
+| 42 | When I scan a directory, process all CSS files | ✅ | TS | CLI `audit src/` | 32 concurrent |
+| 43 | When I scan SFC files (.vue, .svelte, .astro), extract `<style>` blocks | ✅ | TS | CLI `audit` | SFC extraction |
+| 44 | When I want JSON output, get parseable results | ✅ | TS | CLI `--format=json` | |
+| 45 | When I process empty files, don't crash | ✅ | TS | CLI `audit empty.css` | |
+
+---
+
+## Performance (Non-Functional Jobs)
+
+| # | Job Story | Coverage | Tests | API | Notes |
+|---|-----------|----------|-------|-----|-------|
+| 46 | When CSS has no legacy colors, return instantly | ✅ | Rust + TS | `transformCss()` | Fast-path pre-scan bail-out |
+| 47 | When CSS is already OKLCH, re-transform is idempotent | ✅ | Rust + TS | `transformCss()` | Zero-cost |
+| 48 | When same CSS is transformed twice, Vite plugin caches | ✅ | TS only | Vite plugin | FNV-1a hash cache |
+| 49 | When I transform large CSS files, maintain speed | ✅ | bench | `transformCss()` | ~600 ops/s at 100 KB |
+| 50 | When I transform many per-color-format files, track variance | ✅ | bench | Bottleneck benchmark | Hex fastest, HWB slowest |
+
+---
+
+## Summary
+
+| Status | Count | % |
+|--------|-------|---|
+| ✅ Implemented + tested | 50 | 100% |
+| 🟡 Implemented, untested | 0 | 0% |
+| 🔴 Not implemented | 0 | 0% |
+
+**All 50 job stories are implemented.** No gaps in coverage.
+
+However, 7 items lack dedicated TS-level tests (gradient variants, some pass-through items). The Rust unit tests cover them, but the public TS API isn't separately tested for those edge cases.

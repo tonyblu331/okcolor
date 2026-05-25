@@ -1,50 +1,73 @@
+# openspec/config.yaml
 schema: spec-driven
 
 context: |
-  Tech stack: TypeScript (Node.js, Vite plugin, CLI), Rust (WASM core, DFA lexer), WebAssembly (wasm-pack)
-  Architecture: Build-time CSS transformer, Vite plugin hooking 'pre', CLI with audit/check/doctor commands
-  Testing: cargo test (Rust), vitest (TypeScript) — planned, not yet installed
-  Style: rustfmt (Rust), prettier (TS), eslint
+  Tech stack: Rust (wasm-pack, wasm-bindgen, memchr, aho-corasick) + TypeScript (ESM, tsdown, Vitest)
+  Architecture: Rust/WebAssembly core engine (scanner, parser, math, cache, formatter) + thin TS wrapper (CLI, Vite plugin, WASM glue)
+  Testing: Vitest (TS unit/integration), cargo test (Rust unit/integration)
+  Style: ESLint + Prettier + TypeScript strict mode + Rust stable/clippy
+  WASM profile: lto=true, opt-level="z", codegen-units=1
 
-strict_tdd: false
+strict_tdd: true
+
+testing:
+  test_runner:
+    command: "npm test"
+    framework: vitest
+  rust_tests:
+    command: "cargo test"
+    framework: cargo
+  layers:
+    unit:
+      js_ts: vitest
+      rust: cargo test
+    integration:
+      js_ts: vitest (WASM bindings)
+      rust: cargo test
+    e2e: not_installed
+  coverage:
+    available: true
+    command: "vitest --coverage"
+  quality:
+    linter:
+      js_ts: eslint
+      rust: cargo clippy
+    type_checker:
+      js_ts: "npx tsc --noEmit"
+    formatter:
+      js_ts: prettier
+      rust: rustfmt
 
 rules:
   proposal:
     - Include rollback plan for risky changes
-    - Identify affected modules/packages
+    - Identify affected packages (core-wasm, src/ CLI, src/ Vite)
+    - Estimate performance impact (benchmark before/after)
   specs:
     - Use Given/When/Then format for scenarios
     - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Include benchmark expectations for performance changes
   design:
     - Include sequence diagrams for complex flows
     - Document architecture decisions with rationale
+    - Include benchmark comparison expectations
   tasks:
-    - Group tasks by phase (infrastructure, implementation, testing)
+    - Group by phase (infrastructure, implementation, testing, benchmark)
     - Use hierarchical numbering (1.1, 1.2, etc.)
-    - Keep tasks small enough to complete in one session
+    - Keep tasks completable in one session
   apply:
-    - Follow existing code patterns and conventions
-    - Load relevant coding skills for the project stack
+    - Follow existing code patterns (byte-level, no allocations in hot path)
+    - Load relevant coding skills (Rust best practices)
+    - All changes MUST pass existing tests first
+    - RED-GREEN-REFACTOR: write failing test first
+    - Benchmark before/after for ALL performance changes
+    - test_command: "npm test && cargo test"
   verify:
-    - Run tests if test infrastructure exists
-    - Compare implementation against every spec scenario
+    - Run ALL tests: npm test (TS) && cargo test (Rust)
+    - Run benchmarks: npm run bench
+    - Compare against every spec scenario
+    - Verify no regression in any color format
+    - build_command: "npm run build"
   archive:
     - Warn before merging destructive deltas (large removals)
-
-testing:
-  strict_tdd: false
-  detected: "2026-05-24"
-  runner:
-    command: "cargo test && npx vitest"
-    framework: "cargo + vitest"
-  layers:
-    unit: { available: true, tool: "cargo test / vitest" }
-    integration: { available: false, tool: "—" }
-    e2e: { available: false, tool: "—" }
-  coverage:
-    available: false
-    command: "—"
-  quality:
-    linter: { available: true, command: "eslint / cargo clippy" }
-    type_checker: { available: true, command: "tsc --noEmit / cargo check" }
-    formatter: { available: true, command: "prettier / rustfmt" }
+    - Ensure all benchmarks are final in report

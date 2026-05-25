@@ -1,117 +1,213 @@
 ---
 title: API Reference
-description: Complete API reference for okcolor.
+description: Complete programmatic API for okcolor.
 sidebar:
   order: 1
 ---
 
-## `transformCss(input)`
+import { Tabs, TabItem } from '@astrojs/starlight/components'
 
-Transforms a CSS string, converting legacy colors to OKLCH — built on Rust/WASM compiled via `wasm-bindgen`.
+## Package exports
+
+okcolor exposes two entry points:
+
+| Entry | What you get | Use when |
+|---|---|---|
+| `okcolor` | Vite plugin factory | You're adding okcolor to a Vite project |
+| `okcolor/core` | Transform and audit functions | You need the engine without Vite |
 
 ```ts
-import { transformCss } from 'okcolor/core'
+// Vite plugin
+import { okColor, type OkColorOptions } from 'okcolor'
 
-const result = transformCss(`
-  .card {
-    color: #ff0000;
-    background: linear-gradient(#f00, #00f);
-  }
-`)
+// Programmatic
+import { transformCss, auditCss, type ScanResult } from 'okcolor/core'
+```
 
-// .card {
-//   color: oklch(62.8% 0.25768 29.23);
-//   background: linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05));
-// }
+---
+
+## `transformCss(input)`
+
+Transforms a CSS string, converting all legacy colors to OKLCH. The Rust/WASM engine processes the entire string in a single pass.
+
+```ts
+function transformCss(input: string): string
 ```
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `input` | `string` | Raw CSS source |
+<table class="api-table">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>input</code></td>
+      <td><code>string</code></td>
+      <td>Raw CSS source to transform</td>
+    </tr>
+  </tbody>
+</table>
 
 ### Returns
 
-`string` — the transformed CSS with all legacy colours replaced by OKLCH.
+`string` — the transformed CSS. All recognized legacy colors are replaced with `oklch()`.
 
-Gradient colour stops are automatically wrapped in `in oklch` for perceptually uniform interpolation.
+### Examples
+
+```ts
+import { transformCss } from 'okcolor/core'
+
+// Hex to OKLCH
+transformCss('.btn { color: #ff0000; }')
+// => '.btn { color: oklch(62.8% 0.25768 29.23); }'
+
+// Multiple formats in one pass
+transformCss(`
+  .card {
+    color: #f00;
+    background: linear-gradient(#00f, #0f0);
+  }
+`)
+// => all colors converted, gradient gets 'in oklch' hint
+
+// Idempotent: second pass is a no-op
+const first = transformCss('.btn { color: #ff0000; }')
+const second = transformCss(first)
+console.log(first === second) // true
+```
+
+Gradient color stops get `in oklch` injected for perceptually uniform interpolation. Modern CSS functions (`oklch()`, `oklab()`, `var()`, `calc()`, etc.) pass through untouched.
 
 ---
 
 ## `auditCss(input)`
 
-Scans CSS and reports legacy colour usage without transforming.
+Scans a CSS string and reports legacy color statistics without transforming.
+
+```ts
+function auditCss(input: string): ScanResult
+```
+
+### Parameters
+
+<table class="api-table">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>input</code></td>
+      <td><code>string</code></td>
+      <td>Raw CSS source to audit</td>
+    </tr>
+  </tbody>
+</table>
+
+### Returns
+
+```ts
+interface ScanResult {
+  css: string              // Original CSS (unchanged)
+  legacy_count: number     // Total legacy colors found
+  hex_count: number        // #RGB, #RRGGBB, #RGBA, #RRGGBBAA
+  rgb_count: number        // rgb(), rgba()
+  hsl_count: number        // hsl(), hsla()
+  hwb_count: number        // hwb()
+  named_count: number      // red, blue, etc.
+  gradient_count: number   // linear/radial/conic-gradient
+  unique_count: number     // Unique colors (by cache key)
+}
+```
+
+### Example
 
 ```ts
 import { auditCss } from 'okcolor/core'
 
 const stats = auditCss(`
   .btn { color: #3b82f6; }
-  .alert { border: 1px solid red; }
+  .card { border: 1px solid hsl(145, 63%, 49%); }
+  .hero { background: linear-gradient(red, blue); }
 `)
 
-console.log(stats.legacy_count) // 2
-console.log(stats.hex_count)    // 1
-console.log(stats.named_count)  // 1
-```
-
-### Returns
-
-```ts
-interface ScanResult {
-  css: string
-  legacy_count: number
-  hex_count: number
-  rgb_count: number
-  hsl_count: number
-  hwb_count: number
-  named_count: number
-  gradient_count: number
-  unique_count: number
-}
+console.log(stats.legacy_count)  // 4
+console.log(stats.hex_count)     // 1
+console.log(stats.hsl_count)     // 1
+console.log(stats.named_count)   // 2
+console.log(stats.gradient_count) // 1
 ```
 
 ---
 
-## Vite Plugin
+## `okColor(options?)`
+
+The Vite plugin factory.
 
 ```ts
-import { okColor } from 'okcolor'
-
-// Default options
-okColor()
-
-// With options
-okColor({
-  include: ['src/**/*.css'],
-  exclude: ['src/vendor/**'],
-})
+function okColor(options?: Partial<OkColorOptions>): Plugin
 ```
 
 ### `OkColorOptions`
 
+<table class="api-table">
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Type</th>
+      <th>Default</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>ignoreComment</code></td>
+      <td><code>string</code></td>
+      <td><code>'oklch-ignore'</code></td>
+      <td>Inline comment marker that prevents conversion on the containing line</td>
+    </tr>
+  </tbody>
+</table>
+
+### Usage
+
 ```ts
-interface OkColorOptions {
-  /** Inline comment that prevents conversion on that line. @default 'oklch-ignore' */
-  ignoreComment?: string
-}
+import { okColor } from 'okcolor'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [
+    okColor(), // zero-config
+  ],
+})
 ```
+
+The plugin processes `.css`, `.scss`, `.sass`, `.less`, `.styl`, `.stylus`, `.vue`, `.svelte`, and `.astro` files automatically.
 
 ---
 
 ## CLI
 
 ```bash
-# Transform
+# Transform a file
 npx okcolor input.css -o output.css
 
-# Audit
-npx okcolor audit input.css
+# Audit a directory
+npx okcolor audit ./src
 
 # CI gate
-npx okcolor check --max-legacy-colors=10
+npx okcolor check ./src --max-legacy-colors=10
 
-# Diagnose
-npx okcolor doctor
+# Diagnose issues
+npx okcolor doctor ./src
 ```
+
+See the [CLI documentation](/okcolor/getting-started/cli/) for all commands and options.
