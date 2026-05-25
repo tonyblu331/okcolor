@@ -123,7 +123,6 @@ Modern colors (`oklch()`, `oklab()`, `color(display-p3 ...)`, `color-mix()`, `li
 ¹ Culori and color.js use regex-based CSS scanning (fewer edge cases handled — no named color support, no comment/string awareness). okcolor does full lexical analysis.
 
 Measured on Intel Core i9-13900H, Node.js 26. The full 5-stage pipeline (parse, gamma decode, matrix, cache, format) runs in a single WASM pass. Per-color averages across 10 different color values.
-
 ## Documentation
 
 Full docs and interactive playground: **[tonyblu331.github.io/okcolor](https://tonyblu331.github.io/okcolor)**
