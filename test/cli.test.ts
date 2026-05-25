@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { auditCss } from '../src/wasm.js'
+import { auditCss, colorToOklch, convertColor } from '../src/wasm.js'
 import { resolve } from 'node:path'
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs'
 
@@ -9,6 +9,32 @@ describe('CLI integration', () => {
     expect(stats.legacy_count).toBe(3)
     expect(stats.hex_count).toBe(1)
     expect(stats.rgb_count).toBe(1)
+    expect(stats.named_count).toBe(1)
+  })
+
+  it('audit gradient counts are isolated', () => {
+    const stats = auditCss('background: linear-gradient(red, blue);')
+    expect(stats.legacy_count).toBe(2)
+    expect(stats.gradient_count).toBe(1)
+    expect(stats.named_count).toBe(2)
+  })
+
+  it('colorToOklch returns undefined for invalid input', () => {
+    expect(colorToOklch('not-a-color')).toBeUndefined()
+  })
+
+  it('convertColor roundtrips hex to hsl', () => {
+    expect(convertColor('#ff0000', 'hsl')).toBe('hsl(0 100% 50%)')
+    expect(convertColor('#0000ff', 'hsl')).toBe('hsl(240 100% 50%)')
+  })
+
+  it('convertColor rejects unsupported spaces', () => {
+    expect(convertColor('#ff0000', 'cmyk')).toBeUndefined()
+  })
+
+  it('audit named-only CSS works via bypass', () => {
+    const stats = auditCss('color: red;')
+    expect(stats.legacy_count).toBe(1)
     expect(stats.named_count).toBe(1)
   })
 })
@@ -41,7 +67,7 @@ describe('CLI parallel file processing', () => {
     const elapsed = performance.now() - start
     const total = results.reduce((s, r) => s + r.legacy_count, 0)
     expect(total).toBe(100) // 2 colors x 50 files
-    expect(elapsed).toBeLessThan(5000) // sanity: should finish quickly
+    expect(elapsed).toBeLessThan(5000)
   })
 
   it('processes files without colors correctly', async () => {
@@ -57,5 +83,16 @@ describe('CLI parallel file processing', () => {
 
     const total = results.reduce((s, r) => s + r.legacy_count, 0)
     expect(total).toBe(0)
+  })
+
+  it('auditCss handles empty CSS gracefully', async () => {
+    const stats = auditCss('')
+    expect(stats.legacy_count).toBe(0)
+    expect(stats.hex_count).toBe(0)
+  })
+
+  it('files that do not exist throw ENOENT at filesystem level', () => {
+    const bogusPath = resolve(tmpDir, 'does-not-exist.css')
+    expect(() => readFileSync(bogusPath, 'utf-8')).toThrow('ENOENT')
   })
 })

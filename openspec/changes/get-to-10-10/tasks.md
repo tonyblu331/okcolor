@@ -30,10 +30,10 @@
 
 ## Phase 5: Testing Hardening
 
-- [ ] 5.1 Add `tsc --noEmit` as npm test script dependency
-- [ ] 5.2 Expand CLI tests: stdout assertions, exit codes for check/audit/doctor/convert
+- [x] 5.1 Add `tsc --noEmit` as npm test script dependency
+- [x] 5.2 Expand CLI tests: stdout assertions, exit codes for check/audit/doctor/convert
 - [ ] 5.3 Add property-based roundtrip tests with `proptest` (Rust) — generate random colors, verify < 1e-4 error
-- [ ] 5.4 Add `processFiles` error resilience test (corrupted file doesn't crash scan)
+- [x] 5.4 Add `processFiles` error resilience test (corrupted file doesn't crash scan)
 
 ## Phase 6: Package Polish
 
