@@ -1,14 +1,6 @@
-use crate::cache;
 use crate::math;
 use crate::named;
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ParsedColor {
-    pub l: f64,
-    pub c: f64,
-    pub h: f64,
-    pub alpha: Option<f64>,
-}
+use crate::types::RawColor;
 
 // ── Char helpers ───────────────────────────────────────────────────────
 
@@ -24,56 +16,63 @@ fn hex_val(c: u8) -> u8 {
 
 // ── Hex ────────────────────────────────────────────────────────────────
 
-/// Parse `#RRGGBB`, `#RGB`, `#RRGGBBAA`, or `#RGBA`.
-pub fn parse_hex(digits: &[u8]) -> Option<ParsedColor> {
-    match digits.len() {
-        3 => {
-            let r = hex_val(digits[0]) * 17;
-            let g = hex_val(digits[1]) * 17;
-            let b = hex_val(digits[2]) * 17;
-            convert_srgb8(r, g, b, None)
-        }
-        4 => {
-            let r = hex_val(digits[0]) * 17;
-            let g = hex_val(digits[1]) * 17;
-            let b = hex_val(digits[2]) * 17;
-            let a = hex_val(digits[3]) as f64 / 15.0;
-            convert_srgb8(r, g, b, Some(a))
-        }
-        6 => {
-            let r = hex_val(digits[0]) * 16 + hex_val(digits[1]);
-            let g = hex_val(digits[2]) * 16 + hex_val(digits[3]);
-            let b = hex_val(digits[4]) * 16 + hex_val(digits[5]);
-            convert_srgb8(r, g, b, None)
-        }
-        8 => {
-            let r = hex_val(digits[0]) * 16 + hex_val(digits[1]);
-            let g = hex_val(digits[2]) * 16 + hex_val(digits[3]);
-            let b = hex_val(digits[4]) * 16 + hex_val(digits[5]);
-            let a = (hex_val(digits[6]) * 16 + hex_val(digits[7])) as f64 / 255.0;
-            convert_srgb8(r, g, b, Some(a))
-        }
-        _ => None,
-    }
+/// Parse `#RRGGBB`, `#RGB`, `#RRGGBBAA`, or `#RGBA` to `RawColor`.
+pub fn parse_hex(digits: &[u8]) -> Option<RawColor> {
+    let (r, g, b, alpha) = match digits.len() {
+        3 => (
+            hex_val(digits[0]) * 17,
+            hex_val(digits[1]) * 17,
+            hex_val(digits[2]) * 17,
+            None,
+        ),
+        4 => (
+            hex_val(digits[0]) * 17,
+            hex_val(digits[1]) * 17,
+            hex_val(digits[2]) * 17,
+            Some(hex_val(digits[3]) as f64 / 15.0),
+        ),
+        6 => (
+            hex_val(digits[0]) * 16 + hex_val(digits[1]),
+            hex_val(digits[2]) * 16 + hex_val(digits[3]),
+            hex_val(digits[4]) * 16 + hex_val(digits[5]),
+            None,
+        ),
+        8 => (
+            hex_val(digits[0]) * 16 + hex_val(digits[1]),
+            hex_val(digits[2]) * 16 + hex_val(digits[3]),
+            hex_val(digits[4]) * 16 + hex_val(digits[5]),
+            Some((hex_val(digits[6]) * 16 + hex_val(digits[7])) as f64 / 255.0),
+        ),
+        _ => return None,
+    };
+    Some(RawColor {
+        r: r as f64 / 255.0,
+        g: g as f64 / 255.0,
+        b: b as f64 / 255.0,
+        alpha,
+    })
 }
 
 // ─── RGB ───
 
-pub fn parse_rgb(tokens: &[&str]) -> Option<ParsedColor> {
+pub fn parse_rgb(tokens: &[&str]) -> Option<RawColor> {
     if tokens.len() < 3 {
         return None;
     }
-    convert_srgb8(
-        parse_u8(tokens[0])?,
-        parse_u8(tokens[1])?,
-        parse_u8(tokens[2])?,
-        parse_alpha(tokens.get(3).copied()),
-    )
+    let r = parse_u8(tokens[0])?;
+    let g = parse_u8(tokens[1])?;
+    let b = parse_u8(tokens[2])?;
+    Some(RawColor {
+        r: r as f64 / 255.0,
+        g: g as f64 / 255.0,
+        b: b as f64 / 255.0,
+        alpha: parse_alpha(tokens.get(3).copied()),
+    })
 }
 
 // ─── HSL ───
 
-pub fn parse_hsl(tokens: &[&str]) -> Option<ParsedColor> {
+pub fn parse_hsl(tokens: &[&str]) -> Option<RawColor> {
     if tokens.len() < 3 {
         return None;
     }
@@ -82,12 +81,12 @@ pub fn parse_hsl(tokens: &[&str]) -> Option<ParsedColor> {
         parse_percent(tokens[1]),
         parse_percent(tokens[2]),
     );
-    Some(convert_srgb_float(r, g, b, parse_alpha(tokens.get(3).copied())))
+    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(3).copied()) })
 }
 
 // ─── HWB ───
 
-pub fn parse_hwb(tokens: &[&str]) -> Option<ParsedColor> {
+pub fn parse_hwb(tokens: &[&str]) -> Option<RawColor> {
     if tokens.len() < 3 {
         return None;
     }
@@ -96,28 +95,62 @@ pub fn parse_hwb(tokens: &[&str]) -> Option<ParsedColor> {
         parse_percent(tokens[1]),
         parse_percent(tokens[2]),
     );
-    Some(convert_srgb_float(r, g, b, parse_alpha(tokens.get(3).copied())))
+    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(3).copied()) })
+}
+
+// ─── oklch() ───
+
+/// Parse `oklch(L C H / alpha)` to `RawColor`.
+/// L may be 0–1 or 0%–100%; C is chroma; H is hue in degrees.
+pub fn parse_oklch(tokens: &[&str]) -> Option<RawColor> {
+    if tokens.len() < 3 {
+        return None;
+    }
+    let raw_l = parse_lightness(tokens[0]);
+    let c = parse_chroma(tokens[1]);
+    let h = parse_angle(tokens[2]);
+    let (r, g, b) = math::oklch_to_srgb(raw_l, c, h);
+    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(3).copied()) })
+}
+
+fn parse_lightness(s: &str) -> f64 {
+    if let Some(rest) = s.strip_suffix('%') {
+        rest.parse::<f64>().unwrap_or(0.0) / 100.0
+    } else {
+        s.parse::<f64>().unwrap_or(0.0)
+    }
+}
+
+fn parse_chroma(s: &str) -> f64 {
+    s.parse::<f64>().unwrap_or(0.0).abs()
 }
 
 // ─── color(srgb …) ───
 
-pub fn parse_color_srgb(tokens: &[&str]) -> Option<ParsedColor> {
+pub fn parse_color_srgb(tokens: &[&str]) -> Option<RawColor> {
     if tokens.len() < 4 || !tokens[0].eq_ignore_ascii_case("srgb") {
         return None;
     }
     let r = tokens[1].parse::<f64>().ok()?;
     let g = tokens[2].parse::<f64>().ok()?;
     let b = tokens[3].parse::<f64>().ok()?;
-    Some(convert_srgb_float(r, g, b, parse_alpha(tokens.get(4).copied())))
+    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(4).copied()) })
 }
 
 // ─── Named ───
 
-pub fn parse_named(name: &[u8]) -> Option<ParsedColor> {
+pub fn parse_named(name: &[u8]) -> Option<RawColor> {
     let lower = name.to_ascii_lowercase();
     let name_str = std::str::from_utf8(&lower).ok()?;
-    let rgb = named::lookup(name_str)?;
-    convert_srgb8(rgb[0], rgb[1], rgb[2], None)
+    let [rr, gg, bb] = named::lookup(name_str)?;
+    Some(RawColor { r: rr as f64 / 255.0, g: gg as f64 / 255.0, b: bb as f64 / 255.0, alpha: None })
+}
+
+/// Same as `parse_named` but assumes bytes are already lowercased.
+pub fn parse_named_lowered(name: &[u8]) -> Option<RawColor> {
+    let name_str = std::str::from_utf8(name).ok()?;
+    let [rr, gg, bb] = named::lookup(name_str)?;
+    Some(RawColor { r: rr as f64 / 255.0, g: gg as f64 / 255.0, b: bb as f64 / 255.0, alpha: None })
 }
 
 // ─── Tokenising for function colours ───────────────────────────────────
@@ -169,21 +202,42 @@ fn parse_alpha(s: Option<&str>) -> Option<f64> {
     }
 }
 
-// ─── Conversion helpers ────────────────────────────────────────────────
-
-fn convert_srgb8(r: u8, g: u8, b: u8, alpha: Option<f64>) -> Option<ParsedColor> {
-    let a8 = alpha.map(|a| (a * 255.0).round() as u8).unwrap_or(255);
-    if let Some((l, c, h)) = cache::cache_get(r, g, b, a8) {
-        return Some(ParsedColor { l, c, h, alpha });
-    }
-    let (l, c, h) = math::srgb8_to_oklch(r, g, b);
-    cache::cache_set(r, g, b, a8, (l, c, h));
-    Some(ParsedColor { l, c, h, alpha })
+/// Extract body inside the first pair of parentheses.
+fn extract_body(s: &str) -> Option<&str> {
+    let open = s.find('(')?;
+    let close = s.rfind(')')?;
+    if close <= open { return None; }
+    Some(&s[open + 1..close])
 }
 
-fn convert_srgb_float(r: f64, g: f64, b: f64, alpha: Option<f64>) -> ParsedColor {
-    let (l, c, h) = math::srgb_float_to_oklch(r, g, b);
-    ParsedColor { l, c, h, alpha }
+/// Parse a single CSS colour value (hex, rgb(), hsl(), hwb(), oklch(), color(srgb …), or named)
+/// into a RawColor. Convenience for the WASM bindings and convert dispatcher.
+pub fn parse_single_color(trimmed: &str) -> Option<RawColor> {
+    // Hex
+    if let Some(rest) = trimmed.strip_prefix('#') {
+        return parse_hex(rest.as_bytes());
+    }
+
+    // Function colours — extract body between parens first
+    if let Some(body) = extract_body(trimmed) {
+        let toks = tokenize_body(body);
+        return if trimmed.starts_with("rgb") || trimmed.starts_with("rgba") {
+            parse_rgb(&toks)
+        } else if trimmed.starts_with("hsl") || trimmed.starts_with("hsla") {
+            parse_hsl(&toks)
+        } else if trimmed.starts_with("hwb") {
+            parse_hwb(&toks)
+        } else if trimmed.starts_with("color") {
+            parse_color_srgb(&toks)
+        } else if trimmed.starts_with("oklch") {
+            parse_oklch(&toks)
+        } else {
+            None
+        };
+    }
+
+    // Named
+    parse_named(trimmed.as_bytes())
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────
@@ -195,15 +249,16 @@ mod tests {
     #[test]
     fn hex_6_red() {
         let p = parse_hex(b"ff0000").unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
-        approx_delta(p.c, 0.25768, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
+        approx(p.g, 0.0);
+        approx(p.b, 0.0);
         assert_eq!(p.alpha, None);
     }
 
     #[test]
     fn hex_3_red() {
         let p = parse_hex(b"f00").unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
     }
 
     #[test]
@@ -227,13 +282,14 @@ mod tests {
     #[test]
     fn rgb_comma() {
         let p = parse_rgb(&["255", "0", "0"]).unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
+        approx(p.g, 0.0);
     }
 
     #[test]
     fn rgb_percent() {
         let p = parse_rgb(&["100%", "0%", "0%"]).unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
     }
 
     #[test]
@@ -251,7 +307,9 @@ mod tests {
     #[test]
     fn hsl_red() {
         let p = parse_hsl(&["0", "100%", "50%"]).unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
+        approx(p.g, 0.0);
+        approx(p.b, 0.0);
     }
 
     #[test]
@@ -263,19 +321,25 @@ mod tests {
     #[test]
     fn hwb_red() {
         let p = parse_hwb(&["0", "0%", "0%"]).unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
+        approx(p.g, 0.0);
+        approx(p.b, 0.0);
     }
 
     #[test]
     fn hwb_white() {
         let p = parse_hwb(&["0", "100%", "0%"]).unwrap();
-        approx_delta(p.l, 1.0, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
+        approx_delta(p.g, 1.0, 1e-4);
+        approx_delta(p.b, 1.0, 1e-4);
     }
 
     #[test]
     fn color_srgb() {
         let p = parse_color_srgb(&["srgb", "1", "0", "0"]).unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
+        approx(p.g, 0.0);
+        approx(p.b, 0.0);
     }
 
     #[test]
@@ -287,13 +351,15 @@ mod tests {
     #[test]
     fn named_red() {
         let p = parse_named(b"red").unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
+        approx(p.g, 0.0);
+        approx(p.b, 0.0);
     }
 
     #[test]
     fn named_case_insensitive() {
         let p = parse_named(b"RED").unwrap();
-        approx_delta(p.l, 0.62796, 1e-4);
+        approx_delta(p.r, 1.0, 1e-4);
     }
 
     #[test]
@@ -301,7 +367,56 @@ mod tests {
         assert!(parse_named(b"transparent").is_none());
     }
 
+    #[test]
+    fn named_lowered_red() {
+        let p = parse_named_lowered(b"red").unwrap();
+        approx_delta(p.r, 1.0, 1e-4);
+    }
+
+    #[test]
+    fn named_lowered_uppercase_still_works() {
+        // parse_named_lowered doesn't lowercase, so "RED" fails
+        assert!(parse_named_lowered(b"RED").is_none());
+    }
+
     fn approx_delta(a: f64, b: f64, delta: f64) {
         assert!((a - b).abs() < delta, "expected {b} ±{delta}, got {a}");
+    }
+
+    fn approx(a: f64, b: f64) {
+        assert!((a - b).abs() < 1e-6, "expected {b}, got {a}");
+    }
+
+    // ── oklch() ──
+
+    #[test]
+    fn parse_oklch_red() {
+        let p = parse_oklch(&["0.62796", "0.25768", "29.2339"]).unwrap();
+        approx_delta(p.r, 1.0, 2e-3);
+        approx_delta(p.g, 0.0, 2e-3);
+        approx_delta(p.b, 0.0, 2e-3);
+        assert_eq!(p.alpha, None);
+    }
+
+    #[test]
+    fn parse_oklch_with_percent_lightness() {
+        let p = parse_oklch(&["62.796%", "0.25768", "29.2339"]).unwrap();
+        approx_delta(p.r, 1.0, 2e-3);
+        approx_delta(p.g, 0.0, 2e-3);
+        approx_delta(p.b, 0.0, 2e-3);
+    }
+
+    #[test]
+    fn parse_oklch_via_single_color() {
+        let p = parse_single_color("oklch(62.796% 0.25768 29.2339)").unwrap();
+        approx_delta(p.r, 1.0, 2e-3);
+        approx_delta(p.g, 0.0, 2e-3);
+        approx_delta(p.b, 0.0, 2e-3);
+    }
+
+    #[test]
+    fn parse_oklch_invalid() {
+        assert!(parse_oklch(&[""]).is_none());
+        assert!(parse_oklch(&["0.5", "0.1"]).is_none());
     }
 }

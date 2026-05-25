@@ -1,3 +1,4 @@
+use crate::cache;
 use std::sync::LazyLock;
 
 // ── sRGB gamma decode LUT (once, at runtime) ──────────────────────────
@@ -96,6 +97,35 @@ pub fn srgb_float_to_oklch(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     )
 }
 
+/// Convert gamma-encoded sRGB float (RawColor channels) to OKLCH.
+///
+/// Uses a LUT + cache for 8-bit-precision values, and the full powf path
+/// for float values (HSL/HWB intermediates, color() function, etc.).
+///
+/// Returns `(l, c, h, alpha)` where `alpha` is passed through unchanged.
+pub fn raw_to_oklch(r: f64, g: f64, b: f64, alpha: Option<f64>) -> (f64, f64, f64, Option<f64>) {
+    // Check if values round-trip to u8 exactly (the common case for hex/rgb/named)
+    let ri = (r * 255.0).round() as u8;
+    let gi = (g * 255.0).round() as u8;
+    let bi = (b * 255.0).round() as u8;
+    let is_exact_u8 = (ri as f64 - r * 255.0).abs() < 1e-6
+        && (gi as f64 - g * 255.0).abs() < 1e-6
+        && (bi as f64 - b * 255.0).abs() < 1e-6;
+
+    if is_exact_u8 {
+        let a8 = alpha.map(|a| (a * 255.0).round() as u8).unwrap_or(255);
+        if let Some((l, c, h)) = cache::cache_get(ri, gi, bi, a8) {
+            return (l, c, h, alpha);
+        }
+        let (l, c, h) = srgb8_to_oklch(ri, gi, bi);
+        cache::cache_set(ri, gi, bi, a8, (l, c, h));
+        (l, c, h, alpha)
+    } else {
+        let (l, c, h) = srgb_float_to_oklch(r, g, b);
+        (l, c, h, alpha)
+    }
+}
+
 // ── HSL → sRGB  (CSS Color 4, §7.2.4) ─────────────────────────────────
 
 pub fn hsl_to_srgb(h: f64, s: f64, l: f64) -> (f64, f64, f64) {
@@ -138,6 +168,96 @@ pub fn hwb_to_srgb(h: f64, w: f64, b: f64) -> (f64, f64, f64) {
     let b2 = b_ * (1.0 - white) + white;
 
     (r2 * (1.0 - black), g2 * (1.0 - black), b2 * (1.0 - black))
+}
+
+// ── sRGB gamma encode ──────────────────────────────────────────────────
+
+/// Gamma-encode a linear sRGB channel (inverse of `srgb_gamma_to_linear`).
+fn srgb_linear_to_gamma(c: f64) -> f64 {
+    let abs_c = c.abs();
+    let gamma = if abs_c <= 0.0031308 {
+        abs_c * 12.92
+    } else {
+        1.055 * abs_c.powf(1.0 / 2.4) - 0.055
+    };
+    c.signum() * gamma
+}
+
+// ── OKLCH → sRGB (inverse of linear_rgb_to_oklch) ─────────────────────
+
+/// OKLab → linear sRGB (inverse of LMS_TO_OKLAB × cube root × SRGB_TO_LMS).
+fn oklab_to_linear_srgb(l: f64, a: f64, b: f64) -> (f64, f64, f64) {
+    // OKLab → LMS cuberoot (inverse of LMS_TO_OKLAB)
+    let l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+    let m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+    let s_ = l - 0.0894841775 * a - 1.2914855480 * b;
+
+    // Cube (inverse of cube root)
+    let l = l_ * l_ * l_;
+    let m = m_ * m_ * m_;
+    let s = s_ * s_ * s_;
+
+    // LMS → sRGB linear (inverse of SRGB_TO_LMS)
+    (
+         4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+    )
+}
+
+/// OKLCH → sRGB (gamma-encoded, 0.0–1.0 range).
+pub fn oklch_to_srgb(l: f64, c: f64, h: f64) -> (f64, f64, f64) {
+    let h_rad = h.to_radians();
+    let a = c * h_rad.cos();
+    let b_ = c * h_rad.sin();
+
+    let (rl, gl, bl) = oklab_to_linear_srgb(l, a, b_);
+    (
+        (srgb_linear_to_gamma(rl).clamp(0.0, 1.0)),
+        (srgb_linear_to_gamma(gl).clamp(0.0, 1.0)),
+        (srgb_linear_to_gamma(bl).clamp(0.0, 1.0)),
+    )
+}
+
+// ── sRGB → HSL (CSS Color 4, §7.2.4 inverse) ───────────────────────────
+
+/// sRGB (gamma-encoded, 0.0–1.0) → HSL (h: 0–360, s: 0–100, l: 0–100).
+pub fn srgb_to_hsl(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let range = max - min;
+
+    let l = (max + min) / 2.0;
+
+    if range < 1e-8 {
+        return (0.0, 0.0, l * 100.0);
+    }
+
+    let s = if l <= 0.5 {
+        range / (max + min)
+    } else {
+        range / (2.0 - max - min)
+    };
+
+    let h = if max == r {
+        ((g - b) / range + if g < b { 6.0 } else { 0.0 }) * 60.0
+    } else if max == g {
+        ((b - r) / range + 2.0) * 60.0
+    } else {
+        ((r - g) / range + 4.0) * 60.0
+    };
+
+    (h, s * 100.0, l * 100.0)
+}
+
+// ── sRGB → HWB (CSS Color 4, §7.3.3 inverse) ───────────────────────────
+
+/// sRGB (gamma-encoded, 0.0–1.0) → HWB (h: 0–360, w: 0–100, b: 0–100).
+pub fn srgb_to_hwb(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
+    let (h, _, _) = srgb_to_hsl(r, g, b);
+    let w = r.min(g).min(b) * 100.0;
+    let b_ = (1.0 - r.max(g).max(b)) * 100.0;
+    (h, w, b_)
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────
@@ -292,6 +412,121 @@ mod tests {
         approx_delta(r, 0.5, 1e-4);
         approx_delta(g, 0.5, 1e-4);
         approx_delta(b, 0.5, 1e-4);
+    }
+
+    // ── OKLCH ↔ sRGB roundtrip ──
+
+    #[test]
+    fn test_oklch_red_roundtrip() {
+        let (l, c, h) = srgb8_to_oklch(255, 0, 0);
+        let (r, g, b) = oklch_to_srgb(l, c, h);
+        approx_delta(r, 1.0, 2e-3);
+        approx(g, 0.0);
+        approx(b, 0.0);
+    }
+
+    #[test]
+    fn test_oklch_green_roundtrip() {
+        let (l, c, h) = srgb8_to_oklch(0, 255, 0);
+        let (r, g, b) = oklch_to_srgb(l, c, h);
+        approx(r, 0.0);
+        approx_delta(g, 1.0, 2e-3);
+        approx(b, 0.0);
+    }
+
+    #[test]
+    fn test_oklch_blue_roundtrip() {
+        let (l, c, h) = srgb8_to_oklch(0, 0, 255);
+        let (r, g, b) = oklch_to_srgb(l, c, h);
+        approx(r, 0.0);
+        approx(g, 0.0);
+        approx_delta(b, 1.0, 2e-3);
+    }
+
+    #[test]
+    fn test_oklch_white_roundtrip() {
+        let (l, c, h) = srgb8_to_oklch(255, 255, 255);
+        let (r, g, b) = oklch_to_srgb(l, c, h);
+        approx_delta(r, 1.0, 2e-3);
+        approx_delta(g, 1.0, 2e-3);
+        approx_delta(b, 1.0, 2e-3);
+    }
+
+    #[test]
+    fn test_oklch_black_roundtrip() {
+        let (l, c, h) = srgb8_to_oklch(0, 0, 0);
+        let (r, g, b) = oklch_to_srgb(l, c, h);
+        approx(r, 0.0);
+        approx(g, 0.0);
+        approx(b, 0.0);
+    }
+
+    #[test]
+    fn test_oklch_gray50_roundtrip() {
+        let (l, c, h) = srgb8_to_oklch(128, 128, 128);
+        let (r, g, b) = oklch_to_srgb(l, c, h);
+        approx_delta(r, 0.5, 2e-3);
+        approx_delta(g, 0.5, 2e-3);
+        approx_delta(b, 0.5, 2e-3);
+    }
+
+    // ── HSL ↔ sRGB roundtrip ──
+
+    #[test]
+    fn test_hsl_red_roundtrip() {
+        let (r, g, b) = hsl_to_srgb(0.0, 100.0, 50.0);
+        let (h, s, l) = srgb_to_hsl(r, g, b);
+        approx_delta(h, 0.0, 1e-4);
+        approx_delta(s, 100.0, 1e-4);
+        approx_delta(l, 50.0, 1e-4);
+    }
+
+    #[test]
+    fn test_hsl_blue_roundtrip() {
+        let (r, g, b) = hsl_to_srgb(240.0, 100.0, 50.0);
+        let (h, s, l) = srgb_to_hsl(r, g, b);
+        approx_delta(h, 240.0, 1e-4);
+        approx_delta(s, 100.0, 1e-4);
+        approx_delta(l, 50.0, 1e-4);
+    }
+
+    #[test]
+    fn test_hsl_white_roundtrip() {
+        let (r, g, b) = hsl_to_srgb(120.0, 50.0, 100.0);
+        let (h, s, l) = srgb_to_hsl(r, g, b);
+        // Gray has h=0, s=0
+        approx_delta(h, 0.0, 1e-4);
+        approx(s, 0.0);
+        approx_delta(l, 100.0, 1e-4);
+    }
+
+    #[test]
+    fn test_hsl_gray_roundtrip() {
+        let (r, g, b) = hsl_to_srgb(0.0, 0.0, 50.0);
+        let (h, s, l) = srgb_to_hsl(r, g, b);
+        approx_delta(h, 0.0, 1e-4);
+        approx(s, 0.0);
+        approx_delta(l, 50.0, 1e-4);
+    }
+
+    // ── HWB ↔ sRGB roundtrip ──
+
+    #[test]
+    fn test_hwb_red_roundtrip() {
+        let (r, g, b) = hwb_to_srgb(0.0, 0.0, 0.0);
+        let (h, w, b_) = srgb_to_hwb(r, g, b);
+        approx_delta(h, 0.0, 1e-4);
+        approx(w, 0.0);
+        approx(b_, 0.0);
+    }
+
+    #[test]
+    fn test_hwb_white_roundtrip() {
+        let (r, g, b) = hwb_to_srgb(0.0, 100.0, 0.0);
+        let (h, w, b_) = srgb_to_hwb(r, g, b);
+        approx_delta(h, 0.0, 1e-4);
+        approx_delta(w, 100.0, 1e-4);
+        approx(b_, 0.0);
     }
 
     // ── Helpers ──

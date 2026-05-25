@@ -1,0 +1,13 @@
+[package]
+name = "okcolor"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "OKLCH color engine — CLI"
+
+[[bin]]
+name = "okcolor"
+path = "src/main.rs"
+
+[dependencies]
+okcolor-core = { path = "../core-wasm" }

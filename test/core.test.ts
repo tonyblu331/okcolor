@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { transformCss, auditCss } from '../src/engine/index.js'
+import { transformCss, auditCss, convertColor, colorToOklch } from '../src/wasm.js'
 
 describe('JS engine core', () => {
   it('transforms hex red to oklch', () => {
@@ -106,6 +106,54 @@ describe('JS engine core', () => {
     const out = transformCss('color: color(srgb 1 0 0);')
     expect(out).toContain('oklch(')
     expect(out).not.toContain('color(srgb')
+  })
+
+  it('colorToOklch converts hex', () => {
+    expect(colorToOklch('#ff0000')).toBe('oklch(62.8% 0.25768 29.23)')
+  })
+
+  it('colorToOklch converts named', () => {
+    expect(colorToOklch('red')).toBe('oklch(62.8% 0.25768 29.23)')
+  })
+
+  it('colorToOklch returns undefined for unknown', () => {
+    expect(colorToOklch('not-a-color')).toBeUndefined()
+  })
+
+  it('convertColor converts hex to hsl', () => {
+    expect(convertColor('#ff0000', 'hsl')).toBe('hsl(0 100% 50%)')
+  })
+
+  it('convertColor converts hex to hex', () => {
+    expect(convertColor('#ff0000', 'hex')).toBe('#ff0000')
+  })
+
+  it('convertColor converts hex to rgb', () => {
+    expect(convertColor('#ff0000', 'rgb')).toBe('rgb(255 0 0)')
+  })
+
+  it('convertColor converts hsl to hex', () => {
+    expect(convertColor('hsl(0 100% 50%)', 'hex')).toBe('#ff0000')
+  })
+
+  it('convertColor converts named to hwb', () => {
+    expect(convertColor('red', 'hwb')).toBe('hwb(0 0% 0%)')
+  })
+
+  it('convertColor converts oklch to hex', () => {
+    expect(convertColor('oklch(62.796% 0.25768 29.2339)', 'hex')).toBe('#ff0000')
+  })
+
+  it('convertColor converts oklch to hsl', () => {
+    expect(convertColor('oklch(62.796% 0.25768 29.2339)', 'hsl')).toBe('hsl(0 100% 50%)')
+  })
+
+  it('convertColor converts oklch to oklch', () => {
+    expect(convertColor('oklch(62.796% 0.25768 29.2339)', 'oklch')).toBe('oklch(62.8% 0.25768 29.23)')
+  })
+
+  it('convertColor returns undefined for unknown', () => {
+    expect(convertColor('not-a-color', 'oklch')).toBeUndefined()
   })
 
   it('passes through oklch()', () => {

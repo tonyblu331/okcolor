@@ -1,9 +1,11 @@
 mod cache;
+mod convert;
 mod format;
 mod math;
 mod named;
 mod parse;
-mod scan;
+pub mod scan;
+mod types;
 
 use wasm_bindgen::prelude::*;
 
@@ -38,39 +40,56 @@ pub fn audit_css(input: &str) -> String {
 /// Returns `null` if the input is not a recognised colour.
 #[wasm_bindgen]
 pub fn color_to_oklch(input: &str) -> Option<String> {
-    use crate::parse::*;
+    let raw = parse::parse_single_color(input.trim())?;
+    let (l, c, h, alpha) = math::raw_to_oklch(raw.r, raw.g, raw.b, raw.alpha);
+    let mut buf = String::new();
+    format::oklch_to_css(l, c, h, alpha, &mut buf).ok()?;
+    Some(buf)
+}
 
-    let bytes = input.as_bytes();
-    let trimmed = input.trim();
-
-    // Hex
-    if let Some(rest) = trimmed.strip_prefix('#') {
-        return parse_hex(rest.as_bytes())
-            .map(|p| format::oklch_to_css(p.l, p.c, p.h, p.alpha));
-    }
-
-    // Function colours
-    let toks = tokenize_body(trimmed);
-
-    let result = if trimmed.starts_with("rgb") || trimmed.starts_with("rgba") {
-        parse_rgb(&toks)
-    } else if trimmed.starts_with("hsl") || trimmed.starts_with("hsla") {
-        parse_hsl(&toks)
-    } else if trimmed.starts_with("hwb") {
-        parse_hwb(&toks)
-    } else if trimmed.starts_with("color") {
-        parse_color_srgb(&toks)
-    } else {
-        None
+/// Convert a CSS colour value to any supported space.
+/// Returns `null` if the input is not a recognised colour.
+#[wasm_bindgen]
+pub fn convert_color(input: &str, to_space: &str) -> Option<String> {
+    let space = match to_space {
+        "hex"   => convert::Space::Hex,
+        "rgb"   => convert::Space::Rgb,
+        "hsl"   => convert::Space::Hsl,
+        "hwb"   => convert::Space::Hwb,
+        "oklch" => convert::Space::Oklch,
+        _ => return None,
     };
+    convert::convert(input, space)
+}
 
-    if let Some(p) = result {
-        return Some(format::oklch_to_css(p.l, p.c, p.h, p.alpha));
-    }
+/// Return the raw scan result struct (for CLI tooling).
+pub fn scan_result(input: &str) -> scan::ScanResult {
+    scan::audit_css(input)
+}
 
-    // Named
-    let parsed = parse_named(bytes);
-    parsed.map(|p| format::oklch_to_css(p.l, p.c, p.h, p.alpha))
+/// Diagnose CSS: returns a human-readable report of colour usage.
+pub fn diagnose_css(input: &str) -> String {
+    let r = scan::audit_css(input);
+    format!(
+        concat!(
+            "Colour usage: {} legacy + {} unique = {} total\n",
+            "  hex:   {}\n",
+            "  rgb:   {}\n",
+            "  hsl:   {}\n",
+            "  hwb:   {}\n",
+            "  named: {}\n",
+            "  gradients: {}\n",
+        ),
+        r.legacy_count,
+        r.unique_count,
+        r.legacy_count + r.unique_count,
+        r.hex_count,
+        r.rgb_count,
+        r.hsl_count,
+        r.hwb_count,
+        r.named_count,
+        r.gradient_count,
+    )
 }
 
 #[cfg(test)]
