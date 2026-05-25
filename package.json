@@ -45,22 +45,24 @@
   "files": [
     "dist"
   ],
-	"scripts": {
-		"build": "npm run build:wasm && npm run build:ts && npm run build:copy",
+  "scripts": {
+		"build": "npm run build:wasm && npm run build:optimize && npm run build:ts && npm run build:copy",
 		"build:wasm": "wasm-pack build packages/core-wasm --target web --release --no-opt",
+		"build:optimize": "node scripts/optimize-wasm.mjs",
 		"build:ts": "node node_modules/tsdown/dist/run.js",
 		"build:copy": "node scripts/copy-wasm.mjs",
-		"build:docs": "cd packages/docs && astro build",
-		"dev": "node node_modules/tsdown/dist/run.js --watch",
-		"dev:docs": "cd packages/docs && astro dev",
-		"test": "vitest run",
-		"bench": "vitest bench",
-		"lint": "eslint src",
-		"format": "prettier --write src",
-		"prepare": "npm run build"
-	},
+    "build:docs": "cd packages/docs && astro build",
+    "dev": "node node_modules/tsdown/dist/run.js --watch",
+    "dev:docs": "cd packages/docs && astro dev",
+    "test": "vitest run",
+    "bench": "vitest bench",
+    "lint": "eslint src",
+    "format": "prettier --write src",
+		"prepublishOnly": "npm run build"
+  },
   "devDependencies": {
     "@types/node": "22.19.19",
+    "binaryen": "^129.0.0",
     "eslint": "9.39.4",
     "prettier": "3.8.3",
     "tsdown": "0.10.2",
@@ -77,6 +79,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-	"dependencies": {}
+  }
 }

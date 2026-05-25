@@ -9,10 +9,10 @@
 
 ## Phase 2: WASM Bundle Optimization
 
-- [ ] 2.1 Install binaryen natively (download `wasm-opt` binary for CI platform)
-- [ ] 2.2 Run `wasm-opt -O4 -Oz` on `okcolor_core_bg.wasm`, measure size
-- [ ] 2.3 Profile wasm-bindgen exports for code duplication, add `#[inline(never)]` where beneficial
-- [ ] 2.4 Verify bundle < 100 KB after optimization
+- [x] 2.1 Install binaryen natively (download `wasm-opt` binary for CI platform)
+- [x] 2.2 Run `wasm-opt -O4 -Oz` on `okcolor_core_bg.wasm`, measure size
+- [x] 2.3 Profile wasm-bindgen exports for code duplication, add `#[inline(never)]` where beneficial
+- [x] 2.4 Verify bundle < 100 KB after optimization
 
 ## Phase 3: Performance Profiling
 
