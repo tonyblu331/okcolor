@@ -37,6 +37,6 @@
 
 ## Phase 6: Package Polish
 
-- [ ] 6.1 Verify `npm install okcolor` on Linux, Mac, Windows (CI matrix)
-- [ ] 6.2 Audit `exports` map for dual ESM/CJS coverage
-- [ ] 6.3 Final `npm pack --dry-run` — confirm < 50 KB gzip
+- [x] 6.1 Verify `npm install okcolor` on Linux, Mac, Windows (CI matrix)
+- [x] 6.2 Audit `exports` map for dual ESM/CJS coverage
+- [x] 6.3 Final `npm pack --dry-run` — confirm < 50 KB gzip
