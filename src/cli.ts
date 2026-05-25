@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
-import { readdirSync, statSync } from 'node:fs'
+import { readdirSync, statSync, existsSync } from 'node:fs'
 import { resolve, extname, join } from 'node:path'
 import { auditCss, convertColor, colorToOklch } from './wasm.js'
 import type { ScanResult } from './types.js'
@@ -44,6 +44,13 @@ interface CliArgs {
   allowNamed?: boolean
   color?: string
   toSpace?: string
+  exitCode?: number
+}
+
+function die(msg: string): CliArgs {
+  console.error(msg)
+  showHelp()
+  return { command: 'help', format: 'pretty', exitCode: 1 }
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -52,8 +59,10 @@ function parseArgs(argv: string[]): CliArgs {
     return { command: 'help', format: 'pretty' }
   }
 
-  const command = args[0] === 'help' ? 'help' :
-    args[0] as 'audit' | 'check' | 'doctor' | 'convert'
+  const command = args[0] as 'audit' | 'check' | 'doctor' | 'convert'
+  if (!['help', 'audit', 'check', 'doctor', 'convert'].includes(command)) {
+    return die(`Unknown command: ${command}`)
+  }
 
   let path: string | undefined
   let format: 'pretty' | 'json' = 'pretty'
@@ -64,20 +73,43 @@ function parseArgs(argv: string[]): CliArgs {
 
   for (let i = 1; i < args.length; i++) {
     const arg = args[i]
-    if (arg === '--format=json') format = 'json'
-    else if (arg.startsWith('--max-legacy-colors=')) {
-      maxLegacyColors = parseInt(arg.split('=')[1], 10)
+    const peek = args[i + 1]
+
+    if (arg === '--format' && peek === 'json') { format = 'json'; i++ }
+    else if (arg === '--format=json') format = 'json'
+    else if (arg === '--to' && peek) { toSpace = peek; i++ }
+    else if (arg.startsWith('--to=')) toSpace = arg.slice(5)
+    else if (arg === '--max-legacy-colors' && peek) {
+      const n = parseInt(peek, 10)
+      if (Number.isNaN(n)) return die(`Invalid number: ${peek}`)
+      maxLegacyColors = n; i++
+    } else if (arg.startsWith('--max-legacy-colors=')) {
+      const n = parseInt(arg.split('=')[1], 10)
+      if (Number.isNaN(n)) return die(`Invalid number: ${arg.split('=')[1]}`)
+      maxLegacyColors = n
     } else if (arg === '--allow-named') {
       allowNamed = true
-    } else if (arg.startsWith('--to=')) {
-      toSpace = arg.split('=')[1]
-    } else if (!arg.startsWith('-')) {
+    } else if (arg.startsWith('-') && arg !== '--') {
+      return die(`Unknown option: ${arg}`)
+    } else {
       if (command === 'convert' && !color) color = arg
       else path = arg
     }
   }
 
   return { command, path, format, maxLegacyColors, allowNamed, color, toSpace }
+}
+
+function validatePath(raw: string): string {
+  const dir = resolve(raw)
+  if (!existsSync(dir)) {
+    throw new Error(`Path not found: ${dir}`)
+  }
+  const st = statSync(dir)
+  if (!st.isDirectory()) {
+    throw new Error(`Not a directory: ${dir}`)
+  }
+  return dir
 }
 
 function findCssFiles(dir: string): string[] {
@@ -131,8 +163,8 @@ async function processFiles<T>(
   return results
 }
 
-async function runAudit(args: CliArgs): Promise<void> {
-  const files = findCssFiles(resolve(args.path!))
+async function runAudit(args: CliArgs): Promise<number> {
+  const files = findCssFiles(validatePath(args.path!))
   const entries = await processFiles(files, (css) => auditCss(css))
   const fileStats: Array<{ file: string; stats: ScanResult }> = []
   let legacyCount = 0, hexCount = 0, rgbCount = 0, hslCount = 0
@@ -153,7 +185,7 @@ async function runAudit(args: CliArgs): Promise<void> {
       totals: { legacyCount, hexCount, rgbCount, hslCount, hwbCount, namedCount, gradientCount },
       files: fileStats,
     }, null, 2))
-    return
+    return 0
   }
 
   console.log('\n  📊  okcolor audit\n')
@@ -178,10 +210,11 @@ async function runAudit(args: CliArgs): Promise<void> {
     }
   }
   console.log()
+  return 0
 }
 
-async function runCheck(args: CliArgs): Promise<void> {
-  const files = findCssFiles(resolve(args.path!))
+async function runCheck(args: CliArgs): Promise<number> {
+  const files = findCssFiles(validatePath(args.path!))
   const entries = await processFiles(files, (css) => auditCss(css))
   let totalLegacy = 0
   const offenders: Array<{ file: string; count: number }> = []
@@ -200,23 +233,23 @@ async function runCheck(args: CliArgs): Promise<void> {
 
   if (args.format === 'json') {
     console.log(JSON.stringify({ passed, totalLegacy, max, offenders }, null, 2))
-    process.exit(passed ? 0 : 1)
+    return passed ? 0 : 1
   }
 
   if (passed) {
     console.log(`✓ Color check passed (${totalLegacy} legacy colors)`)
-    process.exit(0)
+    return 0
   } else {
     console.log(`✗ Color check failed: ${totalLegacy} legacy colors found (max: ${max})`)
     for (const o of offenders) {
       console.log(`  ${o.file}: ${o.count}`)
     }
-    process.exit(1)
+    return 1
   }
 }
 
-async function runDoctor(args: CliArgs): Promise<void> {
-  const files = findCssFiles(resolve(args.path!))
+async function runDoctor(args: CliArgs): Promise<number> {
+  const files = findCssFiles(validatePath(args.path!))
   const issues: Array<{ file: string; line: number; message: string; severity: 'warn' | 'error' }> = []
 
   const entries = await processFiles(files, (css) => css.split('\n'))
@@ -225,12 +258,18 @@ async function runDoctor(args: CliArgs): Promise<void> {
       const line = lines[i]
       const lineNum = i + 1
 
-      const badHex = line.match(/#[a-fA-F0-9]{1,2}(?![a-fA-F0-9])|[#][a-fA-F0-9]{5}(?![a-fA-F0-9])|[#][a-fA-F0-9]{7}(?![a-fA-F0-9])/g)
+      // Only check property values (after `:`) for bad hex to avoid id selector false positives
+      const propValue = /[^;{}]*:([^;{}]*)/.exec(line)
+      const hexTarget = propValue ? propValue[1] : line
+      const badHex = hexTarget.match(/#[a-fA-F0-9]{1,2}(?![a-fA-F0-9])|[#][a-fA-F0-9]{5}(?![a-fA-F0-9])|[#][a-fA-F0-9]{7}(?![a-fA-F0-9])/g)
       if (badHex) {
         issues.push({ file, line: lineNum, message: `Malformed hex color: ${badHex[0]}`, severity: 'error' })
       }
 
-      if (/rgb\([^)]*\d+%?[^)]*\d+\)/.test(line) && !/rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)/.test(line)) {
+      if (/rgb\([^)]*\d+%?[^)]*\d+\)/.test(line)
+        && !/rgb\(\s*\d+(\s*,\s*\d+){2,3}\s*\)/.test(line)
+        && !/rgb\(\s*\d+(\s+\d+){2,3}\s*\)/.test(line)
+        && !/calc\(/i.test(line)) {
         issues.push({ file, line: lineNum, message: 'Potentially malformed rgb() syntax', severity: 'warn' })
       }
 
@@ -243,7 +282,7 @@ async function runDoctor(args: CliArgs): Promise<void> {
 
   if (args.format === 'json') {
     console.log(JSON.stringify({ filesScanned: files.length, issues }, null, 2))
-    process.exit(issues.some((i) => i.severity === 'error') ? 1 : 0)
+    return issues.some((i) => i.severity === 'error') ? 1 : 0
   }
 
   console.log('\n  🔬  okcolor doctor\n')
@@ -262,37 +301,40 @@ async function runDoctor(args: CliArgs): Promise<void> {
     }
   }
   console.log()
-  process.exit(issues.some((i) => i.severity === 'error') ? 1 : 0)
+  return issues.some((i) => i.severity === 'error') ? 1 : 0
 }
 
-async function runConvert(args: CliArgs): Promise<void> {
+async function runConvert(args: CliArgs): Promise<number> {
   const space = args.toSpace?.toLowerCase() ?? 'oklch'
-  if (!SPACES.includes(space as never)) {
+  if (!(SPACES as readonly string[]).includes(space)) {
     console.error(`Unsupported space: ${space}. Use: ${SPACES.join(', ')}`)
-    process.exit(1)
+    return 1
   }
 
   if (space === 'oklch') {
     const result = colorToOklch(args.color!)
     if (!result) {
       console.error(`Cannot convert: ${args.color}`)
-      process.exit(1)
+      return 1
     }
     console.log(result)
   } else {
     const result = convertColor(args.color!, space)
     if (!result) {
       console.error(`Cannot convert: ${args.color}`)
-      process.exit(1)
+      return 1
     }
     console.log(result)
   }
 
-  process.exit(0)
+  return 0
 }
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv)
+  if (args.exitCode != null) { process.exit(args.exitCode) }
+
+  let exitCode = 0
 
   switch (args.command) {
     case 'help':
@@ -300,28 +342,30 @@ async function main(): Promise<void> {
       process.exit(0)
     case 'audit':
       if (!args.path) { console.error('Missing path argument'); showHelp(); process.exit(1) }
-      await runAudit(args)
+      exitCode = await runAudit(args)
       break
     case 'check':
       if (!args.path) { console.error('Missing path argument'); showHelp(); process.exit(1) }
-      await runCheck(args)
+      exitCode = await runCheck(args)
       break
     case 'doctor':
       if (!args.path) { console.error('Missing path argument'); showHelp(); process.exit(1) }
-      await runDoctor(args)
+      exitCode = await runDoctor(args)
       break
     case 'convert':
       if (!args.color) { console.error('Missing color argument'); showHelp(); process.exit(1) }
-      await runConvert(args)
+      exitCode = await runConvert(args)
       break
     default:
       console.error(`Unknown command: ${args.command}`)
       showHelp()
       process.exit(1)
   }
+
+  process.exit(exitCode)
 }
 
 main().catch((err) => {
-  console.error(err)
+  console.error(err instanceof Error ? err.stack ?? err.message : String(err))
   process.exit(1)
 })

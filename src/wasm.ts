@@ -9,22 +9,42 @@ function resolveWasmDir(): string {
   try {
     readFileSync(resolve(__dirname, 'okcolor_core_bg.wasm'))
     return __dirname
-  } catch { /* not in dist/, try dev layout */ }
+  } catch (e: any) {
+    if (e?.code !== 'ENOENT') throw e
+  }
   const pkgDir = resolve(__dirname, '..', 'packages/core-wasm/pkg')
-  readFileSync(resolve(pkgDir, 'okcolor_core_bg.wasm'))
-  return pkgDir
+  try {
+    readFileSync(resolve(pkgDir, 'okcolor_core_bg.wasm'))
+    return pkgDir
+  } catch (e: any) {
+    throw new Error(`okcolor WASM not found. Tried: dist/ (production) and ${pkgDir} (development). ${e.code === 'ENOENT' ? 'Run `npm run build` to rebuild the WASM engine.' : e.message}`)
+  }
 }
 
-const WASM_DIR = resolveWasmDir()
+let initError: Error | null = null
+let transformCssFn: (s: string) => string
+let auditCssFn: (s: string) => string
+let colorToOklchFn: (s: string) => string | null
+let convertColorFn: (s: string, space: string) => string | null
 
-const wasmBytes = readFileSync(resolve(WASM_DIR, 'okcolor_core_bg.wasm')).buffer
-const glue = await import(pathToFileURL(resolve(WASM_DIR, 'okcolor_core.js')).href)
-;(glue.initSync as (opts: { module: BufferSource }) => void)({ module: wasmBytes })
+{
+  try {
+    const WASM_DIR = resolveWasmDir()
+    const wasmBytes = readFileSync(resolve(WASM_DIR, 'okcolor_core_bg.wasm')).buffer
+    const glue = await import(pathToFileURL(resolve(WASM_DIR, 'okcolor_core.js')).href)
+    ;(glue.initSync as (opts: { module: BufferSource }) => void)({ module: wasmBytes })
+    transformCssFn = glue.transform_css as (s: string) => string
+    auditCssFn = glue.audit_css as (s: string) => string
+    colorToOklchFn = glue.color_to_oklch as (s: string) => string | null
+    convertColorFn = glue.convert_color as (s: string, space: string) => string | null
+  } catch (e) {
+    initError = e instanceof Error ? e : new Error(String(e))
+  }
+}
 
-const transformCssFn = glue.transform_css as (s: string) => string
-const auditCssFn = glue.audit_css as (s: string) => string
-const colorToOklchFn = glue.color_to_oklch as (s: string) => string | null
-const convertColorFn = glue.convert_color as (s: string, space: string) => string | null
+function ensureInit(): void {
+  if (initError) throw initError
+}
 
 // ── WASM pre-scan bail-out workaround ──────────────────────────────────
 // The WASM pre-scan bails out when input has no `#`, `rgb(`, `hsl(`, etc.
@@ -48,6 +68,7 @@ const BYPASS = '# '
 
 /** Transform a CSS string — replace all legacy colours with OKLCH. */
 export function transformCss(input: string, ignoreComment?: string): string {
+  ensureInit()
   const bypass = bypassNeeded(input)
   const work = bypass ? BYPASS + input : input
   if (!ignoreComment || ignoreComment === 'oklch-ignore') {
@@ -62,6 +83,7 @@ export function transformCss(input: string, ignoreComment?: string): string {
 
 /** Audit a CSS string — return colour usage statistics. */
 export function auditCss(input: string): ScanResult {
+  ensureInit()
   const bypass = bypassNeeded(input)
   const work = bypass ? BYPASS + input : input
   const p = JSON.parse(auditCssFn(work)) as Record<string, number>
@@ -80,12 +102,14 @@ export function auditCss(input: string): ScanResult {
 
 /** Convert a single CSS colour value to an OKLCH string. */
 export function colorToOklch(input: string): string | undefined {
+  ensureInit()
   const result = colorToOklchFn(input)
   return result ?? undefined
 }
 
 /** Convert a CSS colour value to any supported space. */
 export function convertColor(input: string, toSpace: string): string | undefined {
+  ensureInit()
   const result = convertColorFn(input, toSpace)
   return result ?? undefined
 }

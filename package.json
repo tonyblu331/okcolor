@@ -57,7 +57,7 @@
 		"bench": "vitest bench",
 		"lint": "eslint src",
 		"format": "prettier --write src",
-		"prepublishOnly": "npm run build"
+		"prepare": "npm run build"
 	},
   "devDependencies": {
     "@types/node": "22.19.19",

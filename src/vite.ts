@@ -33,8 +33,13 @@ export function okColor(options?: OkColorOptions): Plugin {
       let output: string | undefined
 
       if (CSS_RE.test(id)) {
-        const transformed = transformCss(code, ignoreComment)
-        output = transformed === code ? undefined : transformed
+        try {
+          const transformed = transformCss(code, ignoreComment)
+          output = transformed === code ? undefined : transformed
+        } catch (e) {
+          console.warn(`[okcolor] transform failed for ${id}:`, e instanceof Error ? e.message : e)
+          output = undefined
+        }
       } else {
         const transformed = transformEmbeddedStyles(code, ignoreComment)
         output = transformed === code ? undefined : transformed
@@ -49,7 +54,11 @@ export function okColor(options?: OkColorOptions): Plugin {
 function transformEmbeddedStyles(source: string, ignoreComment?: string): string {
   const styleRe = /(<style[^>]*>)([\s\S]*?)(<\/style>)/gi
   return source.replace(styleRe, (_match, open, css, close) => {
-    const transformed = transformCss(css, ignoreComment)
-    return open + transformed + close
+    try {
+      const transformed = transformCss(css, ignoreComment)
+      return open + transformed + close
+    } catch (e) {
+      return _match
+    }
   })
 }

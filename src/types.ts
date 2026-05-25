@@ -1,5 +1,3 @@
-import type { Plugin } from 'vite'
-
 /** Options for the okColor Vite plugin. */
 export interface OkColorOptions {
   /** Inline comment that prevents conversion on the current line. */
