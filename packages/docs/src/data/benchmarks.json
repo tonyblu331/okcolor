@@ -1,0 +1,58 @@
+{
+  "throughput": {
+    "transform": {
+      "hz": 415.55,
+      "mean": 0.0024064
+    },
+    "audit": {
+      "hz": 689.57,
+      "mean": 0.0014502
+    },
+    "hexOnly": {
+      "hz": 937.98,
+      "mean": 0.0010661
+    },
+    "namedOnly": {
+      "hz": 807.32,
+      "mean": 0.0012387
+    },
+    "noColors": {
+      "hz": 7211.97,
+      "mean": 0.0001387
+    },
+    "gradientTransform": {
+      "hz": 702.44,
+      "mean": 0.0014236
+    },
+    "gradientAudit": {
+      "hz": 1303.47,
+      "mean": 0.0007672
+    }
+  },
+  "realWorld": {
+    "wholeFile100kb": {
+      "hz": 229.51,
+      "timeMs": 4.3571
+    },
+    "audit100kb": {
+      "hz": 348.78,
+      "timeMs": 2.8671
+    }
+  },
+  "comparison": {
+    "okcolor": {
+      "hz": 54.409,
+      "timeMs": 18.3793
+    },
+    "culori": null,
+    "colorjs": {
+      "hz": 25.6009,
+      "timeMs": 39.0611
+    }
+  },
+  "cache": {
+    "perColorUs": 1.874,
+    "hundredColorsTimeMs": 0.1874
+  },
+  "timestamp": "2026-05-26T13:00:00.000Z"
+}

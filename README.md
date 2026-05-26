@@ -5,10 +5,11 @@
 
 Zero-config, build-time color modernizer for **Vite** and **Tailwind CSS**. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** at build time. Zero runtime overhead.
 
-- **Rust/WASM engine** — ~145 KB total
+- **Rust/WASM engine** — ~124 KB npm package, ~222 KB optimized WASM
 - **W3C-exact matrices** (Ottosson 2020, CSS Color 4) — sub-5e-5 error vs Culori
 - **Idempotent** — second pass is a no-op
 - **Cache** — 4096-slot direct-mapped: `#ff0000`, `rgb(255,0,0)`, and `red` hit the same slot
+- **Framework-aware scanning** — handles Vite virtual CSS modules, Vue/Astro/Svelte-style embedded styles, symlinked CSS trees, and CSS escape edge cases
 
 ## Why okcolor?
 
@@ -20,22 +21,25 @@ okcolor breaks that lock. Write your colors however you want — **Hex**, **RGB*
 
 ## Compared to alternatives
 
-| Feature | okcolor | Culori | color.js | PostCSS |
-|---------|---------|--------|----------|---------|
-| Hex → OKLCH | ✓ | ✓ | ✓ | — |
-| RGB/HSL/HWB → OKLCH | ✓ | ✓ | ✓ | — |
-| Named colors → OKLCH | ✓ | ✓ | ✓ | — |
-| Full CSS parse (comments, strings, var()) | ✓ | ✗ | ✗ | ✓ |
-| color-mix() pass-through | ✓ | ✗ | ✓ | ✓ |
-| light-dark() pass-through | ✓ | ✗ | ✓ | — |
-| Display-P3 / Rec2020 pass-through | ✓ | ✓ | ✓ | ✓ |
-| auto-detect legacy colors | ✓ | ✗ | ✗ | — |
-| oklch-ignore escape hatch | ✓ | ✗ | ✗ | — |
-| Build-time only (zero runtime) | ✓ | ✗ | ✗ | ✓ |
-| CLI with audit / check / doctor | ✓ | ✗ | ✗ | — |
-| WASM engine | ✓ | ✗ | ✗ | — |
-| 4096-slot color cache | ✓ | ✗ | ✗ | — |
-| Idempotent (no-op on modern CSS) | ✓ | ✗ | ✗ | — |
+| Feature                                   | okcolor | Culori | color.js | PostCSS |
+| ----------------------------------------- | ------- | ------ | -------- | ------- |
+| Hex → OKLCH                               | ✓       | ✓      | ✓        | —       |
+| RGB/HSL/HWB → OKLCH                       | ✓       | ✓      | ✓        | —       |
+| Named colors → OKLCH                      | ✓       | ✓      | ✓        | —       |
+| Full CSS parse (comments, strings, var()) | ✓       | ✗      | ✗        | ✓       |
+| color-mix() pass-through                  | ✓       | ✗      | ✓        | ✓       |
+| light-dark() pass-through                 | ✓       | ✗      | ✓        | —       |
+| Display-P3 / Rec2020 pass-through         | ✓       | ✓      | ✓        | ✓       |
+| Vite SFC virtual CSS modules              | ✓       | ✗      | ✗        | ✓       |
+| Embedded Vue/Astro/Svelte styles          | ✓       | ✗      | ✗        | ✓       |
+| Symlink-safe CLI traversal                | ✓       | ✗      | ✗        | —       |
+| auto-detect legacy colors                 | ✓       | ✗      | ✗        | —       |
+| oklch-ignore escape hatch                 | ✓       | ✗      | ✗        | —       |
+| Build-time only (zero runtime)            | ✓       | ✗      | ✗        | ✓       |
+| CLI with audit / check / doctor           | ✓       | ✗      | ✗        | —       |
+| WASM engine                               | ✓       | ✗      | ✗        | —       |
+| 4096-slot color cache                     | ✓       | ✗      | ✗        | —       |
+| Idempotent (no-op on modern CSS)          | ✓       | ✗      | ✗        | —       |
 
 ## Install
 
@@ -92,16 +96,42 @@ console.log(stats.legacy_count) // number of legacy colors
 
 ## Examples
 
-| Input | Output |
-|-------|--------|
-| `#ff0000` | `oklch(62.8% 0.25768 29.23)` |
-| `rgb(255, 0, 0)` | `oklch(62.8% 0.25768 29.23)` |
-| `hsl(0, 100%, 50%)` | `oklch(62.8% 0.25768 29.23)` |
-| `hwb(0 0% 0%)` | `oklch(62.8% 0.25768 29.23)` |
-| `red` | `oklch(62.8% 0.25768 29.23)` |
+| Input                        | Output                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `#ff0000`                    | `oklch(62.8% 0.25768 29.23)`                                                         |
+| `rgb(255, 0, 0)`             | `oklch(62.8% 0.25768 29.23)`                                                         |
+| `hsl(0, 100%, 50%)`          | `oklch(62.8% 0.25768 29.23)`                                                         |
+| `hwb(0 0% 0%)`               | `oklch(62.8% 0.25768 29.23)`                                                         |
+| `red`                        | `oklch(62.8% 0.25768 29.23)`                                                         |
 | `linear-gradient(red, blue)` | `linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05))` |
 
 Modern colors (`oklch()`, `oklab()`, `color(display-p3 ...)`, `color-mix()`, `light-dark()`) pass through untouched.
+
+## What gets transformed
+
+okcolor is intentionally conservative: it transforms legacy colors only where CSS grammar says a color is plausible.
+
+Supported:
+
+- Raw CSS declaration snippets: `color: red;`
+- Rules and nested rules: `.btn { color: #f00; }`
+- CSS custom properties, including escaped names: `--\31 brand: red;`
+- Color-capable shorthands: `background`, `border`, `outline`, `box-shadow`, `text-shadow`, `text-decoration`, `text-emphasis`, `text-stroke`, SVG `fill`/`stroke`, and related `*-color` properties
+- `@supports` declaration conditions: `@supports (color: red) { ... }`
+- `@container style(...)` queries
+- `@property` color registrations: `@property --brand { syntax: "<color>"; initial-value: red; }`
+- `@page` margin boxes: `@page { @top-left { color: red; } }`
+- Gradients, including multiline gradients and SCSS/Less-style `//` comments
+- Vite virtual style modules such as `Component.vue?vue&type=style&lang.css`
+- Embedded `<style>` blocks in Vue/Astro/Svelte-like files
+
+Preserved:
+
+- Selectors and selector functions: `:is(a:hover #abc, .red)`
+- `@supports selector(...)` arguments
+- Identifier-only properties such as `animation-name`, `font-family`, `grid-area`, `container`, `scroll-timeline`, `counter-reset`, and `view-transition-name`
+- Modern color syntax: `oklch()`, `oklab()`, `lab()`, `lch()`, `color-mix()`, `light-dark()`, relative colors such as `rgb(from red r g b)`, and non-sRGB `color(...)`
+- URLs, strings, comments, and ignored lines
 
 ## Escape hatch
 
@@ -111,18 +141,51 @@ Modern colors (`oklch()`, `oklab()`, `color(display-p3 ...)`, `color-mix()`, `li
 }
 ```
 
+You can also provide a custom ignore marker through the JS API. okcolor shields that marker internally with a private sentinel, so unrelated `oklch-ignore` text in strings or content is not rewritten.
+
 ## Benchmarks
 
-| Metric | okcolor | Culori | color.js |
-|--------|---------|--------|----------|
-| Per-color (cached) | **0.68 µs** | — | — |
-| Per-color (cold) | **0.77 µs** | 0.83 µs | 20.6 µs |
-| CSS transform (100 KB) | **45 MB/s** | 66 MB/s¹ | 4.4 MB/s¹ |
-| Bundle size | **145 KB** | 134 KB | 198 KB |
+Latest local benchmark run:
 
-¹ Culori and color.js use regex-based CSS scanning (fewer edge cases handled — no named color support, no comment/string awareness). okcolor does full lexical analysis.
+| Metric                           | Result                      |
+| -------------------------------- | --------------------------- |
+| Transform, 1.3 KB CSS            | ~17,239 ops/sec             |
+| Transform, 12 KB CSS             | ~1,333 ops/sec              |
+| Transform, 100 KB CSS            | ~230 ops/sec                |
+| Audit, 100 KB CSS                | ~349 ops/sec                |
+| Whole-file transform vs color.js | ~2.1× faster in this run    |
+| Fast path, no legacy colors      | ~7,212 ops/sec on 50 KB CSS |
+| Optimized WASM payload           | ~222 KB                     |
+| npm package dry-run              | ~124 KB, 19 files           |
 
-Measured on Intel Core i9-13900H, Node.js 26. The full 5-stage pipeline (parse, gamma decode, matrix, cache, format) runs in a single WASM pass. Per-color averages across 10 different color values.
+Benchmarks are workload-sensitive. Run them on your machine:
+
+```bash
+npm run bench
+```
+
+Measured locally on Windows, Node.js 26. The full pipeline (scan, parse, gamma decode, matrix, cache, format) runs in a single WASM-backed pass. okcolor prioritizes correctness around CSS comments, strings, selectors, gradients, embedded styles, and Vite virtual modules; raw micro-benchmarks against libraries that do not scan full CSS are not apples-to-apples.
+
+## Development
+
+```bash
+npm test
+npm run lint
+cargo fmt --manifest-path packages/core-wasm/Cargo.toml --check
+cargo clippy --manifest-path packages/core-wasm/Cargo.toml -- -D warnings
+npm run build
+npm pack --dry-run
+```
+
+On Windows, if native Rust tests fail with Visual Studio `link.exe` error `0xc0000017`, use LLVM's linker:
+
+```powershell
+$env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = "rust-lld"
+cargo test --manifest-path packages/core-wasm/Cargo.toml
+```
+
+That runs the Rust unit suite without relying on a broken Visual Studio linker install.
+
 ## Documentation
 
 Full docs and interactive playground: **[tonyblu331.github.io/okcolor](https://tonyblu331.github.io/okcolor)**

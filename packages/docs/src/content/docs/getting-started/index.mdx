@@ -41,12 +41,17 @@ Every legacy color goes through a 5-stage pipeline:
   <div class="pipeline-step">
     <div class="pipeline-step-num">1</div>
     <div class="pipeline-step-title">Parse</div>
-    <div class="pipeline-step-desc">Byte-level scanner finds hex, rgb, hsl, hwb, named, and color(srgb) values. No regex.</div>
+    <div class="pipeline-step-desc">
+      Stateful byte-level scanner finds hex, rgb, hsl, hwb, named, and color(srgb) values only in valid CSS value
+      positions. Selectors, strings, URLs, comments, and identifier-only properties are preserved.
+    </div>
   </div>
   <div class="pipeline-step">
     <div class="pipeline-step-num">2</div>
     <div class="pipeline-step-title">Gamma Decode</div>
-    <div class="pipeline-step-desc">sRGB gamma to linear via 256-entry LUT (IEC 61966-2-1 piecewise transfer function).</div>
+    <div class="pipeline-step-desc">
+      sRGB gamma to linear via 256-entry LUT (IEC 61966-2-1 piecewise transfer function).
+    </div>
   </div>
   <div class="pipeline-step">
     <div class="pipeline-step-num">3</div>
@@ -56,20 +61,42 @@ Every legacy color goes through a 5-stage pipeline:
   <div class="pipeline-step">
     <div class="pipeline-step-num">4</div>
     <div class="pipeline-step-title">Cache</div>
-    <div class="pipeline-step-desc">4096-slot direct-mapped cache. #ff0000, rgb(255,0,0), and red all hit the same slot.</div>
+    <div class="pipeline-step-desc">
+      4096-slot direct-mapped cache. #ff0000, rgb(255,0,0), and red all hit the same slot.
+    </div>
   </div>
   <div class="pipeline-step">
     <div class="pipeline-step-num">5</div>
     <div class="pipeline-step-title">Format</div>
-    <div class="pipeline-step-desc">Serialize to oklch(L% C H) following CSS Color 4 rounding and powerless-hue rules.</div>
+    <div class="pipeline-step-desc">
+      Serialize to oklch(L% C H) following CSS Color 4 rounding and powerless-hue rules.
+    </div>
   </div>
 </div>
 
 ## Requirements
 
-| Requirement | Minimum |
-|---|---|
-| Node.js | >= 18.0.0 |
-| Vite (for plugin) | >= 4.0.0 |
+| Requirement       | Minimum   |
+| ----------------- | --------- |
+| Node.js           | >= 18.0.0 |
+| Vite (for plugin) | >= 4.0.0  |
 
-No other dependencies. The Rust/WASM engine compiles to ~80 KB and is bundled with the package.
+No other runtime dependencies. The optimized WASM payload is about 222 KB and is bundled with the package.
+
+## Local verification
+
+```bash
+npm test
+npm run lint
+cargo fmt --manifest-path packages/core-wasm/Cargo.toml --check
+cargo clippy --manifest-path packages/core-wasm/Cargo.toml -- -D warnings
+npm run build
+npm pack --dry-run
+```
+
+On Windows, if Rust tests fail before running with Visual Studio `link.exe` error `0xc0000017`, use LLVM's linker:
+
+```powershell
+$env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = "rust-lld"
+cargo test --manifest-path packages/core-wasm/Cargo.toml
+```

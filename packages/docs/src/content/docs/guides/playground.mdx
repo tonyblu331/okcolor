@@ -15,27 +15,38 @@ Every legacy color that passes through okcolor goes through the same 5-stage pip
   <div class="pipeline-step">
     <div class="pipeline-step-num">1</div>
     <div class="pipeline-step-title">Parse</div>
-    <div class="pipeline-step-desc">Character-level scanner with DFA, no regex. Matches hex, rgb, hsl, hwb, named, and color(srgb).</div>
+    <div class="pipeline-step-desc">
+      Stateful byte-level scanner. Matches hex, rgb, hsl, hwb, named, and color(srgb) in CSS value contexts while
+      preserving selectors, strings, URLs, comments, and modern color functions.
+    </div>
   </div>
   <div class="pipeline-step">
     <div class="pipeline-step-num">2</div>
     <div class="pipeline-step-title">Gamma Decode</div>
-    <div class="pipeline-step-desc">sRGB gamma to linear using a 256-entry precomputed LUT (IEC 61966-2-1 piecewise).</div>
+    <div class="pipeline-step-desc">
+      sRGB gamma to linear using a 256-entry precomputed LUT (IEC 61966-2-1 piecewise).
+    </div>
   </div>
   <div class="pipeline-step">
     <div class="pipeline-step-num">3</div>
     <div class="pipeline-step-title">OKLab Projection</div>
-    <div class="pipeline-step-desc">Folded sRGB to LMS to OKLab matrix multiply. Ottosson 2020 coefficients per CSS Color 4.</div>
+    <div class="pipeline-step-desc">
+      Folded sRGB to LMS to OKLab matrix multiply. Ottosson 2020 coefficients per CSS Color 4.
+    </div>
   </div>
   <div class="pipeline-step">
     <div class="pipeline-step-num">4</div>
     <div class="pipeline-step-title">Cache Hit</div>
-    <div class="pipeline-step-desc">4096-slot direct-mapped cache. Different formats (hex, rgb, named) for the same color all hit the same slot.</div>
+    <div class="pipeline-step-desc">
+      4096-slot direct-mapped cache. Different formats (hex, rgb, named) for the same color all hit the same slot.
+    </div>
   </div>
   <div class="pipeline-step">
     <div class="pipeline-step-num">5</div>
     <div class="pipeline-step-title">Format</div>
-    <div class="pipeline-step-desc">Serialize as oklch(L% C H) with CSS Color 4 rounding and powerless-hue clamping.</div>
+    <div class="pipeline-step-desc">
+      Serialize as oklch(L% C H) with CSS Color 4 rounding and powerless-hue clamping.
+    </div>
   </div>
 </div>
 
@@ -43,9 +54,15 @@ Every legacy color that passes through okcolor goes through the same 5-stage pip
 
 The conversion engine's output matches W3C CSS Color Module Level 4 reference values:
 
-<span class="math-badge"><span class="dot"></span> Ottosson 2020 OKLab matrices</span>
-<span class="math-badge"><span class="dot"></span> Sub-5e-5 error vs Culori across 4096+ sRGB samples</span>
-<span class="math-badge"><span class="dot"></span> Idempotent: second pass is a no-op</span>
+<span class="math-badge">
+  <span class="dot"></span> Ottosson 2020 OKLab matrices
+</span>
+<span class="math-badge">
+  <span class="dot"></span> Sub-5e-5 error vs Culori across 4096+ sRGB samples
+</span>
+<span class="math-badge">
+  <span class="dot"></span> Idempotent: second pass is a no-op
+</span>
 
 <table class="conversion-table">
   <thead>
@@ -58,39 +75,75 @@ The conversion engine's output matches W3C CSS Color Module Level 4 reference va
   </thead>
   <tbody>
     <tr>
-      <td><span class="color-swatch" style="background:oklch(0.62796 0.25768 29.23)"></span> Red</td>
-      <td><code>#ff0000</code></td>
-      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+      <td>
+        <span class="color-swatch" style="background:oklch(0.62796 0.25768 29.23)"></span> Red
+      </td>
+      <td>
+        <code>#ff0000</code>
+      </td>
+      <td>
+        <code>oklch(62.8% 0.25768 29.23)</code>
+      </td>
       <td>L &lt; 0.001</td>
     </tr>
     <tr>
-      <td><span class="color-swatch" style="background:oklch(0.45201 0.31321 264.05)"></span> Blue</td>
-      <td><code>#0000ff</code></td>
-      <td><code>oklch(45.2% 0.31321 264.05)</code></td>
+      <td>
+        <span class="color-swatch" style="background:oklch(0.45201 0.31321 264.05)"></span> Blue
+      </td>
+      <td>
+        <code>#0000ff</code>
+      </td>
+      <td>
+        <code>oklch(45.2% 0.31321 264.05)</code>
+      </td>
       <td>L &lt; 0.001</td>
     </tr>
     <tr>
-      <td><span class="color-swatch" style="background:oklch(0.86644 0.29483 142.5)"></span> Green</td>
-      <td><code>#00ff00</code></td>
-      <td><code>oklch(86.64% 0.29483 142.5)</code></td>
+      <td>
+        <span class="color-swatch" style="background:oklch(0.86644 0.29483 142.5)"></span> Green
+      </td>
+      <td>
+        <code>#00ff00</code>
+      </td>
+      <td>
+        <code>oklch(86.64% 0.29483 142.5)</code>
+      </td>
       <td>L &lt; 0.001</td>
     </tr>
     <tr>
-      <td><span class="color-swatch" style="background:oklch(0.9678 0.21108 109.78)"></span> Yellow</td>
-      <td><code>#ffff00</code></td>
-      <td><code>oklch(96.78% 0.21108 109.78)</code></td>
+      <td>
+        <span class="color-swatch" style="background:oklch(0.9678 0.21108 109.78)"></span> Yellow
+      </td>
+      <td>
+        <code>#ffff00</code>
+      </td>
+      <td>
+        <code>oklch(96.78% 0.21108 109.78)</code>
+      </td>
       <td>L &lt; 0.001</td>
     </tr>
     <tr>
-      <td><span class="color-swatch" style="background:oklch(0.70167 0.32247 328.36)"></span> Magenta</td>
-      <td><code>#ff00ff</code></td>
-      <td><code>oklch(70.17% 0.32247 328.36)</code></td>
+      <td>
+        <span class="color-swatch" style="background:oklch(0.70167 0.32247 328.36)"></span> Magenta
+      </td>
+      <td>
+        <code>#ff00ff</code>
+      </td>
+      <td>
+        <code>oklch(70.17% 0.32247 328.36)</code>
+      </td>
       <td>L &lt; 0.001</td>
     </tr>
     <tr>
-      <td><span class="color-swatch" style="background:oklch(0.9054 0.15455 194.77)"></span> Cyan</td>
-      <td><code>#00ffff</code></td>
-      <td><code>oklch(90.54% 0.15455 194.77)</code></td>
+      <td>
+        <span class="color-swatch" style="background:oklch(0.9054 0.15455 194.77)"></span> Cyan
+      </td>
+      <td>
+        <code>#00ffff</code>
+      </td>
+      <td>
+        <code>oklch(90.54% 0.15455 194.77)</code>
+      </td>
       <td>L &lt; 0.001</td>
     </tr>
   </tbody>
@@ -129,47 +182,67 @@ Already-annotated gradients (`in oklch` or `in oklab`) are left untouched.
   <tbody>
     <tr>
       <td class="fmt-label">Hex</td>
-      <td><code>#ff0000</code>, <code>#f00</code>, <code>#ff000080</code></td>
+      <td>
+        <code>#ff0000</code>, <code>#f00</code>, <code>#ff000080</code>
+      </td>
       <td>Yes</td>
     </tr>
     <tr>
       <td class="fmt-label">RGB / RGBA</td>
-      <td><code>rgb(255, 0, 0)</code>, <code>rgba(255, 0, 0, 0.5)</code></td>
+      <td>
+        <code>rgb(255, 0, 0)</code>, <code>rgba(255, 0, 0, 0.5)</code>
+      </td>
       <td>Yes</td>
     </tr>
     <tr>
       <td class="fmt-label">HSL / HSLA</td>
-      <td><code>hsl(0, 100%, 50%)</code>, <code>hsla(0, 100%, 50%, 0.5)</code></td>
+      <td>
+        <code>hsl(0, 100%, 50%)</code>, <code>hsla(0, 100%, 50%, 0.5)</code>
+      </td>
       <td>Yes</td>
     </tr>
     <tr>
       <td class="fmt-label">HWB</td>
-      <td><code>hwb(0 0% 0%)</code>, <code>hwb(0 0% 0% / 0.5)</code></td>
+      <td>
+        <code>hwb(0 0% 0%)</code>, <code>hwb(0 0% 0% / 0.5)</code>
+      </td>
       <td>Yes</td>
     </tr>
     <tr>
       <td class="fmt-label">Named</td>
-      <td><code>red</code>, <code>rebeccapurple</code></td>
+      <td>
+        <code>red</code>, <code>rebeccapurple</code>
+      </td>
       <td>Yes</td>
     </tr>
     <tr>
       <td class="fmt-label">color(srgb)</td>
-      <td><code>color(srgb 1 0 0)</code></td>
+      <td>
+        <code>color(srgb 1 0 0)</code>
+      </td>
       <td>Yes</td>
     </tr>
     <tr>
       <td class="fmt-label">Gradients</td>
-      <td><code>linear-gradient(red, blue)</code></td>
-      <td>Yes (injects <code>in oklch</code>)</td>
+      <td>
+        <code>linear-gradient(red, blue)</code>
+      </td>
+      <td>
+        Yes (injects <code>in oklch</code>)
+      </td>
     </tr>
     <tr>
       <td class="fmt-label">OKLCH / OKLab</td>
-      <td><code>oklch(50% 0.2 180)</code></td>
+      <td>
+        <code>oklch(50% 0.2 180)</code>
+      </td>
       <td>No (passthrough)</td>
     </tr>
     <tr>
       <td class="fmt-label">var() / calc()</td>
-      <td><code>var(--color-primary)</code></td>
+      <td>
+        <code>var(--color-primary)</code>
+      </td>
       <td>No (passthrough)</td>
     </tr>
   </tbody>

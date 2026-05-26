@@ -46,6 +46,8 @@ Output options:
 npx okcolor audit ./src --format=json
 ```
 
+Directory traversal follows symlinked CSS files and directories, tracks real directory paths to avoid cycles, and warns instead of crashing on dangling symlinks.
+
 ### `okcolor check <path>`
 
 CI gate. Fails with exit code 1 if legacy colors exceed a limit. Use this to enforce color modernization in your pipeline:
@@ -80,19 +82,31 @@ npx okcolor doctor ./src
   </thead>
   <tbody>
     <tr>
-      <td><code>-o, --output</code> &lt;path&gt;</td>
+      <td>
+        <code>-o, --output</code> &lt;path&gt;
+      </td>
       <td>Output file path (default: stdout)</td>
     </tr>
     <tr>
-      <td><code>--format</code> &lt;format&gt;</td>
-      <td>Output format: <code>text</code> or <code>json</code></td>
+      <td>
+        <code>--format</code> &lt;format&gt;
+      </td>
+      <td>
+        Output format: <code>text</code> or <code>json</code>
+      </td>
     </tr>
     <tr>
-      <td><code>--max-legacy-colors</code> &lt;n&gt;</td>
-      <td>Fail if more than <em>n</em> legacy colors found (check command)</td>
+      <td>
+        <code>--max-legacy-colors</code> &lt;n&gt;
+      </td>
+      <td>
+        Fail if more than <em>n</em> legacy colors found (check command)
+      </td>
     </tr>
     <tr>
-      <td><code>--allow-named</code></td>
+      <td>
+        <code>--allow-named</code>
+      </td>
       <td>Don't count named colors toward the limit (check command)</td>
     </tr>
   </tbody>
@@ -116,8 +130,8 @@ const stats = auditCss(`
   .alert { border-color: red; }
 `)
 console.log(stats.legacy_count) // 2
-console.log(stats.hex_count)    // 1
-console.log(stats.named_count)  // 1
+console.log(stats.hex_count) // 1
+console.log(stats.named_count) // 1
 ```
 
 See the [API Reference](/okcolor/reference/api/) for the full interface.

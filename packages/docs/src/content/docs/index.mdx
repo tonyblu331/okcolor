@@ -33,7 +33,10 @@ import TerminalDemo from '../../components/TerminalDemo.astro'
     Every conversion uses the exact W3C CSS Color Module Level 4 matrices. Verified against Culori — the reference implementation — with sub-5e-5 error across the entire sRGB gamut.
   </Card>
   <Card title="Zero Runtime Overhead" icon="rocket">
-    All processing happens at build time in Rust via WASM. Your users download the result, never the engine. **~55 MB/s** throughput. Sub-millisecond for typical stylesheets.
+    All processing happens at build time in Rust via WASM. Your users download the result, never the engine. The current optimized WASM payload is about **222 KB**, and the npm package dry-run is about **124 KB**.
+  </Card>
+  <Card title="Framework-aware Scanner" icon="seti:config">
+    Handles plain CSS, Vite virtual SFC style modules, Vue/Svelte/Astro `<style>` blocks, symlinked CSS trees, CSS escapes, nested selectors, `@supports`, `@container`, and `@property` color registrations.
   </Card>
 </CardGrid>
 
@@ -54,38 +57,84 @@ import TerminalDemo from '../../components/TerminalDemo.astro'
   <tbody>
     <tr>
       <td class="fmt-label">Hex</td>
-      <td><code>#ff0000</code></td>
-      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+      <td>
+        <code>#ff0000</code>
+      </td>
+      <td>
+        <code>oklch(62.8% 0.25768 29.23)</code>
+      </td>
     </tr>
     <tr>
       <td class="fmt-label">RGB</td>
-      <td><code>rgb(255, 0, 0)</code></td>
-      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+      <td>
+        <code>rgb(255, 0, 0)</code>
+      </td>
+      <td>
+        <code>oklch(62.8% 0.25768 29.23)</code>
+      </td>
     </tr>
     <tr>
       <td class="fmt-label">HSL</td>
-      <td><code>hsl(0, 100%, 50%)</code></td>
-      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+      <td>
+        <code>hsl(0, 100%, 50%)</code>
+      </td>
+      <td>
+        <code>oklch(62.8% 0.25768 29.23)</code>
+      </td>
     </tr>
     <tr>
       <td class="fmt-label">HWB</td>
-      <td><code>hwb(0 0% 0%)</code></td>
-      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+      <td>
+        <code>hwb(0 0% 0%)</code>
+      </td>
+      <td>
+        <code>oklch(62.8% 0.25768 29.23)</code>
+      </td>
     </tr>
     <tr>
       <td class="fmt-label">Named</td>
-      <td><code>red</code></td>
-      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
+      <td>
+        <code>red</code>
+      </td>
+      <td>
+        <code>oklch(62.8% 0.25768 29.23)</code>
+      </td>
     </tr>
     <tr>
       <td class="fmt-label">Gradients</td>
-      <td><code>linear-gradient(#f00, #00f)</code></td>
-      <td><code>linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05))</code></td>
+      <td>
+        <code>linear-gradient(#f00, #00f)</code>
+      </td>
+      <td>
+        <code>linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05))</code>
+      </td>
     </tr>
   </tbody>
 </table>
 
-Modern CSS functions pass through untouched: `oklch()`, `oklab()`, `lab()`, `lch()`, `color-mix()`, `light-dark()`, `var()`, `calc()`.
+Modern CSS functions pass through untouched: `oklch()`, `oklab()`, `lab()`, `lch()`, `color-mix()`, `light-dark()`, relative colors like `rgb(from red r g b)`, `var()`, and `calc()`.
+
+## Scanner behavior
+
+okcolor is conservative by design: it converts legacy colors only where CSS grammar says a color is plausible.
+
+Converted:
+
+- Raw declaration snippets like `color: red;`
+- Rules and nested rules
+- CSS custom properties, including escaped names like `--\31 brand`
+- Color-capable shorthands such as `background`, `border`, `box-shadow`, `text-shadow`, `text-emphasis`, SVG `fill`/`stroke`, and related `*-color` properties
+- `@supports (color: red)` declaration conditions
+- `@container style(color: blue)` queries
+- `@property --brand { syntax: "<color>"; initial-value: red; }`
+- Gradients, including multiline gradients and `//` comments
+
+Preserved:
+
+- Selectors and selector functions like `:is(a:hover #abc, .red)`
+- `@supports selector(...)` arguments
+- Identifier-only properties such as `animation-name`, `font-family`, `grid-area`, `container`, `scroll-timeline`, `counter-reset`, and `view-transition-name`
+- URLs, strings, comments, modern colors, and ignored lines
 
 ## Real-world demo
 
@@ -125,5 +174,7 @@ Modern CSS functions pass through untouched: `oklch()`, `oklab()`, `lab()`, `lch
 Running the conversion a second time produces the exact same output. **The engine is idempotent.**
 
 <div class="callout-card">
-  <strong>Escape hatch:</strong> Add <code>/* oklch-ignore */</code> on any line to preserve the original color unchanged.
+  <strong>Escape hatch:</strong> Add <code>/* oklch-ignore */</code> on any line to preserve the original color
+  unchanged. Custom ignore comments are internally shielded with a sentinel, so unrelated <code>oklch-ignore</code> text
+  in strings or content is not rewritten.
 </div>

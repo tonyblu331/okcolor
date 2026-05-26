@@ -8,18 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Astro Starlight documentation site with API reference, benchmarks, and playground
 - GitHub Actions workflows for CI, docs deployment, and automated releases
 - GitHub issue and PR templates
+- Documentation for scanner coverage, Vite virtual style handling, symlink-safe CLI traversal, local benchmarks, and Windows `rust-lld` test workaround
 
 ### Changed
+
 - `Scanner` performance: removed dead `O(N²)` line-tracking code
 - `parse_color`: eliminated `to_lowercase()` allocation via `Cow<str>`
 - `classify()`: eliminated double `try_match_color_at` call per color
+- Hardened CSS scanning around selector functions, `@supports`/`@container` conditions, `@property` color registrations, escaped custom properties, gradients, and named-color property classification
+- Updated benchmark/package-size claims to match the current WASM build and `npm pack --dry-run`
 
 ## [1.0.0] - 2026-05-24
 
 ### Added
+
 - Initial release
 - WASM-powered OKLCH color converter with W3C-exact matrices
 - Vite plugin for zero-config CSS transformation

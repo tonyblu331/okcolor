@@ -23,6 +23,8 @@ export default defineConfig({
 
 Every `.css` file processed by Vite will have legacy colors converted to OKLCH automatically. No config needed.
 
+The plugin also handles Vite's virtual style modules, including ids like `Component.vue?vue&type=style&lang.css`. Non-style virtual modules such as Vue templates or scripts are skipped, even if they contain CSS-looking text.
+
 <TerminalDemo scenario="transform" />
 
 ## Options
@@ -51,34 +53,79 @@ export default defineConfig({
 
 ```css
 /* keep-legacy */
-.my-color { color: #ff0000; } /* this color stays as hex */
+.my-color {
+  color: #ff0000;
+} /* this color stays as hex */
 ```
+
+Custom ignore comments are restored through a private sentinel, so unrelated `oklch-ignore` text in strings, content, or URLs is not rewritten.
 
 ## Framework compatibility
 
-| Framework | Works | Notes |
-|---|---|---|
-| Vite | Yes | Native plugin |
-| Astro | Yes | Built on Vite |
-| SvelteKit | Yes | Built on Vite |
-| Nuxt | Yes | Built on Vite |
-| Remix | Yes | Vite compiler |
-| SolidStart | Yes | Built on Vite |
-| Qwik | Yes | Built on Vite |
-| Next.js | — | Uses webpack/turbopack. Use the CLI instead |
-| Create React App | — | Uses webpack. Use the CLI instead |
+| Framework        | Works | Notes                                       |
+| ---------------- | ----- | ------------------------------------------- |
+| Vite             | Yes   | Native plugin                               |
+| Astro            | Yes   | Built on Vite                               |
+| SvelteKit        | Yes   | Built on Vite                               |
+| Nuxt             | Yes   | Built on Vite                               |
+| Remix            | Yes   | Vite compiler                               |
+| SolidStart       | Yes   | Built on Vite                               |
+| Qwik             | Yes   | Built on Vite                               |
+| Next.js          | —     | Uses webpack/turbopack. Use the CLI instead |
+| Create React App | —     | Uses webpack. Use the CLI instead           |
 
 ## Supported file types
 
-| Extension | Processed as | Notes |
-|---|---|---|
-| `.css` | Plain CSS | Full scan |
-| `.scss`, `.sass` | Plain CSS | Preprocessor output |
-| `.less` | Plain CSS | Preprocessor output |
-| `.styl`, `.stylus` | Plain CSS | Preprocessor output |
-| `.vue` | SFC | `<style>` blocks only |
-| `.svelte` | SFC | `<style>` blocks only |
-| `.astro` | Component | `<style>` blocks only |
+| Extension          | Processed as | Notes                 |
+| ------------------ | ------------ | --------------------- |
+| `.css`             | Plain CSS    | Full scan             |
+| `.scss`, `.sass`   | Plain CSS    | Preprocessor output   |
+| `.less`            | Plain CSS    | Preprocessor output   |
+| `.styl`, `.stylus` | Plain CSS    | Preprocessor output   |
+| `.vue`             | SFC          | `<style>` blocks only |
+| `.svelte`          | SFC          | `<style>` blocks only |
+| `.astro`           | Component    | `<style>` blocks only |
+
+For embedded styles, transform failures are reported as `[okcolor]` warnings and the original component source is preserved. That keeps dev servers resilient while still surfacing the problem.
+
+## Scanner boundaries
+
+okcolor transforms colors in real CSS value positions and avoids selector/content corruption:
+
+```css
+/* Converted */
+@supports (color: red) {
+  .btn {
+    border: 1px solid #f00;
+  }
+}
+
+@container style(color: blue) {
+  .card {
+    box-shadow: 0 0 1rem red;
+  }
+}
+
+@property --brand {
+  syntax: '<color>';
+  initial-value: red;
+  inherits: false;
+}
+
+/* Preserved */
+@supports selector(:is(a:hover #abc, .red)) {
+  .btn {
+    color: green;
+  }
+}
+
+.motion {
+  animation-name: red;
+  counter-reset: blue 0;
+}
+```
+
+The first block has color values, so okcolor modernizes them. The second block contains selector tokens or identifier-only property values, so okcolor leaves them alone.
 
 ## Tailwind CSS v4
 
