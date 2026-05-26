@@ -17,6 +17,43 @@ describe('Vite plugin', () => {
     expect(result).toContain('oklch(')
   })
 
+  it('transforms CSS ids with Vite query suffixes', async () => {
+    const plugin = okColor()
+    const result = await plugin.transform?.('color: #ff0000;', 'test.css?direct')
+    expect(result).toBeDefined()
+    expect(typeof result).toBe('string')
+    expect(result).toContain('oklch(')
+  })
+
+  it('transforms Vite virtual SFC style modules as CSS', async () => {
+    const plugin = okColor()
+    const result = await plugin.transform?.(
+      '.red { color: #ff0000; }',
+      '/src/App.vue?vue&type=style&index=0&scoped=true&lang.css',
+    )
+    expect(result).toBeDefined()
+    expect(typeof result).toBe('string')
+    expect(result).toContain('oklch(')
+  })
+
+  it('skips non-style Vite SFC virtual modules', async () => {
+    const plugin = okColor()
+    const result = await plugin.transform?.(
+      'export default "<style>.red { color: #ff0000; }</style>"',
+      '/src/App.vue?vue&type=script&lang.ts',
+    )
+    expect(result).toBeUndefined()
+  })
+
+  it('does not let lang.css override a non-style Vite SFC virtual module type', async () => {
+    const plugin = okColor()
+    const result = await plugin.transform?.(
+      '<template><div style="color: #ff0000"></div></template>',
+      '/src/App.vue?vue&type=template&lang.css',
+    )
+    expect(result).toBeUndefined()
+  })
+
   it('transforms Vue style blocks', async () => {
     const plugin = okColor()
     const source = `<template><div>hi</div></template>\n<style>\n.red { color: #ff0000; }\n</style>`
@@ -70,5 +107,21 @@ describe('Vite plugin', () => {
     expect(spy).toHaveBeenCalledTimes(2) // cache hit for a.css
 
     spy.mockRestore()
+  })
+
+  it('warns when an embedded style transform fails', async () => {
+    const transformSpy = vi.spyOn(wasm, 'transformCss').mockImplementationOnce(() => {
+      throw new Error('boom')
+    })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const plugin = okColor()
+
+    const result = await plugin.transform?.('<style>.red { color: #ff0000; }</style>', 'test.vue')
+
+    expect(result).toBeUndefined()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[okcolor] transform failed for test.vue:'), 'boom')
+
+    warnSpy.mockRestore()
+    transformSpy.mockRestore()
   })
 })

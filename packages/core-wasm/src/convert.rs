@@ -16,10 +16,10 @@ pub enum Space {
 pub fn convert(input: &str, to: Space) -> Option<String> {
     let raw: RawColor = parse::parse_single_color(input)?;
     match to {
-        Space::Hex   => Some(format::srgb_to_hex(raw.r, raw.g, raw.b, raw.alpha)),
-        Space::Rgb   => Some(format::srgb_to_rgb(raw.r, raw.g, raw.b, raw.alpha)),
-        Space::Hsl   => Some(format::srgb_to_hsl(raw.r, raw.g, raw.b, raw.alpha)),
-        Space::Hwb   => Some(format::srgb_to_hwb(raw.r, raw.g, raw.b, raw.alpha)),
+        Space::Hex => Some(format::srgb_to_hex(raw.r, raw.g, raw.b, raw.alpha)),
+        Space::Rgb => Some(format::srgb_to_rgb(raw.r, raw.g, raw.b, raw.alpha)),
+        Space::Hsl => Some(format::srgb_to_hsl(raw.r, raw.g, raw.b, raw.alpha)),
+        Space::Hwb => Some(format::srgb_to_hwb(raw.r, raw.g, raw.b, raw.alpha)),
         Space::Oklch => {
             let (l, c, h, alpha) = math::raw_to_oklch(raw.r, raw.g, raw.b, raw.alpha);
             let mut buf = String::new();
@@ -79,6 +79,12 @@ mod tests {
     fn convert_hwb_to_hex() {
         let r = convert("hwb(0 0% 0%)", Space::Hex).unwrap();
         assert_eq!(r, "#ff0000");
+    }
+
+    #[test]
+    fn convert_hwb_with_white_and_black_to_hex() {
+        let r = convert("hwb(0 20% 30%)", Space::Hex).unwrap();
+        assert_eq!(r, "#b33333");
     }
 
     #[test]

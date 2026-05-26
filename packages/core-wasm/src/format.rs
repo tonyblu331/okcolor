@@ -10,8 +10,11 @@ pub fn srgb_to_hex(r: f64, g: f64, b: f64, alpha: Option<f64>) -> String {
     let gi = (g.clamp(0.0, 1.0) * 255.0).round() as u8;
     let bi = (b.clamp(0.0, 1.0) * 255.0).round() as u8;
     match alpha {
-        Some(a) => format!("#{ri:02x}{gi:02x}{bi:02x}{:02x}", (a.clamp(0.0, 1.0) * 255.0).round() as u8),
-        None    => format!("#{ri:02x}{gi:02x}{bi:02x}"),
+        Some(a) => format!(
+            "#{ri:02x}{gi:02x}{bi:02x}{:02x}",
+            (a.clamp(0.0, 1.0) * 255.0).round() as u8
+        ),
+        None => format!("#{ri:02x}{gi:02x}{bi:02x}"),
     }
 }
 
@@ -22,7 +25,7 @@ pub fn srgb_to_rgb(r: f64, g: f64, b: f64, alpha: Option<f64>) -> String {
     let bi = (b.clamp(0.0, 1.0) * 255.0).round() as u8;
     match alpha {
         Some(a) => format!("rgb({ri} {gi} {bi} / {a})"),
-        None    => format!("rgb({ri} {gi} {bi})"),
+        None => format!("rgb({ri} {gi} {bi})"),
     }
 }
 
@@ -34,7 +37,7 @@ pub fn srgb_to_hsl(r: f64, g: f64, b: f64, alpha: Option<f64>) -> String {
     let l_rounded = (l * 100.0).round() / 100.0;
     match alpha {
         Some(a) => format!("hsl({h_rounded} {s_rounded}% {l_rounded}% / {a})"),
-        None    => format!("hsl({h_rounded} {s_rounded}% {l_rounded}%)"),
+        None => format!("hsl({h_rounded} {s_rounded}% {l_rounded}%)"),
     }
 }
 
@@ -46,7 +49,7 @@ pub fn srgb_to_hwb(r: f64, g: f64, b: f64, alpha: Option<f64>) -> String {
     let b_rounded = (b_ * 100.0).round() / 100.0;
     match alpha {
         Some(a) => format!("hwb({h_rounded} {w_rounded}% {b_rounded}% / {a})"),
-        None    => format!("hwb({h_rounded} {w_rounded}% {b_rounded}%)"),
+        None => format!("hwb({h_rounded} {w_rounded}% {b_rounded}%)"),
     }
 }
 
@@ -54,15 +57,28 @@ pub fn srgb_to_hwb(r: f64, g: f64, b: f64, alpha: Option<f64>) -> String {
 ///
 /// Per CSS Color 4 §10.9, achromatic colors (chroma < 0.0002) have a
 /// *powerless* hue component that MUST be clamped to 0.
-pub fn oklch_to_css(l: f64, c: f64, h: f64, alpha: Option<f64>, out: &mut impl Write) -> std::fmt::Result {
+pub fn oklch_to_css(
+    l: f64,
+    c: f64,
+    h: f64,
+    alpha: Option<f64>,
+    out: &mut impl Write,
+) -> std::fmt::Result {
     let l_rounded = (l * 100.0 * 100.0).round() / 100.0;
     let c_rounded = (c * 100_000.0).round() / 100_000.0;
-    let h_rounded = if c_rounded < 0.0002 { 0.0 } else { (h * 100.0).round() / 100.0 };
+    let h_rounded = if c_rounded < 0.0002 {
+        0.0
+    } else {
+        (h * 100.0).round() / 100.0
+    };
 
     match alpha {
         Some(a) => {
             let a_rounded = (a * 10_000.0).round() / 10_000.0;
-            write!(out, "oklch({l_rounded}% {c_rounded} {h_rounded} / {a_rounded})")
+            write!(
+                out,
+                "oklch({l_rounded}% {c_rounded} {h_rounded} / {a_rounded})"
+            )
         }
         None => write!(out, "oklch({l_rounded}% {c_rounded} {h_rounded})"),
     }

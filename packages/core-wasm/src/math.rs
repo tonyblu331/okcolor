@@ -61,12 +61,9 @@ fn linear_rgb_to_oklch(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     let s_ = s.cbrt();
 
     // LMS_cuberoot → OKLab
-    let lab_l =
-        LMS_TO_OKLAB[0][0] * l_ + LMS_TO_OKLAB[0][1] * m_ + LMS_TO_OKLAB[0][2] * s_;
-    let lab_a =
-        LMS_TO_OKLAB[1][0] * l_ + LMS_TO_OKLAB[1][1] * m_ + LMS_TO_OKLAB[1][2] * s_;
-    let lab_b =
-        LMS_TO_OKLAB[2][0] * l_ + LMS_TO_OKLAB[2][1] * m_ + LMS_TO_OKLAB[2][2] * s_;
+    let lab_l = LMS_TO_OKLAB[0][0] * l_ + LMS_TO_OKLAB[0][1] * m_ + LMS_TO_OKLAB[0][2] * s_;
+    let lab_a = LMS_TO_OKLAB[1][0] * l_ + LMS_TO_OKLAB[1][1] * m_ + LMS_TO_OKLAB[1][2] * s_;
+    let lab_b = LMS_TO_OKLAB[2][0] * l_ + LMS_TO_OKLAB[2][1] * m_ + LMS_TO_OKLAB[2][2] * s_;
 
     // OKLab → OKLCH
     let c = (lab_a * lab_a + lab_b * lab_b).sqrt();
@@ -163,11 +160,9 @@ pub fn hwb_to_srgb(h: f64, w: f64, b: f64) -> (f64, f64, f64) {
     }
 
     let (r, g, b_) = hsl_to_srgb(hue, 100.0, 50.0);
-    let r2 = r * (1.0 - white) + white;
-    let g2 = g * (1.0 - white) + white;
-    let b2 = b_ * (1.0 - white) + white;
+    let factor = 1.0 - white - black;
 
-    (r2 * (1.0 - black), g2 * (1.0 - black), b2 * (1.0 - black))
+    (r * factor + white, g * factor + white, b_ * factor + white)
 }
 
 // ── sRGB gamma encode ──────────────────────────────────────────────────
@@ -199,7 +194,7 @@ fn oklab_to_linear_srgb(l: f64, a: f64, b: f64) -> (f64, f64, f64) {
 
     // LMS → sRGB linear (inverse of SRGB_TO_LMS)
     (
-         4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
         -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
         -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
     )
@@ -412,6 +407,15 @@ mod tests {
         approx_delta(r, 0.5, 1e-4);
         approx_delta(g, 0.5, 1e-4);
         approx_delta(b, 0.5, 1e-4);
+    }
+
+    #[test]
+    fn test_hwb_with_white_and_black_uses_css_mix_formula() {
+        let (r, g, b) = hwb_to_srgb(0.0, 20.0, 30.0);
+        // CSS Color 4: rgb = hue_rgb * (1 - white - black) + white
+        approx_delta(r, 0.7, 1e-4);
+        approx_delta(g, 0.2, 1e-4);
+        approx_delta(b, 0.2, 1e-4);
     }
 
     // ── OKLCH ↔ sRGB roundtrip ──

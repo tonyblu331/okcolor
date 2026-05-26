@@ -1,7 +1,29 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { auditCss, colorToOklch, convertColor } from '../src/wasm.js'
+import { findCssFiles } from '../src/cli.js'
 import { resolve } from 'node:path'
-import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, symlinkSync } from 'node:fs'
+
+function canCreateSymlink(type: 'file' | 'junction'): boolean {
+  const probe = resolve(tmpdir(), `okcolor-symlink-probe-${process.pid}-${type}`)
+  const target = `${probe}-target`
+  const link = `${probe}-link`
+  try {
+    if (type === 'junction') mkdirSync(target, { recursive: true })
+    else writeFileSync(target, '')
+    symlinkSync(target, link, type)
+    return true
+  } catch {
+    return false
+  } finally {
+    if (existsSync(link)) rmSync(link, { recursive: true, force: true })
+    if (existsSync(target)) rmSync(target, { recursive: true, force: true })
+  }
+}
+
+const supportsDirectorySymlinks = canCreateSymlink('junction')
+const supportsFileSymlinks = canCreateSymlink('file')
 
 describe('CLI integration', () => {
   it('audit counts colors correctly', () => {
@@ -83,6 +105,44 @@ describe('CLI parallel file processing', () => {
 
     const total = results.reduce((s, r) => s + r.legacy_count, 0)
     expect(total).toBe(0)
+  })
+
+  it.skipIf(!supportsDirectorySymlinks)('discovers CSS files inside symlinked directories', () => {
+    const realDir = resolve(tmpDir, 'real-styles')
+    const linkedDir = resolve(tmpDir, 'linked-styles')
+    mkdirSync(realDir, { recursive: true })
+    writeFileSync(resolve(realDir, 'linked.css'), '.x { color: #ff0000; }\n')
+
+    symlinkSync(realDir, linkedDir, 'junction')
+
+    const files = findCssFiles(tmpDir).map((file) => file.replaceAll('\\', '/'))
+    expect(files.some((file) => file.endsWith('/linked-styles/linked.css'))).toBe(true)
+  })
+
+  it.skipIf(!supportsFileSymlinks)('discovers symlinked CSS files', () => {
+    const realFile = resolve(tmpDir, 'real-file.css')
+    const linkedFile = resolve(tmpDir, 'linked-file.css')
+    writeFileSync(realFile, '.x { color: #ff0000; }\n')
+
+    symlinkSync(realFile, linkedFile, 'file')
+
+    const files = findCssFiles(tmpDir).map((file) => file.replaceAll('\\', '/'))
+    expect(files.some((file) => file.endsWith('/linked-file.css'))).toBe(true)
+  })
+
+  it.skipIf(!supportsDirectorySymlinks)('skips recursive symlinked directories', () => {
+    writeFileSync(resolve(tmpDir, 'root.css'), '.x { color: #ff0000; }\n')
+    symlinkSync(tmpDir, resolve(tmpDir, 'loop'), 'junction')
+
+    const files = findCssFiles(tmpDir).map((file) => file.replaceAll('\\', '/'))
+    expect(files.filter((file) => file.endsWith('/root.css'))).toHaveLength(1)
+  })
+
+  it.skipIf(!supportsFileSymlinks)('skips dangling symlinked CSS files', () => {
+    const linkedFile = resolve(tmpDir, 'dangling.css')
+    symlinkSync(resolve(tmpDir, 'missing.css'), linkedFile, 'file')
+
+    expect(() => findCssFiles(tmpDir)).not.toThrow()
   })
 
   it('auditCss handles empty CSS gracefully', async () => {

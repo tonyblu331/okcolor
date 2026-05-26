@@ -21,13 +21,20 @@ pub fn audit_css(input: &str) -> String {
     let r = scan::audit_css(input);
     r#"{"legacy_count":"#.to_string()
         + &r.legacy_count.to_string()
-        + r#","hex_count":"# + &r.hex_count.to_string()
-        + r#","rgb_count":"# + &r.rgb_count.to_string()
-        + r#","hsl_count":"# + &r.hsl_count.to_string()
-        + r#","hwb_count":"# + &r.hwb_count.to_string()
-        + r#","named_count":"# + &r.named_count.to_string()
-        + r#","gradient_count":"# + &r.gradient_count.to_string()
-        + r#","unique_count":"# + &r.unique_count.to_string()
+        + r#","hex_count":"#
+        + &r.hex_count.to_string()
+        + r#","rgb_count":"#
+        + &r.rgb_count.to_string()
+        + r#","hsl_count":"#
+        + &r.hsl_count.to_string()
+        + r#","hwb_count":"#
+        + &r.hwb_count.to_string()
+        + r#","named_count":"#
+        + &r.named_count.to_string()
+        + r#","gradient_count":"#
+        + &r.gradient_count.to_string()
+        + r#","unique_count":"#
+        + &r.unique_count.to_string()
         + "}"
 }
 
@@ -52,10 +59,10 @@ pub fn color_to_oklch(input: &str) -> Option<String> {
 #[wasm_bindgen]
 pub fn convert_color(input: &str, to_space: &str) -> Option<String> {
     let space = match to_space {
-        "hex"   => convert::Space::Hex,
-        "rgb"   => convert::Space::Rgb,
-        "hsl"   => convert::Space::Hsl,
-        "hwb"   => convert::Space::Hwb,
+        "hex" => convert::Space::Hex,
+        "rgb" => convert::Space::Rgb,
+        "hsl" => convert::Space::Hsl,
+        "hwb" => convert::Space::Hwb,
         "oklch" => convert::Space::Oklch,
         _ => return None,
     };

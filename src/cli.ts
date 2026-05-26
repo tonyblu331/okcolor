@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
-import { readdirSync, statSync, existsSync } from 'node:fs'
+import { readdirSync, realpathSync, statSync, existsSync } from 'node:fs'
+import type { Dirent, Stats } from 'node:fs'
 import { resolve, extname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { auditCss, convertColor, colorToOklch } from './wasm.js'
 import type { ScanResult } from './types.js'
 
 const CSS_EXTS = new Set(['.css', '.scss', '.sass', '.less', '.styl', '.stylus', '.vue', '.svelte', '.astro'])
+const EMBEDDED_STYLE_EXTS = new Set(['.vue', '.svelte', '.astro'])
+const STYLE_BLOCK_RE = /<style[^>]*>([\s\S]*?)<\/style>/gi
 const CONCURRENCY = 32
 
 const SPACES = ['hex', 'rgb', 'hsl', 'hwb', 'oklch'] as const
@@ -112,28 +116,68 @@ function validatePath(raw: string): string {
   return dir
 }
 
-function findCssFiles(dir: string): string[] {
-  const results: string[] = []
-  const entries = readdirSync(dir)
+function isSkippedDirectory(name: string): boolean {
+  return name === 'node_modules' || name.startsWith('.')
+}
+
+function isCssFileName(name: string): boolean {
+  return CSS_EXTS.has(extname(name).toLowerCase())
+}
+
+function warnSkippedPath(path: string, reason: unknown): void {
+  console.warn(`Warning: skipped ${path}:`, reason instanceof Error ? reason.message : String(reason))
+}
+
+export function findCssFiles(dir: string, results: string[] = [], visitedDirs = new Set<string>()): string[] {
+  let realDir: string
+  try {
+    realDir = realpathSync(dir)
+  } catch (e) {
+    warnSkippedPath(dir, e)
+    return results
+  }
+
+  if (visitedDirs.has(realDir)) return results
+  visitedDirs.add(realDir)
+
+  let entries: Dirent[]
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch (e) {
+    warnSkippedPath(dir, e)
+    return results
+  }
+
   for (const entry of entries) {
-    const full = join(dir, entry)
-    const st = statSync(full)
-    if (st.isDirectory()) {
-      if (entry === 'node_modules' || entry.startsWith('.')) continue
-      results.push(...findCssFiles(full))
-    } else if (CSS_EXTS.has(extname(full))) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (!isSkippedDirectory(entry.name)) findCssFiles(full, results, visitedDirs)
+    } else if (entry.isFile() && isCssFileName(entry.name)) {
       results.push(full)
+    } else if (entry.isSymbolicLink()) {
+      let st: Stats
+      try {
+        st = statSync(full)
+      } catch (e) {
+        warnSkippedPath(full, e)
+        continue
+      }
+      if (st.isDirectory()) {
+        if (!isSkippedDirectory(entry.name)) findCssFiles(full, results, visitedDirs)
+      } else if (st.isFile() && isCssFileName(entry.name)) {
+        results.push(full)
+      }
     }
   }
   return results
 }
 
 function extractStyles(content: string, file: string): string {
-  if (extname(file) === '.vue' || extname(file) === '.svelte' || extname(file) === '.astro') {
+  if (EMBEDDED_STYLE_EXTS.has(extname(file).toLowerCase())) {
     const styles: string[] = []
-    const re = /<style[^>]*>([\s\S]*?)<\/style>/gi
     let m: RegExpExecArray | null
-    while ((m = re.exec(content)) !== null) {
+    STYLE_BLOCK_RE.lastIndex = 0
+    while ((m = STYLE_BLOCK_RE.exec(content)) !== null) {
       styles.push(m[1])
     }
     return styles.join('\n')
@@ -141,16 +185,21 @@ function extractStyles(content: string, file: string): string {
   return content
 }
 
+function getReasonPath(reason: unknown): string {
+  if (typeof reason === 'object' && reason !== null && 'path' in reason) {
+    const path = reason.path
+    if (typeof path === 'string') return path
+  }
+  return 'unknown file'
+}
+
 async function processFiles<T>(
   files: string[],
   fn: (css: string, file: string) => T,
 ): Promise<Array<{ file: string; result: T }>> {
   const results: Array<{ file: string; result: T }> = []
-  const chunks: string[][] = []
   for (let i = 0; i < files.length; i += CONCURRENCY) {
-    chunks.push(files.slice(i, i + CONCURRENCY))
-  }
-  for (const chunk of chunks) {
+    const chunk = files.slice(i, i + CONCURRENCY)
     const batch = await Promise.allSettled(chunk.map(async (file) => {
       const css = extractStyles(await readFile(file, 'utf-8'), file)
       if (!css.trim()) return null
@@ -160,7 +209,7 @@ async function processFiles<T>(
       if (item.status === 'fulfilled' && item.value) {
         results.push(item.value)
       } else if (item.status === 'rejected') {
-        console.warn(`Warning: failed to process ${(item.reason as any)?.path ?? 'unknown file'}:`, item.reason instanceof Error ? item.reason.message : String(item.reason))
+        console.warn(`Warning: failed to process ${getReasonPath(item.reason)}:`, item.reason instanceof Error ? item.reason.message : String(item.reason))
       }
     }
   }
@@ -369,7 +418,19 @@ async function main(): Promise<void> {
   process.exit(exitCode)
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.stack ?? err.message : String(err))
-  process.exit(1)
-})
+function isCliEntryPoint(): boolean {
+  if (!process.argv[1]) return false
+  const modulePath = fileURLToPath(import.meta.url)
+  try {
+    return realpathSync.native(resolve(process.argv[1])) === realpathSync.native(modulePath)
+  } catch {
+    return resolve(process.argv[1]) === modulePath
+  }
+}
+
+if (isCliEntryPoint()) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.stack ?? err.message : String(err))
+    process.exit(1)
+  })
+}

@@ -13,7 +13,6 @@ fn hex_val(c: u8) -> u8 {
     }
 }
 
-
 // ── Hex ────────────────────────────────────────────────────────────────
 
 /// Parse `#RRGGBB`, `#RGB`, `#RRGGBBAA`, or `#RGBA` to `RawColor`.
@@ -81,7 +80,12 @@ pub fn parse_hsl(tokens: &[&str]) -> Option<RawColor> {
         parse_percent(tokens[1]),
         parse_percent(tokens[2]),
     );
-    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(3).copied()) })
+    Some(RawColor {
+        r,
+        g,
+        b,
+        alpha: parse_alpha(tokens.get(3).copied()),
+    })
 }
 
 // ─── HWB ───
@@ -95,7 +99,12 @@ pub fn parse_hwb(tokens: &[&str]) -> Option<RawColor> {
         parse_percent(tokens[1]),
         parse_percent(tokens[2]),
     );
-    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(3).copied()) })
+    Some(RawColor {
+        r,
+        g,
+        b,
+        alpha: parse_alpha(tokens.get(3).copied()),
+    })
 }
 
 // ─── oklch() ───
@@ -110,7 +119,12 @@ pub fn parse_oklch(tokens: &[&str]) -> Option<RawColor> {
     let c = parse_chroma(tokens[1]);
     let h = parse_angle(tokens[2]);
     let (r, g, b) = math::oklch_to_srgb(raw_l, c, h);
-    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(3).copied()) })
+    Some(RawColor {
+        r,
+        g,
+        b,
+        alpha: parse_alpha(tokens.get(3).copied()),
+    })
 }
 
 fn parse_lightness(s: &str) -> f64 {
@@ -134,7 +148,12 @@ pub fn parse_color_srgb(tokens: &[&str]) -> Option<RawColor> {
     let r = tokens[1].parse::<f64>().ok()?;
     let g = tokens[2].parse::<f64>().ok()?;
     let b = tokens[3].parse::<f64>().ok()?;
-    Some(RawColor { r, g, b, alpha: parse_alpha(tokens.get(4).copied()) })
+    Some(RawColor {
+        r,
+        g,
+        b,
+        alpha: parse_alpha(tokens.get(4).copied()),
+    })
 }
 
 // ─── Named ───
@@ -143,14 +162,24 @@ pub fn parse_named(name: &[u8]) -> Option<RawColor> {
     let lower = name.to_ascii_lowercase();
     let name_str = std::str::from_utf8(&lower).ok()?;
     let [rr, gg, bb] = named::lookup(name_str)?;
-    Some(RawColor { r: rr as f64 / 255.0, g: gg as f64 / 255.0, b: bb as f64 / 255.0, alpha: None })
+    Some(RawColor {
+        r: rr as f64 / 255.0,
+        g: gg as f64 / 255.0,
+        b: bb as f64 / 255.0,
+        alpha: None,
+    })
 }
 
 /// Same as `parse_named` but assumes bytes are already lowercased.
 pub fn parse_named_lowered(name: &[u8]) -> Option<RawColor> {
     let name_str = std::str::from_utf8(name).ok()?;
     let [rr, gg, bb] = named::lookup(name_str)?;
-    Some(RawColor { r: rr as f64 / 255.0, g: gg as f64 / 255.0, b: bb as f64 / 255.0, alpha: None })
+    Some(RawColor {
+        r: rr as f64 / 255.0,
+        g: gg as f64 / 255.0,
+        b: bb as f64 / 255.0,
+        alpha: None,
+    })
 }
 
 // ─── Tokenising for function colours ───────────────────────────────────
@@ -205,7 +234,9 @@ fn parse_alpha(s: Option<&str>) -> Option<f64> {
 fn extract_body(s: &str) -> Option<&str> {
     let open = s.find('(')?;
     let close = s.rfind(')')?;
-    if close <= open { return None; }
+    if close <= open {
+        return None;
+    }
     Some(&s[open + 1..close])
 }
 
@@ -331,6 +362,14 @@ mod tests {
         approx_delta(p.r, 1.0, 1e-4);
         approx_delta(p.g, 1.0, 1e-4);
         approx_delta(p.b, 1.0, 1e-4);
+    }
+
+    #[test]
+    fn hwb_with_white_and_black() {
+        let p = parse_hwb(&["0", "20%", "30%"]).unwrap();
+        approx_delta(p.r, 0.7, 1e-4);
+        approx_delta(p.g, 0.2, 1e-4);
+        approx_delta(p.b, 0.2, 1e-4);
     }
 
     #[test]

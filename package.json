@@ -46,7 +46,7 @@
     "dist"
   ],
   "scripts": {
-		"build": "npm run build:wasm && npm run build:optimize && npm run build:ts && npm run build:copy",
+		"build": "node scripts/build.mjs",
 		"build:wasm": "wasm-pack build packages/core-wasm --target web --release --no-opt",
 		"build:optimize": "node scripts/optimize-wasm.mjs",
 		"build:ts": "node node_modules/tsdown/dist/run.js",
@@ -54,9 +54,9 @@
     "build:docs": "cd packages/docs && astro build",
     "dev": "node node_modules/tsdown/dist/run.js --watch",
     "dev:docs": "cd packages/docs && astro dev",
-		"pretest": "tsc --noEmit",
-		"test": "vitest run",
-    "bench": "vitest bench",
+		"pretest": "node node_modules/typescript/bin/tsc --noEmit",
+		"test": "node node_modules/vitest/vitest.mjs run",
+    "bench": "node node_modules/vitest/vitest.mjs bench",
     "lint": "eslint src",
     "format": "prettier --write src",
 		"prepublishOnly": "npm run build"
