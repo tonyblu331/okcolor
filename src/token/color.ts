@@ -19,7 +19,11 @@ export function formatOklch(oklch: Oklch): string {
 }
 
 export function tokenNameToCssVar(name: string): string {
-  return `--${name.trim().replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()}`
+  return `--${name
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()}`
 }
 
 export function roundOklch(oklch: Oklch): Oklch {

@@ -1,5 +1,7 @@
 export { transformCss, auditCss, colorToOklch, convertColor } from './wasm.js'
 export {
+  assertNoBlockingFailures,
+  collectBlockingFailures,
   compileTokenObject,
   compileTokens,
   describeColor,
@@ -15,6 +17,9 @@ export {
 export type { ScanResult } from './types.js'
 export type { OkColorOptions } from './types.js'
 export type {
+  AuditFailureKind,
+  CompileAuditFailure,
+  CompileReport,
   CompileResult,
   Gamut,
   GradeOptions,

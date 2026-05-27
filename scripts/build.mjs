@@ -52,8 +52,7 @@ function rustToolEnv() {
       .split(process.platform === 'win32' ? ';' : ':')
       .filter(
         (entry) =>
-          !/node_modules[\\/]\.bin/i.test(entry) &&
-          !/@npmcli[\\/]run-script[\\/]lib[\\/]node-gyp-bin/i.test(entry),
+          !/node_modules[\\/]\.bin/i.test(entry) && !/@npmcli[\\/]run-script[\\/]lib[\\/]node-gyp-bin/i.test(entry),
       )
       .join(process.platform === 'win32' ? ';' : ':')
   }
@@ -65,5 +64,5 @@ run('wasm-pack', ['build', 'packages/core-wasm', '--target', 'web', '--release',
   env: rustToolEnv(),
 })
 run(process.execPath, ['scripts/optimize-wasm.mjs'])
-run(process.execPath, ['node_modules/tsdown/dist/run.js'])
+run(process.execPath, ['node_modules/tsdown/dist/run.mjs'])
 run(process.execPath, ['scripts/copy-wasm.mjs'])

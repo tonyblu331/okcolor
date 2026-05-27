@@ -1,8 +1,11 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { APCAcontrast } from 'apca-w3'
 import { describe, expect, it } from 'vitest'
 import {
+  assertNoBlockingFailures,
+  collectBlockingFailures,
   compileTokens,
   describeColor,
   expandChroma,
@@ -12,6 +15,7 @@ import {
   parseColor,
   tokenNameToCssVar,
 } from '../src/token-engine.js'
+import { apcaContrast } from '../src/token/contrast.js'
 
 describe('token color engine', () => {
   it('parses source colors through the existing faithful OKLCH conversion path', () => {
@@ -93,6 +97,46 @@ describe('token color engine', () => {
     }
   })
 
+  it('preserves structured token alpha and skips malformed color component tokens', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'okcolor-structured-'))
+    const input = join(dir, 'colors.json')
+    await writeFile(
+      input,
+      JSON.stringify({
+        'shadow.tint': {
+          $type: 'color',
+          $value: {
+            colorSpace: 'srgb',
+            components: [0, 0, 0],
+            alpha: 0.42,
+            hex: '#000000',
+          },
+        },
+        'bad.components': {
+          $type: 'color',
+          $value: {
+            colorSpace: 'srgb',
+            components: [1, 'none', 0],
+            alpha: 1,
+          },
+        },
+      }),
+    )
+
+    try {
+      const result = await compileTokens(input)
+      expect(result.report.tokens.map((token) => token.token)).toEqual(['shadow.tint'])
+      expect(result.designTokens['shadow.tint'].$value).toMatchObject({
+        colorSpace: 'srgb',
+        alpha: 0.42,
+        hex: '#000000',
+      })
+      expect(result.designTokens).not.toHaveProperty('bad.components')
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
   it('audits declared foreground/background contrast pairs in fallback and P3 targets', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'okcolor-contrast-'))
     const input = join(dir, 'colors.json')
@@ -128,7 +172,9 @@ describe('token color engine', () => {
         background: 'color.action.primary.bg',
       })
       expect(bg?.contrast.apca['color.action.primary.fg@srgb']).toMatchObject({
-        advisory: 'unavailable',
+        lc: expect.any(Number),
+        polarity: expect.any(String),
+        advisory: expect.stringMatching(/^(pass-body|pass-large|fail)$/),
       })
     } finally {
       await rm(dir, { recursive: true, force: true })
@@ -157,8 +203,26 @@ describe('token color engine', () => {
         status: 'fail',
         ratio: expect.any(Number),
       })
+      expect(result.report.summary.contrastPassed).toBe(false)
+      expect(collectBlockingFailures(result).some((failure) => failure.kind === 'wcag2-regression')).toBe(true)
+      expect(() => assertNoBlockingFailures(result)).toThrow(/okcolor audit failed/)
     } finally {
       await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps APCA advisory math aligned with the W3-licensed apca-w3 oracle for luminance inputs', () => {
+    const samples = [
+      { textY: 0.1, bgY: 1 },
+      { textY: 1, bgY: 0.1 },
+      { textY: 0.18, bgY: 0.5 },
+      { textY: 0.5, bgY: 0.18 },
+    ]
+
+    for (const sample of samples) {
+      const ours = apcaContrast(sample.textY, sample.bgY, 'fg', 'bg', 'srgb')
+      const oracle = APCAcontrast(sample.textY, sample.bgY)
+      expect(ours.lc).toBeCloseTo(Number(oracle), 1)
     }
   })
 

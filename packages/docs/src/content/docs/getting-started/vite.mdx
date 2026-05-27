@@ -61,6 +61,11 @@ interface OkColorOptions {
       amount?: number
     }
   >
+
+  audit?: {
+    contrast?: Array<'wcag2-aa' | 'apca'>
+    failOn?: Array<'invalid-css' | 'out-of-gamut' | 'wcag2-regression'>
+  }
 }
 ```
 

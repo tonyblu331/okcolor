@@ -5,9 +5,17 @@ import type { Dirent, Stats } from 'node:fs'
 import { dirname, resolve, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { auditCss, convertColor, colorToOklch } from './wasm.js'
-import { compileTokens, expandChroma, fitGamut, formatDescription, gradeColor, parseColor } from './token-engine.js'
+import {
+  assertNoBlockingFailures,
+  compileTokens,
+  expandChroma,
+  fitGamut,
+  formatDescription,
+  gradeColor,
+  parseColor,
+} from './token-engine.js'
 import type { ScanResult } from './types.js'
-import type { Gamut, RecipeName, Strategy } from './token-engine.js'
+import type { AuditFailureKind, Gamut, RecipeName, Strategy } from './token-engine.js'
 
 const CSS_EXTS = new Set(['.css', '.scss', '.sass', '.less', '.styl', '.stylus', '.vue', '.svelte', '.astro'])
 const EMBEDDED_STYLE_EXTS = new Set(['.vue', '.svelte', '.astro'])
@@ -69,6 +77,7 @@ interface CliArgs {
   out?: string
   report?: string
   contrast?: string[]
+  failOn?: AuditFailureKind[]
   exitCode?: number
 }
 
@@ -101,39 +110,58 @@ export function parseArgs(argv: string[]): CliArgs {
   let out: string | undefined
   let report: string | undefined
   let contrast: string[] | undefined
+  let failOn: AuditFailureKind[] | undefined
 
   for (let i = 1; i < args.length; i++) {
     const arg = args[i]
     const peek = args[i + 1]
 
-    if (arg === '--format' && peek === 'json') { format = 'json'; i++ }
-    else if (arg === '--format=json') format = 'json'
-    else if (arg === '--to' && peek) { toSpace = peek; i++ }
-    else if (arg.startsWith('--to=')) toSpace = arg.slice(5)
-    else if (arg === '--gamut' && peek) { gamut = peek as Gamut; i++ }
-    else if (arg.startsWith('--gamut=')) gamut = arg.slice(8) as Gamut
+    if (arg === '--format' && peek === 'json') {
+      format = 'json'
+      i++
+    } else if (arg === '--format=json') format = 'json'
+    else if (arg === '--to' && peek) {
+      toSpace = peek
+      i++
+    } else if (arg.startsWith('--to=')) toSpace = arg.slice(5)
+    else if (arg === '--gamut' && peek) {
+      gamut = peek as Gamut
+      i++
+    } else if (arg.startsWith('--gamut=')) gamut = arg.slice(8) as Gamut
     else if (arg === '--amount' && peek) {
       const n = Number(peek)
       if (Number.isNaN(n)) return die(`Invalid amount: ${peek}`)
-      amount = n; i++
-    }
-    else if (arg.startsWith('--amount=')) {
+      amount = n
+      i++
+    } else if (arg.startsWith('--amount=')) {
       const n = Number(arg.slice(9))
       if (Number.isNaN(n)) return die(`Invalid amount: ${arg.slice(9)}`)
       amount = n
-    }
-    else if (arg === '--recipe' && peek) { recipe = peek as RecipeName; i++ }
-    else if (arg.startsWith('--recipe=')) recipe = arg.slice(9) as RecipeName
-    else if (arg === '--out' && peek) { out = peek; i++ }
-    else if (arg.startsWith('--out=')) out = arg.slice(6)
-    else if (arg === '--report' && peek) { report = peek; i++ }
-    else if (arg.startsWith('--report=')) report = arg.slice(9)
-    else if (arg === '--contrast' && peek) { contrast = peek.split(',').map((v) => v.trim()).filter(Boolean); i++ }
-    else if (arg.startsWith('--contrast=')) contrast = arg.slice(11).split(',').map((v) => v.trim()).filter(Boolean)
+    } else if (arg === '--recipe' && peek) {
+      recipe = peek as RecipeName
+      i++
+    } else if (arg.startsWith('--recipe=')) recipe = arg.slice(9) as RecipeName
+    else if (arg === '--out' && peek) {
+      out = peek
+      i++
+    } else if (arg.startsWith('--out=')) out = arg.slice(6)
+    else if (arg === '--report' && peek) {
+      report = peek
+      i++
+    } else if (arg.startsWith('--report=')) report = arg.slice(9)
+    else if (arg === '--contrast' && peek) {
+      contrast = splitCsv(peek)
+      i++
+    } else if (arg.startsWith('--contrast=')) contrast = splitCsv(arg.slice(11))
+    else if (arg === '--fail-on' && peek) {
+      failOn = splitCsv(peek) as AuditFailureKind[]
+      i++
+    } else if (arg.startsWith('--fail-on=')) failOn = splitCsv(arg.slice(10)) as AuditFailureKind[]
     else if (arg === '--max-legacy-colors' && peek) {
       const n = parseInt(peek, 10)
       if (Number.isNaN(n)) return die(`Invalid number: ${peek}`)
-      maxLegacyColors = n; i++
+      maxLegacyColors = n
+      i++
     } else if (arg.startsWith('--max-legacy-colors=')) {
       const n = parseInt(arg.split('=')[1], 10)
       if (Number.isNaN(n)) return die(`Invalid number: ${arg.split('=')[1]}`)
@@ -148,11 +176,28 @@ export function parseArgs(argv: string[]): CliArgs {
     }
   }
 
-  return { command, path, format, maxLegacyColors, allowNamed, color, toSpace, gamut, amount, recipe, out, report, contrast }
+  return {
+    command,
+    path,
+    format,
+    maxLegacyColors,
+    allowNamed,
+    color,
+    toSpace,
+    gamut,
+    amount,
+    recipe,
+    out,
+    report,
+    contrast,
+    failOn,
+  }
 }
 
 function isColorCommand(command: CliArgs['command']): boolean {
-  return command === 'convert' || command === 'expand' || command === 'grade' || command === 'fit' || command === 'describe'
+  return (
+    command === 'convert' || command === 'expand' || command === 'grade' || command === 'fit' || command === 'describe'
+  )
 }
 
 function looksLikeTokenPath(value: string): boolean {
@@ -173,6 +218,13 @@ function validatePath(raw: string): string {
 
 function isSkippedDirectory(name: string): boolean {
   return name === 'node_modules' || name.startsWith('.')
+}
+
+function splitCsv(value: string): string[] {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function validateGamut(gamut: Gamut | undefined, fallback: Gamut): Gamut {
@@ -275,16 +327,21 @@ async function processFiles<T>(
   const results: Array<{ file: string; result: T }> = []
   for (let i = 0; i < files.length; i += CONCURRENCY) {
     const chunk = files.slice(i, i + CONCURRENCY)
-    const batch = await Promise.allSettled(chunk.map(async (file) => {
-      const css = extractStyles(await readFile(file, 'utf-8'), file)
-      if (!css.trim()) return null
-      return { file, result: fn(css, file) }
-    }))
+    const batch = await Promise.allSettled(
+      chunk.map(async (file) => {
+        const css = extractStyles(await readFile(file, 'utf-8'), file)
+        if (!css.trim()) return null
+        return { file, result: fn(css, file) }
+      }),
+    )
     for (const item of batch) {
       if (item.status === 'fulfilled' && item.value) {
         results.push(item.value)
       } else if (item.status === 'rejected') {
-        console.warn(`Warning: failed to process ${getReasonPath(item.reason)}:`, item.reason instanceof Error ? item.reason.message : String(item.reason))
+        console.warn(
+          `Warning: failed to process ${getReasonPath(item.reason)}:`,
+          item.reason instanceof Error ? item.reason.message : String(item.reason),
+        )
       }
     }
   }
@@ -294,35 +351,53 @@ async function processFiles<T>(
 async function runAudit(args: CliArgs): Promise<number> {
   if (isJsonPath(args.path)) {
     const result = await compileTokens(resolve(args.path), {
-      audit: { contrast: args.contrast },
+      audit: { contrast: args.contrast, failOn: args.failOn },
     })
     const json = JSON.stringify(result.report, null, 2)
     if (args.report) await writeTextFile(resolve(args.report), json)
-    console.log(args.format === 'json' ? json : `✓ Token audit passed (${result.report.tokens.length} token(s))`)
-    return 0
+    try {
+      assertNoBlockingFailures(result, args.failOn)
+      console.log(args.format === 'json' ? json : `✓ Token audit passed (${result.report.tokens.length} token(s))`)
+      return 0
+    } catch (e) {
+      if (args.format === 'json') console.log(json)
+      else console.error(e instanceof Error ? e.message : String(e))
+      return 1
+    }
   }
 
   const files = findCssFiles(validatePath(args.path!))
   const entries = await processFiles(files, (css) => auditCss(css))
   const fileStats: Array<{ file: string; stats: ScanResult }> = []
-  let legacyCount = 0, hexCount = 0, rgbCount = 0, hslCount = 0
-  let hwbCount = 0, namedCount = 0, gradientCount = 0
+  let legacyCount = 0,
+    hexCount = 0,
+    rgbCount = 0,
+    hslCount = 0
+  let hwbCount = 0,
+    namedCount = 0,
+    gradientCount = 0
   for (const { file, result: stats } of entries) {
     fileStats.push({ file, stats })
-    legacyCount   += stats.legacy_count
-    hexCount      += stats.hex_count
-    rgbCount      += stats.rgb_count
-    hslCount      += stats.hsl_count
-    hwbCount      += stats.hwb_count
-    namedCount    += stats.named_count
+    legacyCount += stats.legacy_count
+    hexCount += stats.hex_count
+    rgbCount += stats.rgb_count
+    hslCount += stats.hsl_count
+    hwbCount += stats.hwb_count
+    namedCount += stats.named_count
     gradientCount += stats.gradient_count
   }
 
   if (args.format === 'json') {
-    console.log(JSON.stringify({
-      totals: { legacyCount, hexCount, rgbCount, hslCount, hwbCount, namedCount, gradientCount },
-      files: fileStats,
-    }, null, 2))
+    console.log(
+      JSON.stringify(
+        {
+          totals: { legacyCount, hexCount, rgbCount, hslCount, hwbCount, namedCount, gradientCount },
+          files: fileStats,
+        },
+        null,
+        2,
+      ),
+    )
     return 0
   }
 
@@ -357,9 +432,7 @@ async function runCheck(args: CliArgs): Promise<number> {
   let totalLegacy = 0
   const offenders: Array<{ file: string; count: number }> = []
   for (const { file, result: stats } of entries) {
-    const count = args.allowNamed
-      ? stats.legacy_count - stats.named_count
-      : stats.legacy_count
+    const count = args.allowNamed ? stats.legacy_count - stats.named_count : stats.legacy_count
     if (count > 0) {
       totalLegacy += count
       offenders.push({ file, count })
@@ -399,15 +472,19 @@ async function runDoctor(args: CliArgs): Promise<number> {
       // Only check property values (after `:`) for bad hex to avoid id selector false positives
       const propValue = /[^;{}]*:([^;{}]*)/.exec(line)
       const hexTarget = propValue ? propValue[1] : line
-      const badHex = hexTarget.match(/#[a-fA-F0-9]{1,2}(?![a-fA-F0-9])|[#][a-fA-F0-9]{5}(?![a-fA-F0-9])|[#][a-fA-F0-9]{7}(?![a-fA-F0-9])/g)
+      const badHex = hexTarget.match(
+        /#[a-fA-F0-9]{1,2}(?![a-fA-F0-9])|[#][a-fA-F0-9]{5}(?![a-fA-F0-9])|[#][a-fA-F0-9]{7}(?![a-fA-F0-9])/g,
+      )
       if (badHex) {
         issues.push({ file, line: lineNum, message: `Malformed hex color: ${badHex[0]}`, severity: 'error' })
       }
 
-      if (/rgb\([^)]*\d+%?[^)]*\d+\)/.test(line)
-        && !/rgb\(\s*\d+(\s*,\s*\d+){2,3}\s*\)/.test(line)
-        && !/rgb\(\s*\d+(\s+\d+){2,3}\s*\)/.test(line)
-        && !/calc\(/i.test(line)) {
+      if (
+        /rgb\([^)]*\d+%?[^)]*\d+\)/.test(line) &&
+        !/rgb\(\s*\d+(\s*,\s*\d+){2,3}\s*\)/.test(line) &&
+        !/rgb\(\s*\d+(\s+\d+){2,3}\s*\)/.test(line) &&
+        !/calc\(/i.test(line)
+      ) {
         issues.push({ file, line: lineNum, message: 'Potentially malformed rgb() syntax', severity: 'warn' })
       }
 
@@ -491,12 +568,18 @@ async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promi
           format: 'oklch',
         },
       },
-      audit: { contrast: args.contrast },
+      audit: { contrast: args.contrast, failOn: args.failOn },
     })
     if (args.out) await writeTextFile(resolve(args.out), result.css)
     else console.log(result.css)
     if (args.report) await writeTextFile(resolve(args.report), JSON.stringify(result.report, null, 2))
-    return 0
+    try {
+      assertNoBlockingFailures(result, args.failOn)
+      return 0
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e))
+      return 1
+    }
   }
 
   const color = args.color ?? args.path
@@ -509,11 +592,12 @@ async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promi
   try {
     const source = parseColor(color)
     const gamut = validateGamut(args.gamut, strategy === 'fit' ? 'srgb' : 'p3')
-    const result = strategy === 'expand'
-      ? expandChroma(source, { gamut, amount: args.amount })
-      : strategy === 'fit'
-        ? fitGamut(source, { gamut })
-        : gradeColor(source, { gamut, amount: args.amount, recipe: validateRecipe(args.recipe) })
+    const result =
+      strategy === 'expand'
+        ? expandChroma(source, { gamut, amount: args.amount })
+        : strategy === 'fit'
+          ? fitGamut(source, { gamut })
+          : gradeColor(source, { gamut, amount: args.amount, recipe: validateRecipe(args.recipe) })
     console.log(result.css)
     return 0
   } catch (e) {
@@ -546,7 +630,9 @@ async function runDescribe(args: CliArgs): Promise<number> {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv)
-  if (args.exitCode != null) { process.exit(args.exitCode) }
+  if (args.exitCode != null) {
+    process.exit(args.exitCode)
+  }
 
   let exitCode = 0
 
@@ -555,19 +641,35 @@ async function main(): Promise<void> {
       showHelp()
       process.exit(0)
     case 'audit':
-      if (!args.path) { console.error('Missing path argument'); showHelp(); process.exit(1) }
+      if (!args.path) {
+        console.error('Missing path argument')
+        showHelp()
+        process.exit(1)
+      }
       exitCode = await runAudit(args)
       break
     case 'check':
-      if (!args.path) { console.error('Missing path argument'); showHelp(); process.exit(1) }
+      if (!args.path) {
+        console.error('Missing path argument')
+        showHelp()
+        process.exit(1)
+      }
       exitCode = await runCheck(args)
       break
     case 'doctor':
-      if (!args.path) { console.error('Missing path argument'); showHelp(); process.exit(1) }
+      if (!args.path) {
+        console.error('Missing path argument')
+        showHelp()
+        process.exit(1)
+      }
       exitCode = await runDoctor(args)
       break
     case 'convert':
-      if (!args.color && !args.path) { console.error('Missing color or token file argument'); showHelp(); process.exit(1) }
+      if (!args.color && !args.path) {
+        console.error('Missing color or token file argument')
+        showHelp()
+        process.exit(1)
+      }
       exitCode = await runConvert(args)
       break
     case 'expand':
@@ -603,7 +705,7 @@ function isCliEntryPoint(): boolean {
 
 if (isCliEntryPoint()) {
   main().catch((err) => {
-    console.error(err instanceof Error ? err.stack ?? err.message : String(err))
+    console.error(err instanceof Error ? (err.stack ?? err.message) : String(err))
     process.exit(1)
   })
 }

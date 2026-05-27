@@ -7,26 +7,32 @@ export interface OkColorOptions {
   /** Optional CSS output path for token compiler mode. */
   output?: string
   /** Output targets for token compiler mode. */
-  targets?: Record<string, {
-    gamut?: 'srgb' | 'p3'
-    strategy?: 'convert' | 'expand' | 'grade' | 'fit'
-    amount?: number
-    format?: 'hex' | 'oklch'
-  }>
+  targets?: Record<
+    string,
+    {
+      gamut?: 'srgb' | 'p3'
+      strategy?: 'convert' | 'expand' | 'grade' | 'fit'
+      amount?: number
+      format?: 'hex' | 'oklch'
+    }
+  >
   /** Named recipe overrides for token compiler mode. */
-  recipes?: Record<string, {
-    gamut?: 'srgb' | 'p3'
-    strategy?: 'convert' | 'expand' | 'grade' | 'fit'
-    intent?: 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
-    recipe?: 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
-    amount?: number
-    format?: 'hex' | 'oklch'
-    lightness?: number
-  }>
+  recipes?: Record<
+    string,
+    {
+      gamut?: 'srgb' | 'p3'
+      strategy?: 'convert' | 'expand' | 'grade' | 'fit'
+      intent?: 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
+      recipe?: 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
+      amount?: number
+      format?: 'hex' | 'oklch'
+      lightness?: number
+    }
+  >
   /** Audit options for token compiler reports. */
   audit?: {
     contrast?: string[]
-    failOn?: string[]
+    failOn?: Array<'invalid-css' | 'out-of-gamut' | 'wcag2-regression'>
   }
 }
 

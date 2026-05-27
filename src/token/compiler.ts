@@ -3,7 +3,18 @@ import { dirname } from 'node:path'
 import { formatOklch, isRecord, parseColor, tokenNameToCssVar } from './color.js'
 import { auditContrastPair, extractDeclaredContrastPairs } from './contrast.js'
 import { expandChroma, fitGamut, gradeColor } from './transforms.js'
-import type { CompiledTokenReport, CompileResult, OkColorCompileOptions, OkColorTargetConfig, Oklch, ParsedColor, RecipeName, TransformResult } from './types.js'
+import type {
+  AuditFailureKind,
+  CompiledTokenReport,
+  CompileAuditFailure,
+  CompileResult,
+  OkColorCompileOptions,
+  OkColorTargetConfig,
+  Oklch,
+  ParsedColor,
+  RecipeName,
+  TransformResult,
+} from './types.js'
 import { DEFAULT_AMOUNT } from './types.js'
 
 export async function compileTokens(inputPath: string, options: OkColorCompileOptions = {}): Promise<CompileResult> {
@@ -11,7 +22,10 @@ export async function compileTokens(inputPath: string, options: OkColorCompileOp
   return compileTokenObject(raw, options)
 }
 
-export function compileTokenObject(tokens: Record<string, unknown>, options: OkColorCompileOptions = {}): CompileResult {
+export function compileTokenObject(
+  tokens: Record<string, unknown>,
+  options: OkColorCompileOptions = {},
+): CompileResult {
   const targets = options.targets ?? defaultTargets()
   const baseLines: string[] = []
   const literalLines: string[] = []
@@ -58,11 +72,81 @@ export function compileTokenObject(tokens: Record<string, unknown>, options: OkC
 
   applyContrastAudits(tokens, colorsByToken, reportByToken)
 
+  const failures = collectAuditFailures(reports)
+
   return {
     css: renderLayeredCss(baseLines, literalLines, p3Lines),
-    report: { tokens: reports },
+    report: {
+      tokens: reports,
+      summary: {
+        contrastPassed: !failures.some((failure) => failure.kind === 'wcag2-regression'),
+        failureCount: failures.length,
+        failures,
+      },
+    },
     designTokens,
   }
+}
+
+export function collectBlockingFailures(
+  result: CompileResult,
+  failOn: readonly AuditFailureKind[] = defaultFailOn(),
+): CompileAuditFailure[] {
+  const selected = new Set(failOn)
+  return result.report.summary.failures.filter((failure) => selected.has(failure.kind))
+}
+
+export function assertNoBlockingFailures(
+  result: CompileResult,
+  failOn: readonly AuditFailureKind[] = defaultFailOn(),
+): void {
+  const failures = collectBlockingFailures(result, failOn)
+  if (failures.length === 0) return
+  const preview = failures
+    .slice(0, 3)
+    .map((failure) => failure.message)
+    .join('; ')
+  throw new Error(`okcolor audit failed (${failures.length}): ${preview}`)
+}
+
+function collectAuditFailures(reports: CompiledTokenReport[]): CompileAuditFailure[] {
+  const failures: CompileAuditFailure[] = []
+  for (const report of reports) {
+    for (const [target, result] of Object.entries(report.targets)) {
+      if (!result.syntaxValid) {
+        failures.push({
+          kind: 'invalid-css',
+          token: report.token,
+          target,
+          message: `${report.token}@${target} emitted invalid CSS`,
+        })
+      }
+      if (!result.inGamut || !result.displaySafe) {
+        failures.push({
+          kind: 'out-of-gamut',
+          token: report.token,
+          target,
+          message: `${report.token}@${target} is outside the target gamut`,
+        })
+      }
+    }
+
+    for (const [key, contrast] of Object.entries(report.contrast.wcag2)) {
+      if (contrast.status === 'fail') {
+        failures.push({
+          kind: 'wcag2-regression',
+          token: report.token,
+          target: contrast.target,
+          message: `${report.token} contrast ${key} failed WCAG 2 AA (${contrast.ratio}:1 < ${contrast.required}:1)`,
+        })
+      }
+    }
+  }
+  return failures
+}
+
+function defaultFailOn(): AuditFailureKind[] {
+  return ['invalid-css', 'out-of-gamut', 'wcag2-regression']
 }
 
 function applyContrastAudits(
@@ -90,6 +174,7 @@ export async function writeCompileResult(
   const result = await compileTokens(inputPath, options)
   if (options.output) await writeOutput(options.output, result.css)
   if (options.reportPath) await writeOutput(options.reportPath, JSON.stringify(result.report, null, 2))
+  assertNoBlockingFailures(result, options.audit?.failOn)
   return result
 }
 
@@ -177,8 +262,10 @@ function extractTokenColor(token: unknown): string | undefined {
 
 function colorSpaceComponentsToRgb(value: Record<string, unknown>): string | undefined {
   if (value.colorSpace !== 'srgb' || !Array.isArray(value.components) || value.components.length < 3) return undefined
-  const [r, g, b] = value.components.map((component) => Number(component))
-  return `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)})`
+  const components = value.components.slice(0, 3)
+  if (!components.every((component) => typeof component === 'number' && Number.isFinite(component))) return undefined
+  const [r, g, b] = components
+  return `rgb(${Math.round(clamp01(r) * 255)} ${Math.round(clamp01(g) * 255)} ${Math.round(clamp01(b) * 255)})`
 }
 
 function extractTokenRecipe(token: unknown): RecipeName | undefined {
@@ -190,11 +277,20 @@ function toDesignToken(original: unknown, source: ParsedColor): unknown {
   const value = {
     colorSpace: 'srgb',
     components: hexToComponents(source.hex),
-    alpha: 1,
+    alpha: extractTokenAlpha(original),
     hex: source.hex,
   }
   if (isRecord(original)) return { ...original, $type: original.$type ?? 'color', $value: value }
   return { $type: 'color', $value: value }
+}
+
+function extractTokenAlpha(original: unknown): number {
+  if (!isRecord(original) || !isRecord(original.$value) || typeof original.$value.alpha !== 'number') return 1
+  return clamp01(original.$value.alpha)
+}
+
+function clamp01(value: number): number {
+  return Math.min(1, Math.max(0, value))
 }
 
 function hexToComponents(hex: string): [number, number, number] {

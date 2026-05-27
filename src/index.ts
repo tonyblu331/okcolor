@@ -1,6 +1,8 @@
 export { okColor } from './vite.js'
 export { transformCss, auditCss, colorToOklch, convertColor } from './wasm.js'
 export {
+  assertNoBlockingFailures,
+  collectBlockingFailures,
   compileTokenObject,
   compileTokens,
   describeColor,
@@ -14,6 +16,9 @@ export {
   writeCompileResult,
 } from './token-engine.js'
 export type {
+  AuditFailureKind,
+  CompileAuditFailure,
+  CompileReport,
   CompileResult,
   Gamut,
   GradeOptions,

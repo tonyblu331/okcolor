@@ -112,7 +112,7 @@ Token contrast is role-pair based. A background token can declare its foreground
 }
 ```
 
-Reports audit both fallback and P3 targets independently, with keys such as `color.action.primary.fg@srgb` and `color.action.primary.fg@p3`.
+Reports audit both fallback and P3 targets independently, with keys such as `color.action.primary.fg@srgb` and `color.action.primary.fg@p3`. WCAG 2 AA failures are CI-blocking by default; APCA is advisory and reported as an `lc` value, polarity, and `pass-body`/`pass-large`/`fail` hint.
 
 ### `okcolor check <path>`
 
@@ -192,6 +192,14 @@ npx okcolor doctor ./src
         <code>--report</code> &lt;path&gt;
       </td>
       <td>Write token compiler JSON report</td>
+    </tr>
+    <tr>
+      <td>
+        <code>--fail-on</code> &lt;list&gt;
+      </td>
+      <td>
+        Comma-separated CI gates: <code>invalid-css</code>, <code>out-of-gamut</code>, <code>wcag2-regression</code>
+      </td>
     </tr>
     <tr>
       <td>

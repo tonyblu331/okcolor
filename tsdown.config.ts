@@ -7,5 +7,8 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['vite', 'node:fs', 'node:fs/promises', 'node:path', 'node:url'],
+  outExtensions: () => ({ js: '.js', dts: '.d.ts' }),
+  deps: {
+    neverBundle: ['vite', 'node:fs', 'node:fs/promises', 'node:path', 'node:url'],
+  },
 })

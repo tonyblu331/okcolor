@@ -1,4 +1,5 @@
 export type Gamut = 'srgb' | 'p3'
+export type AuditFailureKind = 'invalid-css' | 'out-of-gamut' | 'wcag2-regression'
 export type Strategy = 'convert' | 'expand' | 'grade' | 'fit'
 export type TokenFormat = 'hex' | 'oklch'
 export type RecipeName = 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
@@ -52,7 +53,7 @@ export interface OkColorCompileOptions {
   recipes?: Record<string, OkColorTargetConfig & { intent?: RecipeName; recipe?: RecipeName; lightness?: number }>
   audit?: {
     contrast?: string[]
-    failOn?: string[]
+    failOn?: AuditFailureKind[]
   }
 }
 
@@ -69,7 +70,9 @@ export interface ApcaContrastResult {
   foreground: string
   background: string
   target: Gamut
-  advisory: 'unavailable'
+  lc: number
+  polarity: 'normal' | 'reverse' | 'none'
+  advisory: 'pass-body' | 'pass-large' | 'fail'
 }
 
 export interface CompiledTokenReport {
@@ -77,23 +80,42 @@ export interface CompiledTokenReport {
   source: string
   sourceGamut: 'srgb'
   oklch: Oklch
-  targets: Record<string, {
-    inGamut: boolean
-    syntaxValid: boolean
-    displaySafe: boolean
-    css: string
-    cMax?: number
-    amount?: number
-  }>
+  targets: Record<
+    string,
+    {
+      inGamut: boolean
+      syntaxValid: boolean
+      displaySafe: boolean
+      css: string
+      cMax?: number
+      amount?: number
+    }
+  >
   contrast: {
     wcag2: Record<string, WcagContrastResult>
     apca: Record<string, ApcaContrastResult>
   }
 }
 
+export interface CompileAuditFailure {
+  kind: AuditFailureKind
+  token: string
+  target?: string
+  message: string
+}
+
+export interface CompileReport {
+  tokens: CompiledTokenReport[]
+  summary: {
+    contrastPassed: boolean
+    failureCount: number
+    failures: CompileAuditFailure[]
+  }
+}
+
 export interface CompileResult {
   css: string
-  report: { tokens: CompiledTokenReport[] }
+  report: CompileReport
   designTokens: Record<string, unknown>
 }
 

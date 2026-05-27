@@ -221,9 +221,12 @@ result.report.tokens[0].contrast.wcag2['color.action.primary.fg@srgb']
 //   required: 4.5,
 //   status: 'pass'
 // }
+
+result.report.summary
+// { contrastPassed: true, failureCount: 0, failures: [] }
 ```
 
-WCAG 2 AA is the blocking model. APCA entries are emitted as explicit advisory placeholders until a proper APCA implementation is selected.
+WCAG 2 AA is the blocking model. APCA is advisory: report entries include `lc`, `polarity`, and an advisory `pass-body`/`pass-large`/`fail` hint. The implementation is checked against the W3-licensed `apca-w3` package as a test oracle, but APCA still does not replace WCAG 2 AA for CI gating.
 
 ---
 

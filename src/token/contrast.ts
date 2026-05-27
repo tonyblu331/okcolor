@@ -47,13 +47,62 @@ export function auditContrastPair(
       required: requiredRatio(pair.requirement),
       status: ratio >= requiredRatio(pair.requirement) ? 'pass' : 'fail',
     },
-    apca: {
-      foreground: pair.foreground,
-      background: pair.background,
+    apca: apcaContrast(
+      relativeLuminance(foreground),
+      relativeLuminance(background),
+      pair.foreground,
+      pair.background,
       target,
-      advisory: 'unavailable',
-    },
+    ),
   }
+}
+
+export function apcaContrast(
+  foregroundY: number,
+  backgroundY: number,
+  foreground: string,
+  background: string,
+  target: Gamut,
+): ApcaContrastResult {
+  const lc = round(apcaLc(foregroundY, backgroundY), 1)
+  const absLc = Math.abs(lc)
+  return {
+    foreground,
+    background,
+    target,
+    lc,
+    polarity: lc > 0 ? 'normal' : lc < 0 ? 'reverse' : 'none',
+    advisory: absLc >= 60 ? 'pass-body' : absLc >= 45 ? 'pass-large' : 'fail',
+  }
+}
+
+function apcaLc(foregroundY: number, backgroundY: number): number {
+  const normalBgExponent = 0.56
+  const normalTextExponent = 0.57
+  const reverseTextExponent = 0.62
+  const reverseBgExponent = 0.65
+  const scale = 1.14
+  const lowContrastOffset = 0.027
+  const lowContrastClip = 0.1
+  const deltaYMin = 0.0005
+
+  const foreground = softClampBlack(foregroundY)
+  const background = softClampBlack(backgroundY)
+  if (Math.abs(background - foreground) < deltaYMin) return 0
+
+  if (background > foreground) {
+    const sapc = (background ** normalBgExponent - foreground ** normalTextExponent) * scale
+    return sapc < lowContrastClip ? 0 : (sapc - lowContrastOffset) * 100
+  }
+
+  const sapc = (background ** reverseBgExponent - foreground ** reverseTextExponent) * scale
+  return sapc > -lowContrastClip ? 0 : (sapc + lowContrastOffset) * 100
+}
+
+function softClampBlack(y: number): number {
+  const threshold = 0.022
+  if (y >= threshold) return y
+  return y + (threshold - y) ** 1.414
 }
 
 export function wcagContrastRatio(a: number, b: number): number {

@@ -71,12 +71,34 @@ describe('CLI token compiler argument parsing', () => {
   })
 
   it('parses expand token output flags', () => {
-    expect(parseArgs(['node', 'okcolor', 'expand', 'tokens.json', '--gamut', 'p3', '--amount', '0.75', '--out', 'colors.css'])).toMatchObject({
+    expect(
+      parseArgs([
+        'node',
+        'okcolor',
+        'expand',
+        'tokens.json',
+        '--gamut',
+        'p3',
+        '--amount',
+        '0.75',
+        '--out',
+        'colors.css',
+      ]),
+    ).toMatchObject({
       command: 'expand',
       path: 'tokens.json',
       gamut: 'p3',
       amount: 0.75,
       out: 'colors.css',
+    })
+  })
+
+  it('parses fail-on gates for token audits', () => {
+    expect(
+      parseArgs(['node', 'okcolor', 'audit', 'tokens.json', '--fail-on', 'invalid-css,wcag2-regression']),
+    ).toMatchObject({
+      command: 'audit',
+      failOn: ['invalid-css', 'wcag2-regression'],
     })
   })
 
@@ -96,8 +118,7 @@ describe('CLI parallel file processing', () => {
     if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true })
     mkdirSync(tmpDir, { recursive: true })
     for (let i = 0; i < 50; i++) {
-      writeFileSync(resolve(tmpDir, `test-${i}.css`),
-        `.a-${i} { color: #ff0000; background: rgb(0, 255, 0); }\n`)
+      writeFileSync(resolve(tmpDir, `test-${i}.css`), `.a-${i} { color: #ff0000; background: rgb(0, 255, 0); }\n`)
     }
   })
 
@@ -109,10 +130,12 @@ describe('CLI parallel file processing', () => {
     const files = Array.from({ length: 50 }, (_, i) => resolve(tmpDir, `test-${i}.css`))
     const start = performance.now()
 
-    const results = await Promise.all(files.map(async (file) => {
-      const css = readFileSync(file, 'utf-8')
-      return auditCss(css)
-    }))
+    const results = await Promise.all(
+      files.map(async (file) => {
+        const css = readFileSync(file, 'utf-8')
+        return auditCss(css)
+      }),
+    )
 
     const elapsed = performance.now() - start
     const total = results.reduce((s, r) => s + r.legacy_count, 0)
@@ -126,10 +149,12 @@ describe('CLI parallel file processing', () => {
     }
 
     const files = Array.from({ length: 10 }, (_, i) => resolve(tmpDir, `empty-${i}.css`))
-    const results = await Promise.all(files.map(async (file) => {
-      const css = readFileSync(file, 'utf-8')
-      return auditCss(css)
-    }))
+    const results = await Promise.all(
+      files.map(async (file) => {
+        const css = readFileSync(file, 'utf-8')
+        return auditCss(css)
+      }),
+    )
 
     const total = results.reduce((s, r) => s + r.legacy_count, 0)
     expect(total).toBe(0)

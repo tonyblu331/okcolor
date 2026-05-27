@@ -16,7 +16,14 @@ export function expandChroma(input: ParsedColor | string, options: TargetOptions
     `Unsupported gamut: ${gamut}`,
   )
 
-  return makeTransformResult(source, { l: result.l, c: result.c, h: result.h }, gamut, result.cMax, amount, result.neutralSkipped)
+  return makeTransformResult(
+    source,
+    { l: result.l, c: result.c, h: result.h },
+    gamut,
+    result.cMax,
+    amount,
+    result.neutralSkipped,
+  )
 }
 
 export function fitGamut(input: ParsedColor | string, options: TargetOptions = {}): TransformResult {
@@ -27,14 +34,22 @@ export function fitGamut(input: ParsedColor | string, options: TargetOptions = {
     `Unsupported gamut: ${gamut}`,
   )
 
-  return makeTransformResult(source, { l: result.l, c: result.c, h: result.h }, gamut, result.cMax, 0, result.neutralSkipped)
+  return makeTransformResult(
+    source,
+    { l: result.l, c: result.c, h: result.h },
+    gamut,
+    result.cMax,
+    0,
+    result.neutralSkipped,
+  )
 }
 
 export function gradeColor(input: ParsedColor | string, options: GradeOptions): TransformResult {
   const source = toParsedColor(input)
   const gamut = options.gamut ?? 'p3'
   const recipe = options.recipe
-  if (recipe === 'literal') return makeTransformResult(source, source.oklch, gamut, findChromaMax(source.oklch.l, source.oklch.h, gamut), 0)
+  if (recipe === 'literal')
+    return makeTransformResult(source, source.oklch, gamut, findChromaMax(source.oklch.l, source.oklch.h, gamut), 0)
 
   const amount = clamp01(options.amount ?? recipeDefaultAmount(recipe))
   let next = { ...source.oklch }
@@ -117,7 +132,10 @@ function makeTransformResult(
   neutralSkipped = false,
 ): TransformResult {
   const rounded = roundOklch(oklch)
-  const inGamut = required(oklchInGamut(rounded.l, rounded.c, rounded.h, toWasmGamut(gamut)), `Unsupported gamut: ${gamut}`)
+  const inGamut = required(
+    oklchInGamut(rounded.l, rounded.c, rounded.h, toWasmGamut(gamut)),
+    `Unsupported gamut: ${gamut}`,
+  )
   return {
     source,
     oklch: rounded,
@@ -134,7 +152,10 @@ function makeTransformResult(
 
 function expandOklch(source: Oklch, gamut: Gamut, amount: number): Oklch {
   if (source.c < NEUTRAL_CHROMA_THRESHOLD) return source
-  const result = required(expandOklchChroma(source.l, source.c, source.h, toWasmGamut(gamut), amount), `Unsupported gamut: ${gamut}`)
+  const result = required(
+    expandOklchChroma(source.l, source.c, source.h, toWasmGamut(gamut), amount),
+    `Unsupported gamut: ${gamut}`,
+  )
   return { l: result.l, c: result.c, h: result.h }
 }
 

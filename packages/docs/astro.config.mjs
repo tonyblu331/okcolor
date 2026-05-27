@@ -11,9 +11,7 @@ export default defineConfig({
       logo: {
         src: './src/assets/hero.svg',
       },
-      social: {
-        github: 'https://github.com/tonyblu331/okcolor',
-      },
+      social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/tonyblu331/okcolor' }],
       editLink: {
         baseUrl: 'https://github.com/tonyblu331/okcolor/edit/main/packages/docs/',
       },

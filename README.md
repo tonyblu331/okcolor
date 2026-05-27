@@ -5,13 +5,13 @@
 
 Zero-config, build-time color modernizer for **Vite** and **Tailwind CSS**. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** at build time. Zero runtime overhead.
 
-- **Rust/WASM engine** — ~148 KB npm package, ~225 KB optimized WASM
+- **Rust/WASM engine** — ~151 KB npm package, ~225 KB optimized WASM
 - **W3C-exact matrices** (Ottosson 2020, CSS Color 4) — sub-5e-5 error vs Culori
 - **Idempotent** — second pass is a no-op
 - **Cache** — 4096-slot direct-mapped: `#ff0000`, `rgb(255,0,0)`, and `red` hit the same slot
 - **Framework-aware scanning** — handles Vite virtual CSS modules, Vue/Astro/Svelte-style embedded styles, symlinked CSS trees, and CSS escape edge cases
 - **Token compiler** — converts sRGB design tokens into fallback-first CSS with optional Display P3 OKLCH expansion
-- **Pair-based contrast reports** — audits declared foreground/background token pairs for WCAG 2 AA in both fallback and P3 targets
+- **Pair-based contrast reports** — audits declared foreground/background token pairs for WCAG 2 AA in both fallback and P3 targets, with APCA advisory output validated against `apca-w3`
 
 ## Why okcolor?
 
@@ -189,7 +189,7 @@ Latest local benchmark run:
 | Whole-file transform vs color.js | ~2.1× faster in this run    |
 | Fast path, no legacy colors      | ~7,212 ops/sec on 50 KB CSS |
 | Optimized WASM payload           | ~225 KB                     |
-| npm package dry-run              | ~148 KB, 21 files           |
+| npm package dry-run              | ~151 KB, 21 files           |
 
 Benchmarks are workload-sensitive. Run them on your machine:
 
