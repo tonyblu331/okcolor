@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflows for CI, docs deployment, and automated releases
 - GitHub issue and PR templates
 - Documentation for scanner coverage, Vite virtual style handling, symlink-safe CLI traversal, local benchmarks, and Windows `rust-lld` test workaround
+- Incremental token compiler for sRGB design tokens, Display P3 OKLCH expansion, grading/fitting/describe commands, Vite token output mode, and pair-based WCAG contrast reports
 
 ### Changed
 
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `classify()`: eliminated double `try_match_color_at` call per color
 - Hardened CSS scanning around selector functions, `@supports`/`@container` conditions, `@property` color registrations, escaped custom properties, gradients, and named-color property classification
 - Updated benchmark/package-size claims to match the current WASM build and `npm pack --dry-run`
+- Refactored token compiler architecture so Rust/WASM owns gamut and luminance math while TypeScript handles token orchestration, recipes, and reporting
 
 ## [1.0.0] - 2026-05-24
 

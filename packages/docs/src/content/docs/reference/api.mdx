@@ -11,17 +11,17 @@ import { Tabs, TabItem } from '@astrojs/starlight/components'
 
 okcolor exposes two entry points:
 
-| Entry          | What you get                  | Use when                                |
-| -------------- | ----------------------------- | --------------------------------------- |
-| `okcolor`      | Vite plugin factory           | You're adding okcolor to a Vite project |
-| `okcolor/core` | Transform and audit functions | You need the engine without Vite        |
+| Entry          | What you get                                   | Use when                                |
+| -------------- | ---------------------------------------------- | --------------------------------------- |
+| `okcolor`      | Vite plugin factory                            | You're adding okcolor to a Vite project |
+| `okcolor/core` | Transform, audit, and token compiler functions | You need the engine without Vite        |
 
 ```ts
 // Vite plugin
 import { okColor, type OkColorOptions } from 'okcolor'
 
 // Programmatic
-import { transformCss, auditCss, type ScanResult } from 'okcolor/core'
+import { transformCss, auditCss, compileTokens, expandChroma, describeColor, type ScanResult } from 'okcolor/core'
 ```
 
 ---
@@ -162,6 +162,71 @@ console.log(stats.gradient_count) // 1
 
 ---
 
+## Token compiler API
+
+The token compiler works on color token JSON and emits fallback-first CSS, a structured report, and Design Tokens-compatible JSON.
+
+```ts
+import { compileTokens, describeColor, expandChroma } from 'okcolor/core'
+
+const result = await compileTokens('src/tokens/colors.json', {
+  targets: {
+    base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
+    p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
+  },
+})
+
+console.log(result.css)
+console.log(result.report.tokens)
+```
+
+Supported token shapes:
+
+```json
+{
+  "brand.orange": "#ff5a00",
+  "color.action.primary.bg": {
+    "$type": "color",
+    "$value": "#0055ff",
+    "okcolor": {
+      "recipe": "premium",
+      "text": "color.action.primary.fg",
+      "contrast": "wcag2-aa"
+    }
+  },
+  "color.action.primary.fg": "#ffffff"
+}
+```
+
+### Color transforms
+
+```ts
+const color = expandChroma('#ff5a00', { gamut: 'p3', amount: 0.75 })
+const description = describeColor('#ff5a00', { gamut: 'p3' })
+```
+
+`expandChroma()` preserves OKLCH lightness and hue, then increases chroma toward the target gamut boundary. Low-chroma neutrals are protected by a `0.02` chroma threshold so gray tokens do not get invented hues.
+
+### Contrast report shape
+
+Contrast is a foreground/background pair property. A background token declares its foreground via `okcolor.text`; the background token owns the report entries:
+
+```ts
+result.report.tokens[0].contrast.wcag2['color.action.primary.fg@srgb']
+// {
+//   foreground: 'color.action.primary.fg',
+//   background: 'color.action.primary.bg',
+//   target: 'srgb',
+//   ratio: 6.82,
+//   required: 4.5,
+//   status: 'pass'
+// }
+```
+
+WCAG 2 AA is the blocking model. APCA entries are emitted as explicit advisory placeholders until a proper APCA implementation is selected.
+
+---
+
 ## `okColor(options?)`
 
 The Vite plugin factory.
@@ -193,6 +258,38 @@ function okColor(options?: Partial<OkColorOptions>): Plugin
         <code>'oklch-ignore'</code>
       </td>
       <td>Inline comment marker that prevents conversion on the containing line</td>
+    </tr>
+    <tr>
+      <td>
+        <code>input</code>
+      </td>
+      <td>
+        <code>string</code>
+      </td>
+      <td>—</td>
+      <td>
+        Token JSON input path; enables token compiler mode with <code>output</code>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <code>output</code>
+      </td>
+      <td>
+        <code>string</code>
+      </td>
+      <td>—</td>
+      <td>CSS output path for token compiler mode</td>
+    </tr>
+    <tr>
+      <td>
+        <code>targets</code>
+      </td>
+      <td>
+        <code>Record&lt;string, OkColorTargetConfig&gt;</code>
+      </td>
+      <td>—</td>
+      <td>Fallback and P3 target strategies for token compiler mode</td>
     </tr>
   </tbody>
 </table>

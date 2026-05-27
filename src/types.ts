@@ -2,6 +2,32 @@
 export interface OkColorOptions {
   /** Inline comment that prevents conversion on the current line. */
   ignoreComment?: string
+  /** Optional token JSON input. When present, okcolor runs token compiler mode. */
+  input?: string
+  /** Optional CSS output path for token compiler mode. */
+  output?: string
+  /** Output targets for token compiler mode. */
+  targets?: Record<string, {
+    gamut?: 'srgb' | 'p3'
+    strategy?: 'convert' | 'expand' | 'grade' | 'fit'
+    amount?: number
+    format?: 'hex' | 'oklch'
+  }>
+  /** Named recipe overrides for token compiler mode. */
+  recipes?: Record<string, {
+    gamut?: 'srgb' | 'p3'
+    strategy?: 'convert' | 'expand' | 'grade' | 'fit'
+    intent?: 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
+    recipe?: 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
+    amount?: number
+    format?: 'hex' | 'oklch'
+    lightness?: number
+  }>
+  /** Audit options for token compiler reports. */
+  audit?: {
+    contrast?: string[]
+    failOn?: string[]
+  }
 }
 
 /** Colour usage statistics returned by auditCss. */

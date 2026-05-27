@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { describe, it, expect, vi } from 'vitest'
 import { okColor } from '../src/vite.js'
 import * as wasm from '../src/wasm.js'
@@ -123,5 +126,30 @@ describe('Vite plugin', () => {
 
     warnSpy.mockRestore()
     transformSpy.mockRestore()
+  })
+
+  it('compiles token input to output CSS during buildStart without breaking transform mode', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'okcolor-vite-'))
+    const input = join(dir, 'tokens.json')
+    const output = join(dir, 'colors.css')
+    await writeFile(input, JSON.stringify({ 'brand.orange': '#ff5a00' }))
+
+    try {
+      const plugin = okColor({
+        input,
+        output,
+        targets: {
+          base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
+          p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
+        },
+      })
+
+      await plugin.buildStart?.({} as never)
+      const css = await readFile(output, 'utf-8')
+      expect(css).toContain('--brand-orange: #ff5a00;')
+      expect(css).toContain('@media (color-gamut: p3)')
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 })

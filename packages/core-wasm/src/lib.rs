@@ -1,6 +1,7 @@
 mod cache;
 mod convert;
 mod format;
+mod gamut;
 mod math;
 mod named;
 mod parse;
@@ -67,6 +68,54 @@ pub fn convert_color(input: &str, to_space: &str) -> Option<String> {
         _ => return None,
     };
     convert::convert(input, space)
+}
+
+/// Check whether an OKLCH coordinate is inside the requested target gamut.
+#[wasm_bindgen]
+pub fn oklch_in_gamut(l: f64, c: f64, h: f64, target_gamut: &str) -> Option<bool> {
+    let gamut = gamut::parse_gamut(target_gamut)?;
+    Some(gamut::is_in_gamut(gamut::Oklch { l, c, h }, gamut))
+}
+
+/// Find maximum OKLCH chroma for a fixed lightness/hue in the target gamut.
+#[wasm_bindgen]
+pub fn oklch_chroma_max(l: f64, h: f64, target_gamut: &str) -> Option<f64> {
+    let gamut = gamut::parse_gamut(target_gamut)?;
+    Some(gamut::find_chroma_max(l, h, gamut))
+}
+
+/// Expand OKLCH chroma toward the target gamut boundary.
+#[wasm_bindgen]
+pub fn expand_oklch_chroma(l: f64, c: f64, h: f64, target_gamut: &str, amount: f64) -> Option<String> {
+    let gamut = gamut::parse_gamut(target_gamut)?;
+    let result = gamut::expand_chroma(gamut::Oklch { l, c, h }, gamut, amount);
+    Some(format_chroma_transform(result))
+}
+
+/// Fit OKLCH chroma into the target gamut.
+#[wasm_bindgen]
+pub fn fit_oklch_gamut(l: f64, c: f64, h: f64, target_gamut: &str) -> Option<String> {
+    let gamut = gamut::parse_gamut(target_gamut)?;
+    let result = gamut::fit_gamut(gamut::Oklch { l, c, h }, gamut);
+    Some(format_chroma_transform(result))
+}
+
+/// Compute relative luminance from OKLCH via XYZ Y.
+#[wasm_bindgen]
+pub fn oklch_relative_luminance(l: f64, c: f64, h: f64) -> f64 {
+    gamut::relative_luminance(gamut::Oklch { l, c, h })
+}
+
+fn format_chroma_transform(result: gamut::ChromaTransform) -> String {
+    format!(
+        r#"{{"l":{},"c":{},"h":{},"cMax":{},"inGamut":{},"neutralSkipped":{}}}"#,
+        result.color.l,
+        result.color.c,
+        result.color.h,
+        result.c_max,
+        result.in_gamut,
+        result.neutral_skipped,
+    )
 }
 
 /// Return the raw scan result struct (for CLI tooling).

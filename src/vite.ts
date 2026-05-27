@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite'
 import { transformCss } from './wasm.js'
+import { writeCompileResult } from './token-engine.js'
 import type { OkColorOptions } from './types.js'
 
 const CSS_RE = /\.(css|scss|sass|less|styl|stylus)$/i
@@ -42,6 +43,16 @@ export function okColor(options?: OkColorOptions): Plugin {
   return {
     name,
     enforce: 'pre',
+
+    async buildStart() {
+      if (!options?.input || !options.output) return
+      await writeCompileResult(options.input, {
+        output: options.output,
+        targets: options.targets,
+        recipes: options.recipes,
+        audit: options.audit,
+      })
+    },
 
     async transform(code, id) {
       const file = cleanUrl(id)

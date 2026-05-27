@@ -34,6 +34,33 @@ interface OkColorOptions {
   /** Inline comment that prevents conversion on that line.
    *  @default 'oklch-ignore' */
   ignoreComment?: string
+
+  /** Token JSON input. When present, token compiler mode is enabled. */
+  input?: string
+
+  /** CSS output path for compiled tokens. */
+  output?: string
+
+  /** Fallback and progressive-enhancement targets. */
+  targets?: Record<
+    string,
+    {
+      gamut?: 'srgb' | 'p3'
+      strategy?: 'convert' | 'expand' | 'grade' | 'fit'
+      amount?: number
+      format?: 'hex' | 'oklch'
+    }
+  >
+
+  recipes?: Record<
+    string,
+    {
+      strategy?: 'convert' | 'expand' | 'grade' | 'fit'
+      gamut?: 'srgb' | 'p3'
+      recipe?: 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
+      amount?: number
+    }
+  >
 }
 ```
 
@@ -59,6 +86,31 @@ export default defineConfig({
 ```
 
 Custom ignore comments are restored through a private sentinel, so unrelated `oklch-ignore` text in strings, content, or URLs is not rewritten.
+
+## Token compiler mode
+
+If `input` and `output` are provided, the plugin compiles design-token JSON during `buildStart` instead of only transforming CSS modules:
+
+```ts
+import { okColor } from 'okcolor'
+
+export default defineConfig({
+  plugins: [
+    okColor({
+      input: 'src/tokens/colors.json',
+      output: 'src/styles/colors.css',
+      targets: {
+        base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
+        p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
+      },
+    }),
+  ],
+})
+```
+
+When `input`/`output` are omitted, okcolor keeps the original zero-config CSS transform behavior.
+
+Token compiler output is layered: sRGB custom properties first, optional OKLCH diagnostics, then Display P3 overrides guarded by `@media (color-gamut: p3)` and `@supports`.
 
 ## Framework compatibility
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { auditCss, colorToOklch, convertColor } from '../src/wasm.js'
-import { findCssFiles } from '../src/cli.js'
+import { findCssFiles, parseArgs } from '../src/cli.js'
 import { resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, symlinkSync } from 'node:fs'
@@ -58,6 +58,34 @@ describe('CLI integration', () => {
     const stats = auditCss('color: red;')
     expect(stats.legacy_count).toBe(1)
     expect(stats.named_count).toBe(1)
+  })
+})
+
+describe('CLI token compiler argument parsing', () => {
+  it('parses describe with target gamut', () => {
+    expect(parseArgs(['node', 'okcolor', 'describe', '#ff5a00', '--gamut', 'p3'])).toMatchObject({
+      command: 'describe',
+      color: '#ff5a00',
+      gamut: 'p3',
+    })
+  })
+
+  it('parses expand token output flags', () => {
+    expect(parseArgs(['node', 'okcolor', 'expand', 'tokens.json', '--gamut', 'p3', '--amount', '0.75', '--out', 'colors.css'])).toMatchObject({
+      command: 'expand',
+      path: 'tokens.json',
+      gamut: 'p3',
+      amount: 0.75,
+      out: 'colors.css',
+    })
+  })
+
+  it('rejects unsupported new command flags later at execution boundary', () => {
+    expect(parseArgs(['node', 'okcolor', 'grade', '#ff5a00', '--recipe', 'premium'])).toMatchObject({
+      command: 'grade',
+      color: '#ff5a00',
+      recipe: 'premium',
+    })
   })
 })
 

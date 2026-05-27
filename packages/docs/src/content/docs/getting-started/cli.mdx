@@ -29,9 +29,57 @@ okcolor input.css -o output.css
 
 If `-o` is omitted, output goes to stdout.
 
-### `okcolor audit <path>`
+### `okcolor convert <color|tokens.json>`
 
-Scan CSS files and report legacy color usage. Recursively walks directories:
+Convert a single color faithfully, or compile token JSON as sRGB fallback CSS:
+
+```bash
+okcolor convert "#ff5a00" --to oklch
+okcolor convert ./tokens.json --out ./colors.css
+```
+
+Supported single-color output spaces are `hex`, `rgb`, `hsl`, `hwb`, and `oklch`.
+
+### `okcolor expand <color|tokens.json>`
+
+Preserve OKLCH lightness and hue, then spend part of the Display P3 chroma budget:
+
+```bash
+okcolor expand "#ff5a00" --gamut p3 --amount 0.75
+okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
+```
+
+Token output is fallback-first: base sRGB custom properties, diagnostic OKLCH variables, then `@media (color-gamut: p3)` overrides.
+
+### `okcolor grade <color|tokens.json>`
+
+Apply an art-directed recipe after conversion:
+
+```bash
+okcolor grade "#0055ff" --recipe premium --gamut p3
+```
+
+Available recipes are `literal`, `vivid`, `deeper`, `premium`, `muted`, `softer`, `warmer`, and `cooler`.
+
+### `okcolor fit <color|tokens.json>`
+
+Reduce chroma until a color fits a target gamut:
+
+```bash
+okcolor fit "oklch(70% 0.35 145)" --gamut srgb
+```
+
+### `okcolor describe <color>`
+
+Explain the source OKLCH identity and target gamut budget without mutating the color:
+
+```bash
+okcolor describe "#ff5a00" --gamut p3
+```
+
+### `okcolor audit <path|tokens.json>`
+
+Scan CSS files and report legacy color usage. For token JSON, emit the token compiler report, including declared foreground/background contrast pairs. Recursively walks directories:
 
 ```bash
 npx okcolor audit ./src
@@ -47,6 +95,24 @@ npx okcolor audit ./src --format=json
 ```
 
 Directory traversal follows symlinked CSS files and directories, tracks real directory paths to avoid cycles, and warns instead of crashing on dangling symlinks.
+
+Token contrast is role-pair based. A background token can declare its foreground token:
+
+```json
+{
+  "color.action.primary.bg": {
+    "$type": "color",
+    "$value": "#0055ff",
+    "okcolor": {
+      "text": "color.action.primary.fg",
+      "contrast": "wcag2-aa"
+    }
+  },
+  "color.action.primary.fg": "#ffffff"
+}
+```
+
+Reports audit both fallback and P3 targets independently, with keys such as `color.action.primary.fg@srgb` and `color.action.primary.fg@p3`.
 
 ### `okcolor check <path>`
 
@@ -94,6 +160,38 @@ npx okcolor doctor ./src
       <td>
         Output format: <code>text</code> or <code>json</code>
       </td>
+    </tr>
+    <tr>
+      <td>
+        <code>--gamut</code> &lt;srgb|p3&gt;
+      </td>
+      <td>Target gamut for token compiler commands</td>
+    </tr>
+    <tr>
+      <td>
+        <code>--amount</code> &lt;n&gt;
+      </td>
+      <td>Expansion amount from source chroma to target gamut boundary</td>
+    </tr>
+    <tr>
+      <td>
+        <code>--recipe</code> &lt;name&gt;
+      </td>
+      <td>
+        Art-direction recipe for <code>grade</code>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <code>--out</code> &lt;path&gt;
+      </td>
+      <td>Write token compiler CSS output</td>
+    </tr>
+    <tr>
+      <td>
+        <code>--report</code> &lt;path&gt;
+      </td>
+      <td>Write token compiler JSON report</td>
     </tr>
     <tr>
       <td>

@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { readdirSync, realpathSync, statSync, existsSync } from 'node:fs'
 import type { Dirent, Stats } from 'node:fs'
-import { resolve, extname, join } from 'node:path'
+import { dirname, resolve, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { auditCss, convertColor, colorToOklch } from './wasm.js'
+import { compileTokens, expandChroma, fitGamut, formatDescription, gradeColor, parseColor } from './token-engine.js'
 import type { ScanResult } from './types.js'
+import type { Gamut, RecipeName, Strategy } from './token-engine.js'
 
 const CSS_EXTS = new Set(['.css', '.scss', '.sass', '.less', '.styl', '.stylus', '.vue', '.svelte', '.astro'])
 const EMBEDDED_STYLE_EXTS = new Set(['.vue', '.svelte', '.astro'])
@@ -28,26 +30,45 @@ function showHelp(): void {
     okcolor doctor <path> [--format json]
       Find color issues (malformed hex, low contrast, etc.).
 
-    okcolor convert <color> [--to <space>]
+    okcolor convert <color|tokens.json> [--to <space>] [--out <file>]
       Convert a single color between spaces.
       Supported spaces: hex, rgb, hsl, hwb, oklch
+
+    okcolor expand <color|tokens.json> [--gamut p3] [--amount 0.75] [--out <file>]
+      Create controlled wide-gamut OKLCH enhancement.
+
+    okcolor grade <color|tokens.json> [--recipe premium] [--gamut p3] [--out <file>]
+      Apply art-directed OKLCH transform.
+
+    okcolor fit <color|tokens.json> [--gamut srgb] [--out <file>]
+      Fit color into a target gamut by reducing chroma.
+
+    okcolor describe <color> [--gamut p3]
+      Explain OKLCH identity and available gamut budget.
 
   Examples:
     npx okcolor audit ./src
     npx okcolor check . --max-legacy-colors 10
     npx okcolor doctor ./src --format json
     npx okcolor convert "#ff0000" --to hsl
+    npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out colors.css
 `)
 }
 
 interface CliArgs {
-  command: 'help' | 'audit' | 'check' | 'doctor' | 'convert'
+  command: 'help' | 'audit' | 'check' | 'doctor' | 'convert' | 'expand' | 'grade' | 'fit' | 'describe'
   path?: string
   format: 'pretty' | 'json'
   maxLegacyColors?: number
   allowNamed?: boolean
   color?: string
   toSpace?: string
+  gamut?: Gamut
+  amount?: number
+  recipe?: RecipeName
+  out?: string
+  report?: string
+  contrast?: string[]
   exitCode?: number
 }
 
@@ -57,14 +78,14 @@ function die(msg: string): CliArgs {
   return { command: 'help', format: 'pretty', exitCode: 1 }
 }
 
-function parseArgs(argv: string[]): CliArgs {
+export function parseArgs(argv: string[]): CliArgs {
   const args = argv.slice(2)
   if (!args[0] || args[0] === '--help' || args[0] === '-h') {
     return { command: 'help', format: 'pretty' }
   }
 
-  const command = args[0] as 'audit' | 'check' | 'doctor' | 'convert'
-  if (!['help', 'audit', 'check', 'doctor', 'convert'].includes(command)) {
+  const command = args[0] as CliArgs['command']
+  if (!['help', 'audit', 'check', 'doctor', 'convert', 'expand', 'grade', 'fit', 'describe'].includes(command)) {
     return die(`Unknown command: ${command}`)
   }
 
@@ -74,6 +95,12 @@ function parseArgs(argv: string[]): CliArgs {
   let allowNamed = false
   let color: string | undefined
   let toSpace: string | undefined
+  let gamut: Gamut | undefined
+  let amount: number | undefined
+  let recipe: RecipeName | undefined
+  let out: string | undefined
+  let report: string | undefined
+  let contrast: string[] | undefined
 
   for (let i = 1; i < args.length; i++) {
     const arg = args[i]
@@ -83,6 +110,26 @@ function parseArgs(argv: string[]): CliArgs {
     else if (arg === '--format=json') format = 'json'
     else if (arg === '--to' && peek) { toSpace = peek; i++ }
     else if (arg.startsWith('--to=')) toSpace = arg.slice(5)
+    else if (arg === '--gamut' && peek) { gamut = peek as Gamut; i++ }
+    else if (arg.startsWith('--gamut=')) gamut = arg.slice(8) as Gamut
+    else if (arg === '--amount' && peek) {
+      const n = Number(peek)
+      if (Number.isNaN(n)) return die(`Invalid amount: ${peek}`)
+      amount = n; i++
+    }
+    else if (arg.startsWith('--amount=')) {
+      const n = Number(arg.slice(9))
+      if (Number.isNaN(n)) return die(`Invalid amount: ${arg.slice(9)}`)
+      amount = n
+    }
+    else if (arg === '--recipe' && peek) { recipe = peek as RecipeName; i++ }
+    else if (arg.startsWith('--recipe=')) recipe = arg.slice(9) as RecipeName
+    else if (arg === '--out' && peek) { out = peek; i++ }
+    else if (arg.startsWith('--out=')) out = arg.slice(6)
+    else if (arg === '--report' && peek) { report = peek; i++ }
+    else if (arg.startsWith('--report=')) report = arg.slice(9)
+    else if (arg === '--contrast' && peek) { contrast = peek.split(',').map((v) => v.trim()).filter(Boolean); i++ }
+    else if (arg.startsWith('--contrast=')) contrast = arg.slice(11).split(',').map((v) => v.trim()).filter(Boolean)
     else if (arg === '--max-legacy-colors' && peek) {
       const n = parseInt(peek, 10)
       if (Number.isNaN(n)) return die(`Invalid number: ${peek}`)
@@ -96,12 +143,20 @@ function parseArgs(argv: string[]): CliArgs {
     } else if (arg.startsWith('-') && arg !== '--') {
       return die(`Unknown option: ${arg}`)
     } else {
-      if (command === 'convert' && !color) color = arg
+      if (isColorCommand(command) && !color && !looksLikeTokenPath(arg)) color = arg
       else path = arg
     }
   }
 
-  return { command, path, format, maxLegacyColors, allowNamed, color, toSpace }
+  return { command, path, format, maxLegacyColors, allowNamed, color, toSpace, gamut, amount, recipe, out, report, contrast }
+}
+
+function isColorCommand(command: CliArgs['command']): boolean {
+  return command === 'convert' || command === 'expand' || command === 'grade' || command === 'fit' || command === 'describe'
+}
+
+function looksLikeTokenPath(value: string): boolean {
+  return /\.json$/i.test(value) || value.includes('/') || value.includes('\\')
 }
 
 function validatePath(raw: string): string {
@@ -118,6 +173,26 @@ function validatePath(raw: string): string {
 
 function isSkippedDirectory(name: string): boolean {
   return name === 'node_modules' || name.startsWith('.')
+}
+
+function validateGamut(gamut: Gamut | undefined, fallback: Gamut): Gamut {
+  const resolved = gamut ?? fallback
+  if (resolved !== 'srgb' && resolved !== 'p3') {
+    throw new Error(`Unsupported gamut: ${resolved}. Use: srgb, p3`)
+  }
+  return resolved
+}
+
+function validateRecipe(recipe: RecipeName | undefined): RecipeName {
+  const resolved = recipe ?? 'premium'
+  if (!['literal', 'vivid', 'deeper', 'premium', 'muted', 'softer', 'warmer', 'cooler'].includes(resolved)) {
+    throw new Error(`Unsupported recipe: ${resolved}`)
+  }
+  return resolved
+}
+
+function isJsonPath(path: string | undefined): path is string {
+  return !!path && /\.json$/i.test(path)
 }
 
 function isCssFileName(name: string): boolean {
@@ -217,6 +292,16 @@ async function processFiles<T>(
 }
 
 async function runAudit(args: CliArgs): Promise<number> {
+  if (isJsonPath(args.path)) {
+    const result = await compileTokens(resolve(args.path), {
+      audit: { contrast: args.contrast },
+    })
+    const json = JSON.stringify(result.report, null, 2)
+    if (args.report) await writeTextFile(resolve(args.report), json)
+    console.log(args.format === 'json' ? json : `✓ Token audit passed (${result.report.tokens.length} token(s))`)
+    return 0
+  }
+
   const files = findCssFiles(validatePath(args.path!))
   const entries = await processFiles(files, (css) => auditCss(css))
   const fileStats: Array<{ file: string; stats: ScanResult }> = []
@@ -358,6 +443,17 @@ async function runDoctor(args: CliArgs): Promise<number> {
 }
 
 async function runConvert(args: CliArgs): Promise<number> {
+  if (isJsonPath(args.path)) {
+    const result = await compileTokens(resolve(args.path), {
+      targets: {
+        base: { gamut: 'srgb', strategy: 'convert', format: args.toSpace === 'oklch' ? 'oklch' : 'hex' },
+      },
+    })
+    if (args.out) await writeTextFile(resolve(args.out), result.css)
+    else console.log(result.css)
+    return 0
+  }
+
   const space = args.toSpace?.toLowerCase() ?? 'oklch'
   if (!(SPACES as readonly string[]).includes(space)) {
     console.error(`Unsupported space: ${space}. Use: ${SPACES.join(', ')}`)
@@ -383,6 +479,71 @@ async function runConvert(args: CliArgs): Promise<number> {
   return 0
 }
 
+async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promise<number> {
+  if (isJsonPath(args.path)) {
+    const result = await compileTokens(resolve(args.path), {
+      targets: {
+        base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
+        p3: {
+          gamut: validateGamut(args.gamut, strategy === 'fit' ? 'srgb' : 'p3'),
+          strategy,
+          amount: args.amount,
+          format: 'oklch',
+        },
+      },
+      audit: { contrast: args.contrast },
+    })
+    if (args.out) await writeTextFile(resolve(args.out), result.css)
+    else console.log(result.css)
+    if (args.report) await writeTextFile(resolve(args.report), JSON.stringify(result.report, null, 2))
+    return 0
+  }
+
+  const color = args.color ?? args.path
+  if (!color) {
+    console.error(`Missing color or token file argument`)
+    showHelp()
+    return 1
+  }
+
+  try {
+    const source = parseColor(color)
+    const gamut = validateGamut(args.gamut, strategy === 'fit' ? 'srgb' : 'p3')
+    const result = strategy === 'expand'
+      ? expandChroma(source, { gamut, amount: args.amount })
+      : strategy === 'fit'
+        ? fitGamut(source, { gamut })
+        : gradeColor(source, { gamut, amount: args.amount, recipe: validateRecipe(args.recipe) })
+    console.log(result.css)
+    return 0
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e))
+    return 1
+  }
+}
+
+async function writeTextFile(path: string, content: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true })
+  await writeFile(path, content)
+}
+
+async function runDescribe(args: CliArgs): Promise<number> {
+  const color = args.color ?? args.path
+  if (!color) {
+    console.error('Missing color argument')
+    showHelp()
+    return 1
+  }
+
+  try {
+    console.log(formatDescription(color, { gamut: validateGamut(args.gamut, 'p3'), amount: args.amount }))
+    return 0
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e))
+    return 1
+  }
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv)
   if (args.exitCode != null) { process.exit(args.exitCode) }
@@ -406,8 +567,20 @@ async function main(): Promise<void> {
       exitCode = await runDoctor(args)
       break
     case 'convert':
-      if (!args.color) { console.error('Missing color argument'); showHelp(); process.exit(1) }
+      if (!args.color && !args.path) { console.error('Missing color or token file argument'); showHelp(); process.exit(1) }
       exitCode = await runConvert(args)
+      break
+    case 'expand':
+      exitCode = await runTokenCompilerCommand(args, 'expand')
+      break
+    case 'grade':
+      exitCode = await runTokenCompilerCommand(args, 'grade')
+      break
+    case 'fit':
+      exitCode = await runTokenCompilerCommand(args, 'fit')
+      break
+    case 'describe':
+      exitCode = await runDescribe(args)
       break
     default:
       console.error(`Unknown command: ${args.command}`)

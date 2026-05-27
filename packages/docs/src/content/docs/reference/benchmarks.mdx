@@ -146,7 +146,7 @@ The stateful scanner tracks declaration blocks, `@supports` and `@container` val
 
 The single-pass design means the engine touches each byte predictably — compare with regex-based approaches that may backtrack, scan multiple times, or rewrite tokens inside selectors and strings.
 
-<style>
+<style>{`
   .bench-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -170,4 +170,4 @@ The single-pass design means the engine touches each byte predictably — compar
     color: var(--sl-color-gray-3);
     margin-top: 0.25rem;
   }
-</style>
+`}</style>

@@ -41,6 +41,11 @@ let transformCssFn: (s: string) => string
 let auditCssFn: (s: string) => string
 let colorToOklchFn: (s: string) => string | null
 let convertColorFn: (s: string, space: string) => string | null
+let oklchInGamutFn: (l: number, c: number, h: number, gamut: string) => boolean | null
+let oklchChromaMaxFn: (l: number, h: number, gamut: string) => number | null
+let expandOklchChromaFn: (l: number, c: number, h: number, gamut: string, amount: number) => string | null
+let fitOklchGamutFn: (l: number, c: number, h: number, gamut: string) => string | null
+let oklchRelativeLuminanceFn: (l: number, c: number, h: number) => number
 
 {
   try {
@@ -52,6 +57,17 @@ let convertColorFn: (s: string, space: string) => string | null
     auditCssFn = glue.audit_css as (s: string) => string
     colorToOklchFn = glue.color_to_oklch as (s: string) => string | null
     convertColorFn = glue.convert_color as (s: string, space: string) => string | null
+    oklchInGamutFn = glue.oklch_in_gamut as (l: number, c: number, h: number, gamut: string) => boolean | null
+    oklchChromaMaxFn = glue.oklch_chroma_max as (l: number, h: number, gamut: string) => number | null
+    expandOklchChromaFn = glue.expand_oklch_chroma as (
+      l: number,
+      c: number,
+      h: number,
+      gamut: string,
+      amount: number,
+    ) => string | null
+    fitOklchGamutFn = glue.fit_oklch_gamut as (l: number, c: number, h: number, gamut: string) => string | null
+    oklchRelativeLuminanceFn = glue.oklch_relative_luminance as (l: number, c: number, h: number) => number
   } catch (e) {
     initError = e instanceof Error ? e : new Error(String(e))
   }
@@ -139,4 +155,46 @@ export function convertColor(input: string, toSpace: string): string | undefined
   ensureInit()
   const result = convertColorFn(input, toSpace)
   return result ?? undefined
+}
+
+export interface WasmChromaTransform {
+  l: number
+  c: number
+  h: number
+  cMax: number
+  inGamut: boolean
+  neutralSkipped: boolean
+}
+
+export function oklchInGamut(l: number, c: number, h: number, gamut: string): boolean | undefined {
+  ensureInit()
+  return oklchInGamutFn(l, c, h, gamut) ?? undefined
+}
+
+export function oklchChromaMax(l: number, h: number, gamut: string): number | undefined {
+  ensureInit()
+  return oklchChromaMaxFn(l, h, gamut) ?? undefined
+}
+
+export function expandOklchChroma(
+  l: number,
+  c: number,
+  h: number,
+  gamut: string,
+  amount: number,
+): WasmChromaTransform | undefined {
+  ensureInit()
+  const result = expandOklchChromaFn(l, c, h, gamut, amount)
+  return result ? JSON.parse(result) as WasmChromaTransform : undefined
+}
+
+export function fitOklchGamut(l: number, c: number, h: number, gamut: string): WasmChromaTransform | undefined {
+  ensureInit()
+  const result = fitOklchGamutFn(l, c, h, gamut)
+  return result ? JSON.parse(result) as WasmChromaTransform : undefined
+}
+
+export function oklchRelativeLuminance(l: number, c: number, h: number): number {
+  ensureInit()
+  return oklchRelativeLuminanceFn(l, c, h)
 }

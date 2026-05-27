@@ -5,11 +5,13 @@
 
 Zero-config, build-time color modernizer for **Vite** and **Tailwind CSS**. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** at build time. Zero runtime overhead.
 
-- **Rust/WASM engine** — ~124 KB npm package, ~222 KB optimized WASM
+- **Rust/WASM engine** — ~148 KB npm package, ~225 KB optimized WASM
 - **W3C-exact matrices** (Ottosson 2020, CSS Color 4) — sub-5e-5 error vs Culori
 - **Idempotent** — second pass is a no-op
 - **Cache** — 4096-slot direct-mapped: `#ff0000`, `rgb(255,0,0)`, and `red` hit the same slot
 - **Framework-aware scanning** — handles Vite virtual CSS modules, Vue/Astro/Svelte-style embedded styles, symlinked CSS trees, and CSS escape edge cases
+- **Token compiler** — converts sRGB design tokens into fallback-first CSS with optional Display P3 OKLCH expansion
+- **Pair-based contrast reports** — audits declared foreground/background token pairs for WCAG 2 AA in both fallback and P3 targets
 
 ## Why okcolor?
 
@@ -37,6 +39,9 @@ okcolor breaks that lock. Write your colors however you want — **Hex**, **RGB*
 | oklch-ignore escape hatch                 | ✓       | ✗      | ✗        | —       |
 | Build-time only (zero runtime)            | ✓       | ✗      | ✗        | ✓       |
 | CLI with audit / check / doctor           | ✓       | ✗      | ✗        | —       |
+| Token JSON → layered CSS                  | ✓       | ✗      | ✗        | —       |
+| P3 chroma expansion from OKLCH identity   | ✓       | ✗      | ✗        | —       |
+| Pair-based WCAG token contrast reports    | ✓       | ✗      | ✗        | —       |
 | WASM engine                               | ✓       | ✗      | ✗        | —       |
 | 4096-slot color cache                     | ✓       | ✗      | ✗        | —       |
 | Idempotent (no-op on modern CSS)          | ✓       | ✗      | ✗        | —       |
@@ -78,6 +83,12 @@ npx okcolor check --max-legacy-colors=10
 
 # Diagnose issues
 npx okcolor doctor ./src
+
+# Compile color tokens with P3 enhancement
+npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
+
+# Explain available chroma budget
+npx okcolor describe "#ff5a00" --gamut p3
 ```
 
 ### Programmatic
@@ -93,6 +104,28 @@ const result = transformCss(`
 const stats = auditCss(source)
 console.log(stats.legacy_count) // number of legacy colors
 ```
+
+### Token compiler
+
+```json
+{
+  "color.action.primary.bg": {
+    "$type": "color",
+    "$value": "#0055ff",
+    "okcolor": {
+      "text": "color.action.primary.fg",
+      "contrast": "wcag2-aa"
+    }
+  },
+  "color.action.primary.fg": "#ffffff"
+}
+```
+
+```bash
+npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
+```
+
+The generated CSS keeps sRGB fallback values first, then emits guarded Display P3 OKLCH overrides. The report audits declared foreground/background pairs separately for fallback and P3 output.
 
 ## Examples
 
@@ -155,8 +188,8 @@ Latest local benchmark run:
 | Audit, 100 KB CSS                | ~349 ops/sec                |
 | Whole-file transform vs color.js | ~2.1× faster in this run    |
 | Fast path, no legacy colors      | ~7,212 ops/sec on 50 KB CSS |
-| Optimized WASM payload           | ~222 KB                     |
-| npm package dry-run              | ~124 KB, 19 files           |
+| Optimized WASM payload           | ~225 KB                     |
+| npm package dry-run              | ~148 KB, 21 files           |
 
 Benchmarks are workload-sensitive. Run them on your machine:
 

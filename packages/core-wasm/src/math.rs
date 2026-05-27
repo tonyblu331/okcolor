@@ -181,7 +181,7 @@ fn srgb_linear_to_gamma(c: f64) -> f64 {
 // ── OKLCH → sRGB (inverse of linear_rgb_to_oklch) ─────────────────────
 
 /// OKLab → linear sRGB (inverse of LMS_TO_OKLAB × cube root × SRGB_TO_LMS).
-fn oklab_to_linear_srgb(l: f64, a: f64, b: f64) -> (f64, f64, f64) {
+pub fn oklab_to_linear_srgb(l: f64, a: f64, b: f64) -> (f64, f64, f64) {
     // OKLab → LMS cuberoot (inverse of LMS_TO_OKLAB)
     let l_ = l + 0.3963377774 * a + 0.2158037573 * b;
     let m_ = l - 0.1055613458 * a - 0.0638541728 * b;
