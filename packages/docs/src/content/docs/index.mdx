@@ -1,46 +1,129 @@
 ---
 title: okcolor
-description: Zero-config build-time color modernizer for Vite and Tailwind CSS
+description: Wide-gamut OKLCH compiler for web color tokens
 template: splash
 hero:
-  tagline: Your CSS colors, upgraded. Hex, RGB, HSL, and named colors become perceptually uniform OKLCH at build time. Zero runtime cost.
+  tagline: Preserve sRGB intent, model it in OKLCH, then safely spend the extra gamut of modern displays.
   image:
     file: ../../assets/hero.svg
   actions:
-    - text: Get Started
+    - text: Start compiling tokens
       link: /okcolor/getting-started/
       icon: right-arrow
       variant: primary
-    - text: View on GitHub
-      link: https://github.com/tonyblu331/okcolor
-      icon: external
+    - text: Read the CLI guide
+      link: /okcolor/getting-started/cli/
+      icon: open-book
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components'
 import TerminalDemo from '../../components/TerminalDemo.astro'
 
-## Why OKLCH?
+<div class="ok-lab-hero" aria-label="okcolor product summary">
+  <div class="ok-lab-copy">
+    <p class="ok-lab-kicker">Build-time color compiler</p>
+    <h2>Hex stays your source. OKLCH becomes the model. P3 becomes the budget.</h2>
+    <p class="ok-lab-lede">okcolor takes legacy sRGB tokens, preserves their perceptual identity, expands chroma only when a target gamut can hold it, and audits the result before it reaches production CSS.</p>
+    <div class="ok-lab-actions">
+      <a class="ok-action ok-action-primary" href="/okcolor/getting-started/">Install okcolor</a>
+      <a class="ok-action" href="https://github.com/tonyblu331/okcolor">View source</a>
+    </div>
+  </div>
+  <div class="ok-specimen" aria-label="Color compiler specimen">
+    <div class="ok-specimen-row ok-source">
+      <span>#ff5a00</span>
+      <small>sRGB source intent</small>
+    </div>
+    <div class="ok-specimen-row ok-identity">
+      <span>oklch(0.68 0.21 42)</span>
+      <small>faithful identity</small>
+    </div>
+    <div class="ok-specimen-row ok-expand">
+      <span>oklch(0.66 0.24 42)</span>
+      <small>P3 premium grade</small>
+    </div>
+    <div class="ok-specimen-meter">
+      <i class="tick-source"></i>
+      <i class="tick-target"></i>
+      <b></b>
+    </div>
+  </div>
+</div>
 
-<CardGrid stagger>
-  <Card title="Perceptually Uniform" icon="open-book">
-    Equal steps in OKLCH lightness look equally different to the human eye. `oklch(0.5 0.2 180)` is visually halfway between black and white — unlike HSL where `lightness: 50%` varies wildly by hue.
-  </Card>
-  <Card title="Wide Gamut Ready" icon="seti:json">
-    OKLCH covers every color the human eye can see. As displays move from sRGB to Display P3 and Rec. 2020, your design system is already there.
-  </Card>
-  <Card title="Verified Math" icon="open-book">
-    Every conversion uses the exact W3C CSS Color Module Level 4 matrices. Verified against Culori — the reference implementation — with sub-5e-5 error across the entire sRGB gamut.
-  </Card>
-  <Card title="Zero Runtime Overhead" icon="rocket">
-    All processing happens at build time in Rust via WASM. Your users download the result, never the engine. The current optimized WASM payload is about **222 KB**, and the npm package dry-run is about **124 KB**.
-  </Card>
-  <Card title="Framework-aware Scanner" icon="seti:config">
-    Handles plain CSS, Vite virtual SFC style modules, Vue/Svelte/Astro `<style>` blocks, symlinked CSS trees, CSS escapes, nested selectors, `@supports`, `@container`, and `@property` color registrations.
-  </Card>
-</CardGrid>
+<div class="compiler-flow" aria-label="Compiler mental model">
+  <div><strong>hex</strong><span>portable source</span></div>
+  <div><strong>OKLCH</strong><span>perceptual identity</span></div>
+  <div><strong>gamut</strong><span>available budget</span></div>
+  <div><strong>audit</strong><span>release gate</span></div>
+</div>
 
-## See it in action
+## The useful middle between translation and saturation
+
+Converting `#ff5a00` to `oklch(...)` is only a translation. Blindly making it louder is a brand risk. okcolor sits in the middle: preserve lightness and hue, find the chroma ceiling for Display P3, choose a controlled amount, then prove the fallback and enhancement are valid.
+
+<section class="ok-bento" aria-label="okcolor capabilities">
+  <article class="ok-bento-card ok-bento-large">
+    <span>01</span>
+    <h3>Faithful conversion first</h3>
+    <p>Hex, RGB, HSL, HWB, named colors, and structured token values normalize through the Rust/WASM engine before any art direction is applied.</p>
+  </article>
+  <article class="ok-bento-card">
+    <span>02</span>
+    <h3>Display P3 expansion</h3>
+    <p>Increase chroma toward the target gamut boundary while preserving OKLCH lightness and hue.</p>
+  </article>
+  <article class="ok-bento-card">
+    <span>03</span>
+    <h3>Recipes with taste</h3>
+    <p>Use vivid, premium, deeper, muted, softer, warmer, and cooler without pretending max chroma is always better.</p>
+  </article>
+  <article class="ok-bento-card ok-bento-wide">
+    <span>04</span>
+    <h3>Fallbacks stay first-class</h3>
+    <p>Generated CSS starts with sRGB custom properties, then layers OKLCH diagnostics and P3 overrides behind `@supports` and `color-gamut`.</p>
+  </article>
+</section>
+
+## Ship tokens, not vibes
+
+```bash
+okcolor expand tokens.json --gamut p3 --amount 0.75 --audit
+```
+
+<div class="token-output" aria-label="Fallback first CSS output example">
+  <pre>{`:root {
+  --brand-orange: #ff5a00;
+}
+
+@media (color-gamut: p3) {
+  @supports (color: oklch(0.5 0.1 40)) {
+    :root {
+      --brand-orange: oklch(0.66 0.24 42);
+    }
+  }
+}`}</pre>
+</div>
+
+## Audit what actually ships
+
+<div class="audit-strip" aria-label="Audit guarantees">
+  <div>
+    <strong>syntaxValid</strong>
+    <span>CSS accepts the value.</span>
+  </div>
+  <div>
+    <strong>inTargetGamut</strong>
+    <span>The chosen display space can represent it.</span>
+  </div>
+  <div>
+    <strong>contrastPassed</strong>
+    <span>Declared foreground/background pairs still pass WCAG 2.x gates.</span>
+  </div>
+</div>
+
+## Existing scanner still matters
+
+okcolor still modernizes legacy CSS in Vite and CLI workflows. The token compiler is an additional layer, not a product pivot that breaks current users.
 
 <TerminalDemo scenario="audit" />
 
@@ -57,57 +140,33 @@ import TerminalDemo from '../../components/TerminalDemo.astro'
   <tbody>
     <tr>
       <td class="fmt-label">Hex</td>
-      <td>
-        <code>#ff0000</code>
-      </td>
-      <td>
-        <code>oklch(62.8% 0.25768 29.23)</code>
-      </td>
+      <td><code>#ff0000</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
     </tr>
     <tr>
       <td class="fmt-label">RGB</td>
-      <td>
-        <code>rgb(255, 0, 0)</code>
-      </td>
-      <td>
-        <code>oklch(62.8% 0.25768 29.23)</code>
-      </td>
+      <td><code>rgb(255, 0, 0)</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
     </tr>
     <tr>
       <td class="fmt-label">HSL</td>
-      <td>
-        <code>hsl(0, 100%, 50%)</code>
-      </td>
-      <td>
-        <code>oklch(62.8% 0.25768 29.23)</code>
-      </td>
+      <td><code>hsl(0, 100%, 50%)</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
     </tr>
     <tr>
       <td class="fmt-label">HWB</td>
-      <td>
-        <code>hwb(0 0% 0%)</code>
-      </td>
-      <td>
-        <code>oklch(62.8% 0.25768 29.23)</code>
-      </td>
+      <td><code>hwb(0 0% 0%)</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
     </tr>
     <tr>
       <td class="fmt-label">Named</td>
-      <td>
-        <code>red</code>
-      </td>
-      <td>
-        <code>oklch(62.8% 0.25768 29.23)</code>
-      </td>
+      <td><code>red</code></td>
+      <td><code>oklch(62.8% 0.25768 29.23)</code></td>
     </tr>
     <tr>
       <td class="fmt-label">Gradients</td>
-      <td>
-        <code>linear-gradient(#f00, #00f)</code>
-      </td>
-      <td>
-        <code>linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05))</code>
-      </td>
+      <td><code>linear-gradient(#f00, #00f)</code></td>
+      <td><code>linear-gradient(in oklch, oklch(62.8% 0.25768 29.23), oklch(45.2% 0.31321 264.05))</code></td>
     </tr>
   </tbody>
 </table>
@@ -115,8 +174,6 @@ import TerminalDemo from '../../components/TerminalDemo.astro'
 Modern CSS functions pass through untouched: `oklch()`, `oklab()`, `lab()`, `lch()`, `color-mix()`, `light-dark()`, relative colors like `rgb(from red r g b)`, `var()`, and `calc()`.
 
 ## Scanner behavior
-
-okcolor is conservative by design: it converts legacy colors only where CSS grammar says a color is plausible.
 
 Converted:
 
@@ -136,45 +193,6 @@ Preserved:
 - Identifier-only properties such as `animation-name`, `font-family`, `grid-area`, `container`, `scroll-timeline`, `counter-reset`, and `view-transition-name`
 - URLs, strings, comments, modern colors, and ignored lines
 
-## Real-world demo
-
-<div class="playground-grid">
-  <div class="playground-pane playground-pane-input">
-    <span class="playground-pane-label">Input</span>
-    <pre>{`.hero {
-  color: #ff0000;
-  background: linear-gradient(#00ff00, #0000ff);
-}
-.btn {
-  border: 2px solid hsl(145, 63%, 49%);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
-}
-.badge {
-  background: rebeccapurple;
-  color: white;
-}`}</pre>
-  </div>
-  <div class="playground-pane playground-pane-output">
-    <span class="playground-pane-label">Output</span>
-    <pre>{`.hero {
-  color: oklch(62.8% 0.25768 29.23);
-  background: linear-gradient(in oklch, oklch(86.64% 0.29483 142.5), oklch(45.2% 0.31321 264.05));
-}
-.btn {
-  border: 2px solid oklch(67.72% 0.19 152.54);
-  box-shadow: 0 2px 4px oklch(0% 0 0 / 0.2);
-}
-.badge {
-  background: oklch(38.31% 0.14883 299.97);
-  color: oklch(100% 0 0);
-}`}</pre>
-  </div>
-</div>
-
-Running the conversion a second time produces the exact same output. **The engine is idempotent.**
-
 <div class="callout-card">
-  <strong>Escape hatch:</strong> Add <code>/* oklch-ignore */</code> on any line to preserve the original color
-  unchanged. Custom ignore comments are internally shielded with a sentinel, so unrelated <code>oklch-ignore</code> text
-  in strings or content is not rewritten.
+  <strong>Escape hatch:</strong> Add <code>/* oklch-ignore */</code> on any line to preserve the original color unchanged. Custom ignore comments are shielded with a sentinel, so unrelated <code>oklch-ignore</code> text in strings or content is not rewritten.
 </div>
