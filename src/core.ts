@@ -10,7 +10,9 @@ export {
   fitGamut,
   formatDescription,
   gradeColor,
+  isRecipeName,
   parseColor,
+  RECIPE_NAMES,
   tokenNameToCssVar,
   writeCompileResult,
 } from './token-engine.js'

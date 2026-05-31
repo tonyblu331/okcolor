@@ -18,7 +18,7 @@ export type {
   TransformResult,
   TransformSkippedReason,
 } from './token/types.js'
-export { DEFAULT_AMOUNT, NEUTRAL_CHROMA_THRESHOLD } from './token/types.js'
+export { DEFAULT_AMOUNT, isRecipeName, NEUTRAL_CHROMA_THRESHOLD, RECIPE_NAMES } from './token/types.js'
 export { formatOklch, parseColor, parseOklchCss, tokenNameToCssVar } from './token/color.js'
 export { wcagContrastRatio } from './token/contrast.js'
 export {

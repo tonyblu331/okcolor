@@ -143,6 +143,55 @@ describe('token color engine', () => {
     expect(p3?.delta.chroma).toBeGreaterThan(0)
   })
 
+  it('supports built-in token recipes without custom recipe aliases', () => {
+    const result = compileTokenObject({
+      'brand.orange': {
+        $type: 'color',
+        $value: '#ff5a00',
+        okcolor: { recipe: 'premium' },
+      },
+    })
+
+    expect(result.report.tokens[0]?.targets.p3).toMatchObject({
+      strategy: 'grade',
+      recipe: 'premium',
+    })
+  })
+
+  it('fails loudly for unknown token recipes without a custom recipe definition', () => {
+    expect(() =>
+      compileTokenObject({
+        'brand.orange': {
+          $type: 'color',
+          $value: '#ff5a00',
+          okcolor: { recipe: 'expensive' },
+        },
+      }),
+    ).toThrow(/Unknown okcolor recipe "expensive" for token "brand\.orange"/)
+  })
+
+  it('fails loudly for invalid custom recipe targets', () => {
+    expect(() =>
+      compileTokenObject(
+        {
+          'brand.orange': {
+            $type: 'color',
+            $value: '#ff5a00',
+            okcolor: { recipe: 'brandPremium' },
+          },
+        },
+        {
+          recipes: {
+            brandPremium: {
+              strategy: 'grade',
+              recipe: 'expensive',
+            },
+          },
+        },
+      ),
+    ).toThrow(/Unsupported okcolor recipe "expensive" for token "brand\.orange"/)
+  })
+
   it('reports why neutral expansion was skipped', () => {
     const result = compileTokenObject({ 'brand.gray': '#808080' })
     const p3 = result.report.tokens[0]?.targets.p3

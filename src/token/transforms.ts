@@ -1,7 +1,7 @@
 import { expandOklchChroma, fitOklchGamut, oklchChromaMax, oklchInGamut } from '../wasm.js'
 import { clamp01, formatOklch, normalizeHue, parseColor, round, roundOklch } from './color.js'
 import type { Gamut, GradeOptions, Oklch, ParsedColor, RecipeName, Strategy, TargetOptions, TransformResult } from './types.js'
-import { DEFAULT_AMOUNT, NEUTRAL_CHROMA_THRESHOLD } from './types.js'
+import { DEFAULT_AMOUNT, isRecipeName, NEUTRAL_CHROMA_THRESHOLD, RECIPE_NAMES } from './types.js'
 
 export function findChromaMax(l: number, h: number, gamut: Gamut = 'p3'): number {
   return required(oklchChromaMax(l, h, toWasmGamut(gamut)), `Unsupported gamut: ${gamut}`)
@@ -50,6 +50,7 @@ export function gradeColor(input: ParsedColor | string, options: GradeOptions): 
   const source = toParsedColor(input)
   const gamut = options.gamut ?? 'p3'
   const recipe = options.recipe
+  assertRecipeName(recipe)
   if (recipe === 'literal')
     return makeTransformResult(source, source.oklch, gamut, findChromaMax(source.oklch.l, source.oklch.h, gamut), 0, false, {
       strategy: 'convert',
@@ -199,6 +200,12 @@ function recipeDefaultAmount(recipe: RecipeName): number {
   if (recipe === 'premium') return 0.6
   if (recipe === 'deeper') return 0.7
   return DEFAULT_AMOUNT
+}
+
+function assertRecipeName(recipe: string): asserts recipe is RecipeName {
+  if (!isRecipeName(recipe)) {
+    throw new Error(`Unsupported recipe: ${recipe}. Use: ${RECIPE_NAMES.join(', ')}`)
+  }
 }
 
 function rotateTowardWarm(hue: number): number {

@@ -2,7 +2,12 @@ export type Gamut = 'srgb' | 'p3'
 export type AuditFailureKind = 'invalid-css' | 'out-of-gamut' | 'wcag2-regression'
 export type Strategy = 'convert' | 'expand' | 'grade' | 'fit'
 export type TokenFormat = 'hex' | 'oklch'
-export type RecipeName = 'literal' | 'vivid' | 'deeper' | 'premium' | 'muted' | 'softer' | 'warmer' | 'cooler'
+export const RECIPE_NAMES = ['literal', 'vivid', 'deeper', 'premium', 'muted', 'softer', 'warmer', 'cooler'] as const
+export type RecipeName = (typeof RECIPE_NAMES)[number]
+
+export function isRecipeName(value: unknown): value is RecipeName {
+  return typeof value === 'string' && (RECIPE_NAMES as readonly string[]).includes(value)
+}
 
 export interface Oklch {
   l: number

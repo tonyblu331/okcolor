@@ -15,7 +15,7 @@ import type {
   RecipeName,
   TransformResult,
 } from './types.js'
-import { DEFAULT_AMOUNT } from './types.js'
+import { DEFAULT_AMOUNT, isRecipeName, RECIPE_NAMES } from './types.js'
 
 export async function compileTokens(inputPath: string, options: OkColorCompileOptions = {}): Promise<CompileResult> {
   const raw = JSON.parse(await readFile(inputPath, 'utf-8')) as Record<string, unknown>
@@ -51,7 +51,7 @@ export function compileTokenObject(
 
     const p3Config = targets.p3
     if (p3Config) {
-      const transform = transformForConfig(source, p3Config, extractTokenRecipe(token), options)
+      const transform = transformForConfig(name, source, p3Config, extractTokenRecipe(token), options)
       p3Lines.push(`  ${cssVar}: ${transform.css};`)
       targetReports.p3 = toTargetReport(transform)
       colorsByToken[name].p3 = transform.oklch
@@ -179,20 +179,44 @@ export async function writeCompileResult(
 }
 
 function transformForConfig(
+  tokenName: string,
   source: ParsedColor,
   config: OkColorTargetConfig,
-  tokenRecipe: RecipeName | undefined,
+  tokenRecipe: string | undefined,
   options: OkColorCompileOptions,
 ): TransformResult {
-  const recipeConfig = tokenRecipe ? options.recipes?.[tokenRecipe] : undefined
+  const recipeConfig = resolveTokenRecipeConfig(tokenName, tokenRecipe, options)
   const merged = { ...config, ...recipeConfig }
-  const strategy = merged.strategy ?? (tokenRecipe && tokenRecipe !== 'literal' ? 'grade' : 'expand')
-  const recipe = (merged.recipe ?? merged.intent ?? tokenRecipe) as RecipeName | undefined
+  const strategy = merged.strategy ?? 'expand'
+  const recipe = resolveConfiguredRecipe(merged.recipe ?? merged.intent, tokenName)
 
   if (strategy === 'convert') return toLiteralTransform(source, merged)
   if (strategy === 'fit') return fitGamut(source, merged)
   if (strategy === 'grade') return gradeColor(source, { ...merged, recipe: recipe ?? 'premium' })
   return expandChroma(source, merged)
+}
+
+function resolveTokenRecipeConfig(
+  tokenName: string,
+  tokenRecipe: string | undefined,
+  options: OkColorCompileOptions,
+): Partial<OkColorTargetConfig & { intent?: RecipeName; recipe?: RecipeName; lightness?: number }> | undefined {
+  if (!tokenRecipe) return undefined
+  const configured = options.recipes?.[tokenRecipe]
+  if (configured) return configured
+  if (!isRecipeName(tokenRecipe)) {
+    throw new Error(
+      `Unknown okcolor recipe "${tokenRecipe}" for token "${tokenName}". Define options.recipes["${tokenRecipe}"] or use: ${RECIPE_NAMES.join(', ')}`,
+    )
+  }
+  if (tokenRecipe === 'literal') return { strategy: 'convert', recipe: tokenRecipe }
+  return { strategy: 'grade', recipe: tokenRecipe }
+}
+
+function resolveConfiguredRecipe(value: unknown, tokenName: string): RecipeName | undefined {
+  if (value == null) return undefined
+  if (isRecipeName(value)) return value
+  throw new Error(`Unsupported okcolor recipe "${String(value)}" for token "${tokenName}". Use: ${RECIPE_NAMES.join(', ')}`)
 }
 
 function toLiteralTransform(source: ParsedColor, config: OkColorTargetConfig): TransformResult {
@@ -294,9 +318,9 @@ function colorSpaceComponentsToRgb(value: Record<string, unknown>): string | und
   return `rgb(${Math.round(clamp01(r) * 255)} ${Math.round(clamp01(g) * 255)} ${Math.round(clamp01(b) * 255)})`
 }
 
-function extractTokenRecipe(token: unknown): RecipeName | undefined {
+function extractTokenRecipe(token: unknown): string | undefined {
   if (!isRecord(token) || !isRecord(token.okcolor) || typeof token.okcolor.recipe !== 'string') return undefined
-  return token.okcolor.recipe as RecipeName
+  return token.okcolor.recipe
 }
 
 function toDesignToken(original: unknown, source: ParsedColor): unknown {

@@ -12,7 +12,9 @@ import {
   fitGamut,
   formatDescription,
   gradeColor,
+  isRecipeName,
   parseColor,
+  RECIPE_NAMES,
 } from './token-engine.js'
 import type { ScanResult } from './types.js'
 import type { AuditFailureKind, Gamut, RecipeName, Strategy } from './token-engine.js'
@@ -271,8 +273,8 @@ function validateGamut(gamut: Gamut | undefined, fallback: Gamut): Gamut {
 
 function validateRecipe(recipe: RecipeName | undefined): RecipeName {
   const resolved = recipe ?? 'premium'
-  if (!['literal', 'vivid', 'deeper', 'premium', 'muted', 'softer', 'warmer', 'cooler'].includes(resolved)) {
-    throw new Error(`Unsupported recipe: ${resolved}`)
+  if (!isRecipeName(resolved)) {
+    throw new Error(`Unsupported recipe: ${resolved}. Use: ${RECIPE_NAMES.join(', ')}`)
   }
   return resolved
 }
