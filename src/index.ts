@@ -27,6 +27,8 @@ export type {
   ParsedColor,
   RecipeName,
   TargetOptions,
+  TransformDelta,
   TransformResult,
+  TransformSkippedReason,
 } from './token-engine.js'
 export type { OkColorOptions, ScanResult } from './types.js'

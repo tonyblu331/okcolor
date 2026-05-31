@@ -10,6 +10,14 @@ export interface Oklch {
   h: number
 }
 
+export interface TransformDelta {
+  lightness: number
+  chroma: number
+  hue: number
+}
+
+export type TransformSkippedReason = 'chroma-below-threshold'
+
 export interface ParsedColor {
   input: string
   hex: string
@@ -35,10 +43,14 @@ export interface TransformResult {
   cMax: number
   amount: number
   gamut: Gamut
+  strategy: Strategy
+  recipe?: RecipeName
+  delta: TransformDelta
   inGamut: boolean
   syntaxValid: boolean
   displaySafe: boolean
   neutralSkipped?: boolean
+  skippedReason?: TransformSkippedReason
 }
 
 export interface OkColorTargetConfig {
@@ -83,12 +95,18 @@ export interface CompiledTokenReport {
   targets: Record<
     string,
     {
+      gamut: Gamut
+      strategy: Strategy
+      recipe?: RecipeName
+      delta: TransformDelta
       inGamut: boolean
       syntaxValid: boolean
       displaySafe: boolean
       css: string
       cMax?: number
       amount?: number
+      neutralSkipped?: boolean
+      skippedReason?: TransformSkippedReason
     }
   >
   contrast: {

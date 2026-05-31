@@ -101,6 +101,61 @@ describe('okcolor CLI E2E', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('okcolor audit failed')
   })
+
+  it('labels token audit JSON output with token contrast mode', async () => {
+    const tokens = join(dir, 'tokens.json')
+    await writeFile(
+      tokens,
+      JSON.stringify({
+        surface: {
+          $type: 'color',
+          $value: '#111111',
+          okcolor: { text: 'foreground', contrast: 'wcag2-aa' },
+        },
+        foreground: '#ffffff',
+      }),
+    )
+
+    const result = await runOkcolor(['audit', tokens, '--mode', 'tokens', '--format', 'json'])
+    const report = JSON.parse(result.stdout) as { mode: string; summary: { contrastPassed: boolean } }
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(report).toMatchObject({ mode: 'token-contrast', summary: { contrastPassed: true } })
+  })
+
+  it('labels CSS audit JSON output with CSS debt mode', async () => {
+    await writeFile(join(dir, 'style.css'), '.button { color: #ff0000; background: red; }')
+
+    const result = await runOkcolor(['audit', dir, '--mode', 'css', '--format', 'json'])
+    const report = JSON.parse(result.stdout) as { mode: string; totals: { legacyCount: number } }
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(report).toMatchObject({ mode: 'css-debt', totals: { legacyCount: 2 } })
+  })
+
+  it('prints single-color grade metadata as JSON when requested', async () => {
+    const result = await runOkcolor(['grade', '#ff5a00', '--recipe', 'premium', '--format', 'json'])
+    const report = JSON.parse(result.stdout) as {
+      css: string
+      gamut: string
+      strategy: string
+      recipe: string
+      delta: { lightness: number; chroma: number; hue: number }
+    }
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(report).toMatchObject({
+      css: expect.stringContaining('oklch('),
+      gamut: 'p3',
+      strategy: 'grade',
+      recipe: 'premium',
+    })
+    expect(report.delta.lightness).toBeLessThan(0)
+    expect(report.delta.chroma).toBeGreaterThan(0)
+  })
 })
 
 describe('okcolor Vite plugin E2E', () => {

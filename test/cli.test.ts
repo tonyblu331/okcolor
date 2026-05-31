@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { auditCss, colorToOklch, convertColor } from '../src/wasm.js'
-import { findCssFiles, parseArgs } from '../src/cli.js'
+import { findCssFiles, parseArgs, resolveAuditMode } from '../src/cli.js'
 import { resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, symlinkSync } from 'node:fs'
@@ -100,6 +100,26 @@ describe('CLI token compiler argument parsing', () => {
       command: 'audit',
       failOn: ['invalid-css', 'wcag2-regression'],
     })
+  })
+
+  it('parses explicit audit modes', () => {
+    expect(parseArgs(['node', 'okcolor', 'audit', 'tokens.json', '--mode', 'tokens'])).toMatchObject({
+      command: 'audit',
+      path: 'tokens.json',
+      auditMode: 'tokens',
+    })
+    expect(parseArgs(['node', 'okcolor', 'audit', 'src', '--mode=css'])).toMatchObject({
+      command: 'audit',
+      path: 'src',
+      auditMode: 'css',
+    })
+  })
+
+  it('classifies audit targets and rejects explicit mode mismatches', () => {
+    expect(resolveAuditMode('tokens.json')).toBe('tokens')
+    expect(resolveAuditMode('src')).toBe('css')
+    expect(() => resolveAuditMode('tokens.json', 'css')).toThrow(/CSS audit mode expects/)
+    expect(() => resolveAuditMode('src', 'tokens')).toThrow(/Token audit mode expects/)
   })
 
   it('rejects unsupported new command flags later at execution boundary', () => {

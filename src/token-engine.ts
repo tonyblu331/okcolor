@@ -13,8 +13,10 @@ export type {
   RecipeName,
   Strategy,
   TargetOptions,
+  TransformDelta,
   TokenFormat,
   TransformResult,
+  TransformSkippedReason,
 } from './token/types.js'
 export { DEFAULT_AMOUNT, NEUTRAL_CHROMA_THRESHOLD } from './token/types.js'
 export { formatOklch, parseColor, parseOklchCss, tokenNameToCssVar } from './token/color.js'

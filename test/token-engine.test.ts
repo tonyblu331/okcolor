@@ -5,6 +5,7 @@ import { APCAcontrast } from 'apca-w3'
 import { describe, expect, it } from 'vitest'
 import {
   assertNoBlockingFailures,
+  compileTokenObject,
   collectBlockingFailures,
   compileTokens,
   describeColor,
@@ -91,10 +92,66 @@ describe('token color engine', () => {
       expect(result.css).toContain('@media (color-gamut: p3)')
       expect(result.css).toContain('--brand-orange: oklch(')
       expect(result.report.tokens).toHaveLength(2)
+      const orange = result.report.tokens.find((token) => token.token === 'brand.orange')
+      expect(orange?.targets.srgb).toMatchObject({
+        gamut: 'srgb',
+        strategy: 'convert',
+        delta: { lightness: 0, chroma: 0, hue: 0 },
+        css: '#ff5a00',
+      })
+      expect(orange?.targets.p3).toMatchObject({
+        gamut: 'p3',
+        strategy: 'expand',
+      })
+      expect(orange?.targets.p3.delta.lightness).toBe(0)
+      expect(orange?.targets.p3.delta.hue).toBe(0)
+      expect(orange?.targets.p3.delta.chroma).toBeGreaterThanOrEqual(0)
       expect(result.designTokens['brand.orange'].$value).toMatchObject({ colorSpace: 'srgb' })
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+
+  it('reports grade recipe deltas for art-directed token recipes', () => {
+    const result = compileTokenObject(
+      {
+        'brand.orange': {
+          $type: 'color',
+          $value: '#ff5a00',
+          okcolor: { recipe: 'p3Premium' },
+        },
+      },
+      {
+        recipes: {
+          p3Premium: {
+            strategy: 'grade',
+            recipe: 'premium',
+            gamut: 'p3',
+            amount: 0.6,
+          },
+        },
+      },
+    )
+
+    const p3 = result.report.tokens[0]?.targets.p3
+    expect(p3).toMatchObject({
+      gamut: 'p3',
+      strategy: 'grade',
+      recipe: 'premium',
+    })
+    expect(p3?.delta.lightness).toBeLessThan(0)
+    expect(p3?.delta.chroma).toBeGreaterThan(0)
+  })
+
+  it('reports why neutral expansion was skipped', () => {
+    const result = compileTokenObject({ 'brand.gray': '#808080' })
+    const p3 = result.report.tokens[0]?.targets.p3
+    expect(p3).toMatchObject({
+      strategy: 'expand',
+      neutralSkipped: true,
+      skippedReason: 'chroma-below-threshold',
+    })
+    expect(p3?.delta.chroma).toBe(0)
   })
 
   it('preserves structured token alpha and skips malformed color component tokens', async () => {

@@ -29,8 +29,8 @@ function showHelp(): void {
   okcolor — build-time color modernizer
 
   Usage:
-    okcolor audit <path> [--format json]
-      Scan files for legacy colors and show statistics.
+    okcolor audit <css-dir|tokens.json> [--mode css|tokens] [--format json]
+      Audit CSS color debt or token gamut/contrast safety.
 
     okcolor check <path> [--max-legacy-colors N] [--allow-named]
       CI gate — exit 1 if legacy colors exceed threshold.
@@ -42,13 +42,13 @@ function showHelp(): void {
       Convert a single color between spaces.
       Supported spaces: hex, rgb, hsl, hwb, oklch
 
-    okcolor expand <color|tokens.json> [--gamut p3] [--amount 0.75] [--out <file>]
+    okcolor expand <color|tokens.json> [--gamut p3] [--amount 0.75] [--format json] [--out <file>]
       Create controlled wide-gamut OKLCH enhancement.
 
-    okcolor grade <color|tokens.json> [--recipe premium] [--gamut p3] [--out <file>]
+    okcolor grade <color|tokens.json> [--recipe premium] [--gamut p3] [--format json] [--out <file>]
       Apply art-directed OKLCH transform.
 
-    okcolor fit <color|tokens.json> [--gamut srgb] [--out <file>]
+    okcolor fit <color|tokens.json> [--gamut srgb] [--format json] [--out <file>]
       Fit color into a target gamut by reducing chroma.
 
     okcolor describe <color> [--gamut p3]
@@ -67,6 +67,7 @@ interface CliArgs {
   command: 'help' | 'audit' | 'check' | 'doctor' | 'convert' | 'expand' | 'grade' | 'fit' | 'describe'
   path?: string
   format: 'pretty' | 'json'
+  auditMode?: AuditMode
   maxLegacyColors?: number
   allowNamed?: boolean
   color?: string
@@ -80,6 +81,8 @@ interface CliArgs {
   failOn?: AuditFailureKind[]
   exitCode?: number
 }
+
+export type AuditMode = 'css' | 'tokens'
 
 function die(msg: string): CliArgs {
   console.error(msg)
@@ -100,6 +103,7 @@ export function parseArgs(argv: string[]): CliArgs {
 
   let path: string | undefined
   let format: 'pretty' | 'json' = 'pretty'
+  let auditMode: AuditMode | undefined
   let maxLegacyColors: number | undefined
   let allowNamed = false
   let color: string | undefined
@@ -120,7 +124,19 @@ export function parseArgs(argv: string[]): CliArgs {
       format = 'json'
       i++
     } else if (arg === '--format=json') format = 'json'
-    else if (arg === '--to' && peek) {
+    else if (arg === '--mode' && peek) {
+      if (command !== 'audit') return die(`--mode is only supported by audit`)
+      const mode = parseAuditMode(peek)
+      if (!mode) return die(`Invalid audit mode: ${peek}. Use: css, tokens`)
+      auditMode = mode
+      i++
+    } else if (arg.startsWith('--mode=')) {
+      if (command !== 'audit') return die(`--mode is only supported by audit`)
+      const value = arg.slice(7)
+      const mode = parseAuditMode(value)
+      if (!mode) return die(`Invalid audit mode: ${value}. Use: css, tokens`)
+      auditMode = mode
+    } else if (arg === '--to' && peek) {
       toSpace = peek
       i++
     } else if (arg.startsWith('--to=')) toSpace = arg.slice(5)
@@ -180,6 +196,7 @@ export function parseArgs(argv: string[]): CliArgs {
     command,
     path,
     format,
+    auditMode,
     maxLegacyColors,
     allowNamed,
     color,
@@ -192,6 +209,23 @@ export function parseArgs(argv: string[]): CliArgs {
     contrast,
     failOn,
   }
+}
+
+function parseAuditMode(value: string): AuditMode | undefined {
+  if (value === 'css' || value === 'tokens') return value
+  return undefined
+}
+
+export function resolveAuditMode(path: string, requested?: AuditMode): AuditMode {
+  const inferred: AuditMode = isJsonPath(path) ? 'tokens' : 'css'
+  if (!requested) return inferred
+  if (requested === 'tokens' && !isJsonPath(path)) {
+    throw new Error(`Token audit mode expects a .json token file: ${path}`)
+  }
+  if (requested === 'css' && isJsonPath(path)) {
+    throw new Error(`CSS audit mode expects a CSS directory, not token JSON: ${path}`)
+  }
+  return requested
 }
 
 function isColorCommand(command: CliArgs['command']): boolean {
@@ -349,11 +383,19 @@ async function processFiles<T>(
 }
 
 async function runAudit(args: CliArgs): Promise<number> {
-  if (isJsonPath(args.path)) {
-    const result = await compileTokens(resolve(args.path), {
+  let auditMode: AuditMode
+  try {
+    auditMode = resolveAuditMode(args.path!, args.auditMode)
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e))
+    return 1
+  }
+
+  if (auditMode === 'tokens') {
+    const result = await compileTokens(resolve(args.path!), {
       audit: { contrast: args.contrast, failOn: args.failOn },
     })
-    const json = JSON.stringify(result.report, null, 2)
+    const json = JSON.stringify({ mode: 'token-contrast', ...result.report }, null, 2)
     if (args.report) await writeTextFile(resolve(args.report), json)
     try {
       assertNoBlockingFailures(result, args.failOn)
@@ -391,6 +433,7 @@ async function runAudit(args: CliArgs): Promise<number> {
     console.log(
       JSON.stringify(
         {
+          mode: 'css-debt',
           totals: { legacyCount, hexCount, rgbCount, hslCount, hwbCount, namedCount, gradientCount },
           files: fileStats,
         },
@@ -401,7 +444,7 @@ async function runAudit(args: CliArgs): Promise<number> {
     return 0
   }
 
-  console.log('\n  📊  okcolor audit\n')
+  console.log('\n  📊  okcolor CSS audit\n')
   console.log(`  Scanned ${files.length} file(s)`)
   console.log(`  ──────────────────────────────`)
   console.log(`  Total legacy colors : ${legacyCount}`)
@@ -598,7 +641,7 @@ async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promi
         : strategy === 'fit'
           ? fitGamut(source, { gamut })
           : gradeColor(source, { gamut, amount: args.amount, recipe: validateRecipe(args.recipe) })
-    console.log(result.css)
+    console.log(args.format === 'json' ? JSON.stringify(result, null, 2) : result.css)
     return 0
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e))
@@ -631,7 +674,8 @@ async function runDescribe(args: CliArgs): Promise<number> {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv)
   if (args.exitCode != null) {
-    process.exit(args.exitCode)
+    process.exitCode = args.exitCode
+    return
   }
 
   let exitCode = 0
@@ -639,12 +683,13 @@ async function main(): Promise<void> {
   switch (args.command) {
     case 'help':
       showHelp()
-      process.exit(0)
+      return
     case 'audit':
       if (!args.path) {
         console.error('Missing path argument')
         showHelp()
-        process.exit(1)
+        process.exitCode = 1
+        return
       }
       exitCode = await runAudit(args)
       break
@@ -652,7 +697,8 @@ async function main(): Promise<void> {
       if (!args.path) {
         console.error('Missing path argument')
         showHelp()
-        process.exit(1)
+        process.exitCode = 1
+        return
       }
       exitCode = await runCheck(args)
       break
@@ -660,7 +706,8 @@ async function main(): Promise<void> {
       if (!args.path) {
         console.error('Missing path argument')
         showHelp()
-        process.exit(1)
+        process.exitCode = 1
+        return
       }
       exitCode = await runDoctor(args)
       break
@@ -668,7 +715,8 @@ async function main(): Promise<void> {
       if (!args.color && !args.path) {
         console.error('Missing color or token file argument')
         showHelp()
-        process.exit(1)
+        process.exitCode = 1
+        return
       }
       exitCode = await runConvert(args)
       break
@@ -687,10 +735,11 @@ async function main(): Promise<void> {
     default:
       console.error(`Unknown command: ${args.command}`)
       showHelp()
-      process.exit(1)
+      process.exitCode = 1
+      return
   }
 
-  process.exit(exitCode)
+  process.exitCode = exitCode
 }
 
 function isCliEntryPoint(): boolean {
@@ -706,6 +755,6 @@ function isCliEntryPoint(): boolean {
 if (isCliEntryPoint()) {
   main().catch((err) => {
     console.error(err instanceof Error ? (err.stack ?? err.message) : String(err))
-    process.exit(1)
+    process.exitCode = 1
   })
 }

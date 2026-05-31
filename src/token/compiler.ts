@@ -45,7 +45,7 @@ export function compileTokenObject(
     literalLines.push(`  ${cssVar}-oklch: ${formatOklch(source.oklch)};`)
 
     const targetReports: CompiledTokenReport['targets'] = {
-      srgb: { inGamut: true, syntaxValid: true, displaySafe: true, css: source.hex },
+      srgb: toFallbackTargetReport(source),
     }
     colorsByToken[name] = { srgb: source.oklch }
 
@@ -203,6 +203,8 @@ function toLiteralTransform(source: ParsedColor, config: OkColorTargetConfig): T
     cMax: source.oklch.c,
     amount: 0,
     gamut: config.gamut ?? 'srgb',
+    strategy: 'convert',
+    delta: zeroDelta(),
     inGamut: true,
     syntaxValid: true,
     displaySafe: true,
@@ -211,13 +213,37 @@ function toLiteralTransform(source: ParsedColor, config: OkColorTargetConfig): T
 
 function toTargetReport(transform: TransformResult): CompiledTokenReport['targets'][string] {
   return {
+    gamut: transform.gamut,
+    strategy: transform.strategy,
+    recipe: transform.recipe,
+    delta: transform.delta,
     inGamut: transform.inGamut,
     syntaxValid: transform.syntaxValid,
     displaySafe: transform.displaySafe,
     css: transform.css,
     cMax: transform.cMax,
     amount: transform.amount,
+    neutralSkipped: transform.neutralSkipped,
+    skippedReason: transform.skippedReason,
   }
+}
+
+function toFallbackTargetReport(source: ParsedColor): CompiledTokenReport['targets'][string] {
+  return {
+    gamut: 'srgb',
+    strategy: 'convert',
+    delta: zeroDelta(),
+    inGamut: true,
+    syntaxValid: true,
+    displaySafe: true,
+    css: source.hex,
+    cMax: source.oklch.c,
+    amount: 0,
+  }
+}
+
+function zeroDelta() {
+  return { lightness: 0, chroma: 0, hue: 0 }
 }
 
 function defaultTargets(): NonNullable<OkColorCompileOptions['targets']> {

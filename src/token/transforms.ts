@@ -1,6 +1,6 @@
 import { expandOklchChroma, fitOklchGamut, oklchChromaMax, oklchInGamut } from '../wasm.js'
 import { clamp01, formatOklch, normalizeHue, parseColor, round, roundOklch } from './color.js'
-import type { Gamut, GradeOptions, Oklch, ParsedColor, RecipeName, TargetOptions, TransformResult } from './types.js'
+import type { Gamut, GradeOptions, Oklch, ParsedColor, RecipeName, Strategy, TargetOptions, TransformResult } from './types.js'
 import { DEFAULT_AMOUNT, NEUTRAL_CHROMA_THRESHOLD } from './types.js'
 
 export function findChromaMax(l: number, h: number, gamut: Gamut = 'p3'): number {
@@ -23,6 +23,7 @@ export function expandChroma(input: ParsedColor | string, options: TargetOptions
     result.cMax,
     amount,
     result.neutralSkipped,
+    { strategy: 'expand' },
   )
 }
 
@@ -41,6 +42,7 @@ export function fitGamut(input: ParsedColor | string, options: TargetOptions = {
     result.cMax,
     0,
     result.neutralSkipped,
+    { strategy: 'fit' },
   )
 }
 
@@ -49,7 +51,10 @@ export function gradeColor(input: ParsedColor | string, options: GradeOptions): 
   const gamut = options.gamut ?? 'p3'
   const recipe = options.recipe
   if (recipe === 'literal')
-    return makeTransformResult(source, source.oklch, gamut, findChromaMax(source.oklch.l, source.oklch.h, gamut), 0)
+    return makeTransformResult(source, source.oklch, gamut, findChromaMax(source.oklch.l, source.oklch.h, gamut), 0, false, {
+      strategy: 'convert',
+      recipe,
+    })
 
   const amount = clamp01(options.amount ?? recipeDefaultAmount(recipe))
   let next = { ...source.oklch }
@@ -74,7 +79,7 @@ export function gradeColor(input: ParsedColor | string, options: GradeOptions): 
 
   const cMax = findChromaMax(next.l, next.h, gamut)
   next.c = Math.min(next.c, cMax)
-  return makeTransformResult(source, roundOklch(next), gamut, cMax, amount)
+  return makeTransformResult(source, roundOklch(next), gamut, cMax, amount, false, { strategy: 'grade', recipe })
 }
 
 export function describeColor(input: string, options: TargetOptions = {}) {
@@ -130,6 +135,7 @@ function makeTransformResult(
   cMax: number,
   amount: number,
   neutralSkipped = false,
+  metadata: { strategy: Strategy; recipe?: RecipeName },
 ): TransformResult {
   const rounded = roundOklch(oklch)
   const inGamut = required(
@@ -143,11 +149,27 @@ function makeTransformResult(
     cMax,
     amount,
     gamut,
+    strategy: metadata.strategy,
+    recipe: metadata.recipe,
+    delta: transformDelta(source.oklch, rounded),
     inGamut,
     syntaxValid: true,
     displaySafe: inGamut,
     neutralSkipped,
+    skippedReason: neutralSkipped ? 'chroma-below-threshold' : undefined,
   }
+}
+
+function transformDelta(source: Oklch, target: Oklch) {
+  return {
+    lightness: round(target.l - source.l, 4),
+    chroma: round(target.c - source.c, 5),
+    hue: round(shortestHueDelta(source.h, target.h), 2),
+  }
+}
+
+function shortestHueDelta(from: number, to: number): number {
+  return ((to - from + 540) % 360) - 180
 }
 
 function expandOklch(source: Oklch, gamut: Gamut, amount: number): Oklch {
