@@ -260,6 +260,7 @@ pub fn srgb_to_hwb(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     // ── OKLCH round-trip sanity ──
 
@@ -531,6 +532,18 @@ mod tests {
         approx_delta(h, 0.0, 1e-4);
         approx_delta(w, 100.0, 1e-4);
         approx(b_, 0.0);
+    }
+
+    proptest! {
+        #[test]
+        fn prop_srgb8_oklch_roundtrips_within_tolerance(r in any::<u8>(), g in any::<u8>(), b in any::<u8>()) {
+            let (l, c, h) = srgb8_to_oklch(r, g, b);
+            let (actual_r, actual_g, actual_b) = oklch_to_srgb(l, c, h);
+
+            prop_assert!((actual_r - f64::from(r) / 255.0).abs() < 1e-4);
+            prop_assert!((actual_g - f64::from(g) / 255.0).abs() < 1e-4);
+            prop_assert!((actual_b - f64::from(b) / 255.0).abs() < 1e-4);
+        }
     }
 
     // ── Helpers ──

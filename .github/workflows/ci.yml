@@ -63,7 +63,7 @@ jobs:
           tool: wasm-pack
       - run: npm ci
       - run: npm run build
-      - run: npm run bench
+      - run: npm run bench:ci
 
   color-check:
     name: Color Debt Gate

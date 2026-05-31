@@ -60,7 +60,8 @@
     "lint": "eslint src",
     "format": "prettier --write src",
     "prepublishOnly": "npm run build",
-    "test:e2e": "npm run build && node node_modules/vitest/vitest.mjs run --config vitest.e2e.config.ts"
+    "test:e2e": "npm run build && node node_modules/vitest/vitest.mjs run --config vitest.e2e.config.ts",
+    "bench:ci": "node -e \"require('node:fs').mkdirSync('.tmp',{recursive:true})\" && node node_modules/vitest/vitest.mjs bench bench/bottleneck.bench.ts bench/throughput.bench.ts --outputJson=.tmp/bench-results.json && node scripts/check-bench-regression.mjs .tmp/bench-results.json bench/baseline.json"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

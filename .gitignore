@@ -5,6 +5,8 @@ dist/
 .env
 .env.local
 coverage/
+.tmp/
+.tmp-*.json
 .vscode/
 .idea/
 

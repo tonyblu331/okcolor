@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "defaultTolerance": 0.1,
+  "maxRme": 10,
+  "notes": "CI guardrails for scanner regressions. bench:ci runs scanner-critical Vitest benchmark files and tracks transform, audit, ignore, gradient, idempotency, throughput, and plugin-overhead metrics. Stable measurements fail on >10% slowdown; high-RME measurements are reported as NOISY instead of failing because Vitest bench output is too variable under shared CI/local load.",
+  "metrics": [
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "hex only transform",
+      "baselineHz": 400
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "rgb only transform",
+      "baselineHz": 250
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "hsl only transform",
+      "baselineHz": 190
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "hwb only transform",
+      "baselineHz": 270
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "named only transform",
+      "baselineHz": 380
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "modern (no-op) transform",
+      "baselineHz": 1600
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "no colors (fast path) transform",
+      "baselineHz": 3000
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "mixed colors transform",
+      "baselineHz": 170
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Color format throughput (50 KB each)",
+      "name": "oklch-ignore heavy transform",
+      "baselineHz": 600
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Gradient throughput",
+      "name": "gradient-heavy transform",
+      "baselineHz": 450
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Gradient throughput",
+      "name": "gradient-heavy audit",
+      "baselineHz": 800
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Audit benchmarks",
+      "name": "audit mixed colors",
+      "baselineHz": 320
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Audit benchmarks",
+      "name": "audit hex only",
+      "baselineHz": 850
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Audit benchmarks",
+      "name": "audit no colors",
+      "baselineHz": 2400
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Audit benchmarks",
+      "name": "audit gradients",
+      "baselineHz": 580
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Vite plugin overhead",
+      "name": "plugin transform .css file",
+      "baselineHz": 450000
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Vite plugin overhead",
+      "name": "plugin no-op (no colors)",
+      "baselineHz": 350000
+    },
+    {
+      "file": "bench/bottleneck.bench.ts",
+      "group": "Idempotency (second pass)",
+      "name": "second pass transform (should be no-op)",
+      "baselineHz": 850
+    },
+    {
+      "file": "bench/throughput.bench.ts",
+      "group": "WASM engine throughput",
+      "name": "transform: 1.3 KB file",
+      "baselineHz": 2400
+    },
+    {
+      "file": "bench/throughput.bench.ts",
+      "group": "WASM engine throughput",
+      "name": "transform: 12 KB file",
+      "baselineHz": 480
+    },
+    {
+      "file": "bench/throughput.bench.ts",
+      "group": "WASM engine throughput",
+      "name": "transform: 100 KB file",
+      "baselineHz": 60
+    },
+    {
+      "file": "bench/throughput.bench.ts",
+      "group": "WASM engine throughput",
+      "name": "audit: 100 KB file",
+      "baselineHz": 110
+    }
+  ]
+}
