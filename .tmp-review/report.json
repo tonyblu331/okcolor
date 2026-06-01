@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "tokens": [
+    {
+      "token": "surface",
+      "source": "#00cd00",
+      "sourceGamut": "srgb",
+      "oklch": {
+        "l": 0.7,
+        "c": 0.35,
+        "h": 145
+      },
+      "targets": {
+        "srgb": {
+          "gamut": "srgb",
+          "strategy": "fit",
+          "delta": {
+            "lightness": 0,
+            "chroma": -0.12984,
+            "hue": 0
+          },
+          "inGamut": true,
+          "syntaxValid": true,
+          "displaySafe": true,
+          "css": "oklch(70% 0.22016 145)",
+          "cMax": 0.22016,
+          "amount": 0,
+          "neutralSkipped": false
+        }
+      },
+      "contrast": {
+        "wcag2": {
+          "foreground@srgb": {
+            "foreground": "foreground",
+            "background": "surface",
+            "target": "srgb",
+            "ratio": 8.52,
+            "required": 4.5,
+            "status": "pass"
+          }
+        },
+        "apca": {
+          "foreground@srgb": {
+            "foreground": "foreground",
+            "background": "surface",
+            "target": "srgb",
+            "lc": 58,
+            "polarity": "normal",
+            "advisory": "pass-large"
+          }
+        }
+      }
+    },
+    {
+      "token": "foreground",
+      "source": "#000000",
+      "sourceGamut": "srgb",
+      "oklch": {
+        "l": 0,
+        "c": 0,
+        "h": 0
+      },
+      "targets": {
+        "srgb": {
+          "gamut": "srgb",
+          "strategy": "fit",
+          "delta": {
+            "lightness": 0,
+            "chroma": 0,
+            "hue": 0
+          },
+          "inGamut": true,
+          "syntaxValid": true,
+          "displaySafe": true,
+          "css": "oklch(0% 0 0)",
+          "cMax": 0.02303,
+          "amount": 0,
+          "neutralSkipped": false
+        }
+      },
+      "contrast": {
+        "wcag2": {},
+        "apca": {}
+      }
+    }
+  ],
+  "diagnostics": [],
+  "contrastPairs": [
+    {
+      "background": "surface",
+      "foreground": "foreground",
+      "target": "srgb",
+      "status": "evaluated",
+      "wcag2Key": "foreground@srgb",
+      "apcaKey": "foreground@srgb"
+    }
+  ],
+  "summary": {
+    "contrastPassed": true,
+    "failureCount": 0,
+    "failures": []
+  }
+}

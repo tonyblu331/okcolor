@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "tokens": [
+    {
+      "token": "accent",
+      "source": "#00cd00",
+      "sourceGamut": "srgb",
+      "oklch": {
+        "l": 0.7,
+        "c": 0.35,
+        "h": 145
+      },
+      "targets": {
+        "srgb": {
+          "gamut": "srgb",
+          "strategy": "fit",
+          "delta": {
+            "lightness": 0,
+            "chroma": -0.12984,
+            "hue": 0
+          },
+          "inGamut": true,
+          "syntaxValid": true,
+          "displaySafe": true,
+          "css": "oklch(70% 0.22016 145)",
+          "cMax": 0.22016,
+          "amount": 0,
+          "neutralSkipped": false
+        }
+      },
+      "contrast": {
+        "wcag2": {},
+        "apca": {}
+      }
+    }
+  ],
+  "diagnostics": [],
+  "contrastPairs": [],
+  "summary": {
+    "contrastPassed": true,
+    "failureCount": 0,
+    "failures": []
+  }
+}

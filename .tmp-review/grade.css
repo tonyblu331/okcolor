@@ -1,0 +1,10 @@
+:root {
+  --accent: #00cd00;
+}
+
+@supports (color: oklch(0.5 0.1 40)) {
+  :root {
+  --accent: oklch(68.5% 0.21544 145);
+  --accent-oklch: oklch(68.5% 0.21544 145);
+  }
+}

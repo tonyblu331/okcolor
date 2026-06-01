@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "tokens": [
+    {
+      "token": "bg",
+      "source": "#ff000080",
+      "sourceGamut": "srgb",
+      "oklch": {
+        "l": 0.628,
+        "c": 0.25768,
+        "h": 29.23
+      },
+      "targets": {
+        "srgb": {
+          "gamut": "srgb",
+          "strategy": "convert",
+          "delta": {
+            "lightness": 0,
+            "chroma": 0,
+            "hue": 0
+          },
+          "inGamut": true,
+          "syntaxValid": true,
+          "displaySafe": true,
+          "css": "#ff000080",
+          "cMax": 0.25768,
+          "amount": 0
+        },
+        "p3": {
+          "gamut": "p3",
+          "strategy": "expand",
+          "delta": {
+            "lightness": 0,
+            "chroma": 0.02252,
+            "hue": 0
+          },
+          "inGamut": true,
+          "syntaxValid": true,
+          "displaySafe": true,
+          "css": "oklch(62.8% 0.2802 29.23 / 0.5)",
+          "cMax": 0.2877,
+          "amount": 0.75,
+          "neutralSkipped": false
+        }
+      },
+      "contrast": {
+        "wcag2": {},
+        "apca": {}
+      }
+    },
+    {
+      "token": "fg",
+      "source": "#000000",
+      "sourceGamut": "srgb",
+      "oklch": {
+        "l": 0,
+        "c": 0,
+        "h": 0
+      },
+      "targets": {
+        "srgb": {
+          "gamut": "srgb",
+          "strategy": "convert",
+          "delta": {
+            "lightness": 0,
+            "chroma": 0,
+            "hue": 0
+          },
+          "inGamut": true,
+          "syntaxValid": true,
+          "displaySafe": true,
+          "css": "#000000",
+          "cMax": 0,
+          "amount": 0
+        },
+        "p3": {
+          "gamut": "p3",
+          "strategy": "expand",
+          "delta": {
+            "lightness": 0,
+            "chroma": 0,
+            "hue": 0
+          },
+          "inGamut": true,
+          "syntaxValid": true,
+          "displaySafe": true,
+          "css": "oklch(0% 0 0)",
+          "cMax": 0.0242,
+          "amount": 0.75,
+          "neutralSkipped": true,
+          "skippedReason": "chroma-below-threshold"
+        }
+      },
+      "contrast": {
+        "wcag2": {},
+        "apca": {}
+      }
+    }
+  ],
+  "diagnostics": [],
+  "contrastPairs": [
+    {
+      "background": "bg",
+      "foreground": "fg",
+      "target": "srgb",
+      "status": "skipped",
+      "skippedReason": "alpha-unsupported",
+      "message": "bg/fg@srgb uses alpha; contrast compositing is not supported yet"
+    },
+    {
+      "background": "bg",
+      "foreground": "fg",
+      "target": "p3",
+      "status": "skipped",
+      "skippedReason": "alpha-unsupported",
+      "message": "bg/fg@p3 uses alpha; contrast compositing is not supported yet"
+    }
+  ],
+  "summary": {
+    "contrastPassed": true,
+    "failureCount": 0,
+    "failures": []
+  }
+}
