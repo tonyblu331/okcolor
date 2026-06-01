@@ -23,6 +23,7 @@ Precise, opinionated, tactile.
 - Yellow accessibility-checker clone; the reference is interaction density, not palette.
 - Dull default documentation pages where the converter feels trapped inside a prose wrapper.
 - Tiny dashboard cards and generic glassmorphism.
+- Green/cream documentation palettes and card-heavy dashboards.
 
 ## Design Principles
 

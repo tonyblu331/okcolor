@@ -1100,15 +1100,15 @@ p { line-height: 1.7; }
 
 :root,
 [data-theme='dark'] {
-  --ok-ink: oklch(0.145 0.018 164);
-  --ok-ink-soft: oklch(0.28 0.018 164);
-  --ok-stone: oklch(0.93 0.018 87);
-  --ok-paper: oklch(0.985 0.006 92);
-  --ok-clay: oklch(0.82 0.075 42);
-  --ok-clay-soft: oklch(0.91 0.045 46);
-  --ok-acid: oklch(0.84 0.22 132);
-  --ok-acid-deep: oklch(0.48 0.16 138);
-  --ok-coral: oklch(0.66 0.19 38);
+  --ok-ink: oklch(0.13 0.004 250);
+  --ok-ink-soft: oklch(0.34 0.006 250);
+  --ok-stone: oklch(0.975 0.001 250);
+  --ok-paper: oklch(0.995 0 0);
+  --ok-clay: oklch(0.93 0.006 250);
+  --ok-clay-soft: oklch(0.965 0.003 250);
+  --ok-acid: oklch(0.68 0.21 34);
+  --ok-acid-deep: oklch(0.55 0.2 34);
+  --ok-coral: oklch(0.64 0.2 24);
 
   --sl-color-accent-low: color-mix(in oklch, var(--ok-acid), var(--ok-ink) 78%);
   --sl-color-accent: var(--ok-acid-deep);
@@ -1175,7 +1175,7 @@ body {
 
 .ok-lab-kicker {
   border-color: var(--ok-ink);
-  background: var(--ok-acid);
+  background: transparent;
   color: var(--ok-ink);
   letter-spacing: 0;
   text-transform: none;
@@ -1194,7 +1194,7 @@ body {
 .ok-action:hover {
   background: var(--ok-acid);
   border-color: var(--ok-ink);
-  color: var(--ok-ink);
+  color: white;
 }
 
 .ok-specimen,
@@ -1270,9 +1270,9 @@ body {
 }
 
 .converter-header h2 {
-  max-width: 13ch;
+  max-width: 18ch;
   color: var(--ok-ink);
-  font-size: clamp(4.2rem, 11vw, 10rem);
+  font-size: clamp(3.8rem, 9vw, 8.2rem);
   letter-spacing: -0.04em;
 }
 
@@ -1294,44 +1294,44 @@ body {
 
 .converter-panel,
 .gamut-panel {
-  border: 2px solid var(--ok-ink);
-  border-radius: 18px;
+  border: 0;
+  border-radius: 0;
   background: var(--ok-paper);
   box-shadow: none;
 }
 
 .gamut-panel-primary canvas {
-  min-height: 620px;
-  height: min(68vw, 760px);
-  border: 2px solid var(--ok-ink);
-  border-radius: 14px;
+  min-height: 720px;
+  height: min(72vw, 860px);
+  border: 1px solid oklch(0.82 0.004 250);
+  border-radius: 0;
 }
 
 .converter-field input[type='text'],
 .converter-field select,
 .converter-color-picker input {
-  border: 2px solid var(--ok-ink);
-  border-radius: 10px;
+  border: 1px solid oklch(0.74 0.004 250);
+  border-radius: 0;
   background: var(--ok-paper);
   color: var(--ok-ink);
 }
 
 .converter-mode-group,
 .view-toggle {
-  border: 2px solid var(--ok-ink);
-  border-radius: 12px;
-  background: var(--ok-stone);
+  border: 1px solid oklch(0.74 0.004 250);
+  border-radius: 0;
+  background: var(--ok-paper);
 }
 
 .converter-mode-group button,
 .view-toggle button {
-  border-radius: 8px;
+  border-radius: 0;
 }
 
 .converter-mode-group button.is-active,
 .view-toggle button.is-active {
-  background: var(--ok-acid);
-  color: var(--ok-ink);
+  background: var(--ok-ink);
+  color: white;
   box-shadow: none;
 }
 
@@ -1342,10 +1342,10 @@ body {
 .channel-panel {
   display: grid;
   gap: 0.85rem;
-  padding: 1rem;
-  border: 2px solid var(--ok-ink);
-  border-radius: 14px;
-  background: var(--ok-clay-soft);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .channel-panel label {
@@ -1373,9 +1373,9 @@ body {
 }
 
 .converter-status {
-  border: 2px solid var(--ok-ink);
-  background: var(--ok-acid);
-  color: var(--ok-ink);
+  border: 1px solid oklch(0.74 0.004 250);
+  background: var(--ok-paper);
+  color: var(--ok-ink-soft);
 }
 
 .converter-output {
@@ -1386,7 +1386,27 @@ body {
 .contrast-feedback,
 .converter-css-block pre,
 .converter-readout div {
-  border-color: var(--ok-ink);
+  border-color: oklch(0.82 0.004 250);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body:has(.wasm-converter) .converter-output,
+body:has(.wasm-converter) .converter-css-block {
+  border-top: 1px solid oklch(0.82 0.004 250) !important;
+  padding-top: 1.25rem !important;
+  background: transparent !important;
+}
+
+body:has(.wasm-converter) .swatch-card {
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+body:has(.wasm-converter) .swatch-card span {
+  border-radius: 0 !important;
+  min-height: 180px !important;
 }
 
 @media (max-width: 1180px) {
@@ -1435,19 +1455,27 @@ body:has(.wasm-converter) .content-panel > .sl-container {
 
 body:has(.wasm-converter) .converter-controls {
   display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 0.9rem !important;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(220px, 0.8fr) minmax(300px, 1.2fr) minmax(280px, 1fr) !important;
+  gap: 1.25rem !important;
   overflow: visible !important;
+  padding: 1.2rem 0 0 !important;
+  border-top: 1px solid oklch(0.82 0.004 250) !important;
+  background: transparent !important;
 }
 
 body:has(.wasm-converter) .converter-workbench {
   display: grid !important;
-  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr) !important;
+  grid-template-columns: 1fr !important;
   align-items: start !important;
 }
 
 body:has(.wasm-converter) .converter-main {
   min-width: 0 !important;
+  order: 1 !important;
+}
+
+body:has(.wasm-converter) .converter-controls {
+  order: 2 !important;
 }
 
 body:has(.wasm-converter) .converter-field-primary,
@@ -1467,8 +1495,8 @@ body:has(.wasm-converter) .converter-row {
 }
 
 body:has(.wasm-converter) .gamut-panel-primary canvas {
-  min-height: 640px !important;
-  height: min(62vw, 780px) !important;
+  min-height: 760px !important;
+  height: min(74vw, 900px) !important;
 }
 
 body:has(.wasm-converter) .converter-output {
@@ -1485,4 +1513,257 @@ body:has(.wasm-converter) .converter-output {
   body:has(.wasm-converter) .converter-output {
     grid-template-columns: 1fr !important;
   }
+}
+
+
+/* Converter cleanup: centered product-instrument layout, neutral shell, data-only color. */
+:root,
+[data-theme='dark'] {
+  --ok-accent: oklch(0.66 0.22 34);
+  --ok-accent-deep: oklch(0.52 0.19 34);
+}
+
+body:has(.wasm-converter) .main-frame {
+  margin-inline: auto !important;
+}
+
+body:has(.wasm-converter) .content-panel > .sl-container {
+  width: min(1560px, calc(100vw - 3rem)) !important;
+  max-width: none !important;
+  margin-inline: auto !important;
+}
+
+.wasm-converter {
+  width: min(1560px, calc(100vw - 3rem)) !important;
+  margin: clamp(2rem, 4vw, 4rem) auto 4rem !important;
+}
+
+.converter-header {
+  justify-items: center !important;
+  text-align: center !important;
+}
+
+.converter-header h2 {
+  max-width: 17ch !important;
+  margin-inline: auto !important;
+}
+
+.converter-shell {
+  display: grid !important;
+  gap: clamp(1rem, 1.8vw, 1.45rem) !important;
+  min-width: 0 !important;
+}
+
+body:has(.wasm-converter) .converter-main,
+body:has(.wasm-converter) .converter-controls {
+  order: initial !important;
+}
+
+body:has(.wasm-converter) .gamut-panel-primary {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+body:has(.wasm-converter) .gamut-panel-primary figcaption {
+  padding-block: 0 0.7rem !important;
+}
+
+body:has(.wasm-converter) .gamut-panel-primary canvas {
+  width: 100% !important;
+  min-height: clamp(560px, 62vw, 860px) !important;
+  height: clamp(560px, 62vw, 860px) !important;
+  border: 1px solid oklch(0.8 0.004 250) !important;
+  background: var(--ok-paper) !important;
+}
+
+body:has(.wasm-converter) .view-toggle {
+  display: none !important;
+}
+
+body:has(.wasm-converter) .view-switch {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+body:has(.wasm-converter) .view-switch > span {
+  color: var(--ok-ink-soft) !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+}
+
+body:has(.wasm-converter) .view-switch button {
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ok-ink-soft) !important;
+  box-shadow: none !important;
+  font-weight: 820 !important;
+  padding: 0.35rem 0 0.28rem !important;
+}
+
+body:has(.wasm-converter) .view-switch button.is-active {
+  border-color: var(--ok-ink) !important;
+  color: var(--ok-ink) !important;
+}
+
+body:has(.wasm-converter) .converter-controls {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(320px, 1.15fr) minmax(280px, 0.85fr) !important;
+  gap: clamp(1rem, 1.6vw, 1.35rem) !important;
+  align-items: stretch !important;
+  padding: 1.1rem 0 0 !important;
+  border-top: 1px solid oklch(0.82 0.004 250) !important;
+  background: transparent !important;
+}
+
+body:has(.wasm-converter) .converter-results {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr) !important;
+  gap: clamp(1rem, 1.8vw, 1.45rem) !important;
+  border-top: 1px solid oklch(0.82 0.004 250) !important;
+  padding-top: 1.2rem !important;
+}
+
+body:has(.wasm-converter) .converter-output,
+body:has(.wasm-converter) .converter-css-block {
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+body:has(.wasm-converter) .converter-panel,
+body:has(.wasm-converter) .gamut-panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body:has(.wasm-converter) .converter-mode-group button.is-active strong {
+  color: white !important;
+}
+
+body:has(.wasm-converter) .converter-range input,
+body:has(.wasm-converter) .channel-panel input {
+  accent-color: var(--ok-accent-deep) !important;
+}
+
+@media (max-width: 1240px) {
+  body:has(.wasm-converter) .content-panel > .sl-container,
+  .wasm-converter {
+    width: min(100%, calc(100vw - 2rem)) !important;
+  }
+
+  body:has(.wasm-converter) .converter-controls,
+  body:has(.wasm-converter) .converter-results {
+    grid-template-columns: 1fr !important;
+  }
+
+  body:has(.wasm-converter) .gamut-panel-primary canvas {
+    min-height: 520px !important;
+    height: 520px !important;
+  }
+}
+
+
+/* Converter page shell reset: remove the hidden sidebar's leftover column. */
+body:has(.wasm-converter) .page {
+  display: block !important;
+}
+
+body:has(.wasm-converter) .main-frame,
+body:has(.wasm-converter) .main-pane,
+body:has(.wasm-converter) main,
+body:has(.wasm-converter) .content-panel {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+}
+
+body:has(.wasm-converter) .main-pane {
+  --sl-content-width: 100% !important;
+  --sl-content-pad-x: 0px !important;
+}
+
+body:has(.wasm-converter) .sl-markdown-content > :not(.wasm-converter) {
+  max-width: min(960px, calc(100vw - 3rem)) !important;
+  margin-inline: auto !important;
+}
+
+body:has(.wasm-converter) .wasm-converter {
+  width: min(1560px, calc(100vw - 4rem)) !important;
+  margin-inline: auto !important;
+}
+
+
+body:has(.wasm-converter) .converter-mode-group button.is-active {
+  background: var(--ok-ink) !important;
+  color: white !important;
+}
+
+body:has(.wasm-converter) .converter-mode-group button.is-active span,
+body:has(.wasm-converter) .converter-mode-group button.is-active strong {
+  color: white !important;
+}
+
+body:has(.wasm-converter) .converter-controls {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+}
+
+body:has(.wasm-converter) .converter-disclosure {
+  display: grid !important;
+  gap: 0.25rem !important;
+  min-height: 72px !important;
+  border: 1px solid color-mix(in oklch, var(--ok-ink) 20%, transparent) !important;
+  border-radius: 0 !important;
+  background: var(--ok-paper) !important;
+  color: var(--ok-ink) !important;
+  padding: 0.85rem !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+body:has(.wasm-converter) .converter-disclosure.is-active {
+  background: var(--ok-ink) !important;
+  color: white !important;
+}
+
+body:has(.wasm-converter) .converter-disclosure span {
+  color: inherit !important;
+  opacity: 0.72 !important;
+}
+
+body:has(.wasm-converter) .mapping-controls[hidden],
+body:has(.wasm-converter) [data-mapped-only][hidden],
+body:has(.wasm-converter) [data-advanced-view][hidden] {
+  display: none !important;
+}
+
+body:has(.wasm-converter) .mapping-controls {
+  min-width: 0 !important;
+}
+
+body:has(.wasm-converter) .mapping-controls .converter-mode-group {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  min-height: auto !important;
+}
+
+body:has(.wasm-converter) .mapping-controls .converter-mode-group button {
+  min-height: 54px !important;
+  padding: 0.6rem 0.7rem !important;
+}
+
+body:has(.wasm-converter) .advanced-view-toggle {
+  opacity: 0.72 !important;
+}
+
+body:has(.wasm-converter) .advanced-view-toggle.is-active {
+  border-color: var(--ok-ink) !important;
+  color: var(--ok-ink) !important;
+  opacity: 1 !important;
 }

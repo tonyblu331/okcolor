@@ -1,0 +1,68 @@
+<aside class="converter-panel converter-controls" aria-label="Color converter controls">
+  <label class="converter-field converter-field-primary">
+    <span>Input color</span>
+    <input data-color-input type="text" value="#ff5a00" spellcheck="false" autocomplete="off" />
+  </label>
+
+  <div class="converter-picker-row">
+    <label class="converter-color-picker">
+      <span>Picker</span>
+      <input data-color-picker type="color" value="#ff5a00" />
+    </label>
+    <div class="converter-examples" aria-label="Example colors">
+      <button type="button" data-example="#ff5a00">Orange</button>
+      <button type="button" data-example="oklch(64% 0.2 24)">Vermilion</button>
+      <button type="button" data-example="oklch(70% 0.16 210)">Cyan</button>
+    </div>
+  </div>
+
+  <button type="button" class="converter-disclosure" data-mapping-toggle aria-pressed="false">
+    <strong>Enable gamut mapping</strong>
+    <span>Compare the source against Expand or Saturate only when you need it.</span>
+  </button>
+
+  <div class="mapping-controls" data-mapping-controls hidden>
+    <div class="converter-mode-group" aria-label="Chroma mode">
+      <button type="button" class="is-active" data-mode-button="expand" aria-pressed="true">
+        <strong>Expand</strong>
+        <span>Show movement to the gamut edge</span>
+      </button>
+      <button type="button" class="is-active" data-mode-button="saturate" aria-pressed="true">
+        <strong>Saturate</strong>
+        <span>Show chroma boost, then fit</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="channel-panel" aria-label="OKLCH channel controls">
+    <label>
+      <span>Lightness <b data-lightness-label>68%</b></span>
+      <input data-lightness-range type="range" min="0" max="1" step="0.001" value="0.681" />
+    </label>
+    <label>
+      <span>Chroma <b data-chroma-label>0.214</b></span>
+      <input data-chroma-range type="range" min="0" max="0.42" step="0.001" value="0.214" />
+    </label>
+    <label>
+      <span>Hue <b data-hue-label>41°</b></span>
+      <input data-hue-range type="range" min="0" max="360" step="0.1" value="40.6" />
+    </label>
+  </div>
+
+  <div class="converter-row">
+    <label class="converter-field">
+      <span>Target gamut</span>
+      <select data-gamut-select>
+        <option value="p3">Display P3</option>
+        <option value="srgb">sRGB</option>
+      </select>
+    </label>
+    <label class="converter-field converter-range" data-mapped-only hidden>
+      <span>Strength <b data-strength-label>72%</b></span>
+      <input data-strength type="range" min="0" max="1" step="0.01" value="0.72" />
+    </label>
+  </div>
+
+  <div class="converter-status" data-status role="status" aria-live="polite">Loading WASM engine...</div>
+</aside>
+

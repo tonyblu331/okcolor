@@ -1,0 +1,43 @@
+<section class="converter-panel converter-output" aria-label="Converted color output">
+  <div class="swatch-comparison">
+    <div class="swatch-card">
+      <span data-source-swatch></span>
+      <small>Source</small>
+    </div>
+    <div class="swatch-card is-result" data-mapped-only hidden>
+      <span data-result-swatch></span>
+      <small>Result</small>
+    </div>
+  </div>
+
+  <dl class="converter-readout">
+    <div>
+      <dt>Faithful OKLCH</dt>
+      <dd><code data-oklch-output>...</code></dd>
+    </div>
+    <div data-mapped-only hidden>
+      <dt>Mode result</dt>
+      <dd><code data-result-output>...</code></dd>
+    </div>
+    <div>
+      <dt>sRGB fallback</dt>
+      <dd><code data-fallback-output>...</code></dd>
+    </div>
+    <div>
+      <dt>Gamut check</dt>
+      <dd><span data-gamut-output>...</span></dd>
+    </div>
+  </dl>
+
+  <div class="contrast-feedback" data-contrast-feedback aria-label="Contrast feedback">
+    <div>
+      <span>Best text</span>
+      <strong data-contrast-choice>...</strong>
+    </div>
+    <div>
+      <span>WCAG ratio</span>
+      <strong data-contrast-ratio>...</strong>
+    </div>
+    <p data-contrast-note>Contrast is checked against black and white text using the OKLCH luminance path.</p>
+  </div>
+</section>

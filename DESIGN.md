@@ -8,11 +8,11 @@ okcolor documentation should feel like a color laboratory manual crossed with a 
 
 Use OKLCH tokens.
 
-- Canvas: flat warm-neutral stone, not yellow and not beige-craft.
-- Surface: chalk/off-white panels with ink borders.
-- Ink: near-black with a slight green/blue undertone.
-- Accent: acidic green/chartreuse for active UI and success states.
-- Alert/accent-secondary: controlled orange/coral only for selected gamut/result affordances.
+- Canvas: flat near-white neutral, not yellow, cream, beige, or green-tinted.
+- Surface: transparent or white instrument planes with crisp ink rules, not card stacks.
+- Ink: near-black with a slight cool undertone.
+- Accent: controlled vermilion/orange-red for active UI and selected gamut/result affordances.
+- Status: use text, labels, and borders first; avoid green as the default success color.
 - Spectrum: only appears inside sampled gamut visualizations and color swatches because there it is data.
 
 ## Typography
@@ -30,8 +30,8 @@ The documentation shell should expand for product pages. Converter pages use a f
 
 ## Components
 
-- Instrument panel: flat surface, ink border, crisp radius.
-- Mode toggle: high-contrast segmented control.
+- Instrument panel: flat surface, ink rules, minimal radius.
+- View switch: text-button mode control, not a segmented pill.
 - Readout: large numeric/value blocks with copyable mono values.
 - Gamut viewer: canvas with labeled sRGB/P3 contours, source/result markers, and no decorative background gradients.
 - Documentation card: strong border, flat fill, large type, no soft ghost-card shadow.

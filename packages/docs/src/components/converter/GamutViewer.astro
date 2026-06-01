@@ -1,0 +1,20 @@
+<figure class="gamut-panel gamut-panel-primary">
+  <figcaption>
+    <div>
+      <strong data-view-title>Gamut map</strong>
+      <span data-view-description>Fixed-lightness plane with a labeled gamut boundary.</span>
+    </div>
+    <div class="view-switch" aria-label="Gamut viewer mode">
+      <span>View</span>
+      <button type="button" class="is-active" data-view-button="2d" aria-pressed="true">Plane</button>
+      <button type="button" data-view-button="triangle" data-advanced-view aria-pressed="false" hidden>
+        Triangle
+      </button>
+      <button type="button" data-view-button="3d" data-advanced-view aria-pressed="false" hidden>Volume</button>
+      <button type="button" class="advanced-view-toggle" data-advanced-views-toggle aria-pressed="false">
+        More views
+      </button>
+    </div>
+  </figcaption>
+  <canvas data-gamut-view aria-label="Interactive OKLCH gamut viewer"></canvas>
+</figure>

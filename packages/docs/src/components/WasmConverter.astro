@@ -1,3 +1,10 @@
+---
+import ConverterControls from './converter/ConverterControls.astro'
+import ConverterCssOutput from './converter/ConverterCssOutput.astro'
+import ConverterOutput from './converter/ConverterOutput.astro'
+import GamutViewer from './converter/GamutViewer.astro'
+---
+
 <section class="wasm-converter" data-ok-converter>
   <header class="converter-header">
     <p>Color converter</p>
@@ -5,138 +12,14 @@
     <span>Powered by the same Rust/WASM engine used by okcolor.</span>
   </header>
 
-  <div class="converter-workbench">
-    <aside class="converter-panel converter-controls" aria-label="Color converter controls">
-      <label class="converter-field converter-field-primary">
-        <span>Input color</span>
-        <input data-color-input type="text" value="#ff5a00" spellcheck="false" autocomplete="off" />
-      </label>
-
-      <div class="converter-picker-row">
-        <label class="converter-color-picker">
-          <span>Picker</span>
-          <input data-color-picker type="color" value="#ff5a00" />
-        </label>
-        <div class="converter-examples" aria-label="Example colors">
-          <button type="button" data-example="#ff5a00">Orange</button>
-          <button type="button" data-example="oklch(78% 0.18 132)">Acid</button>
-          <button type="button" data-example="oklch(70% 0.22 145)">OKLCH</button>
-        </div>
-      </div>
-
-      <div class="converter-mode-group" aria-label="Chroma mode">
-        <button type="button" class="is-active" data-mode-button="expand" aria-pressed="true">
-          <strong>Expand</strong>
-          <span>Move toward the gamut edge</span>
-        </button>
-        <button type="button" data-mode-button="saturate" aria-pressed="false">
-          <strong>Saturate</strong>
-          <span>Boost chroma, then fit</span>
-        </button>
-      </div>
-
-      <div class="channel-panel" aria-label="OKLCH channel controls">
-        <label>
-          <span>Lightness <b data-lightness-label>68%</b></span>
-          <input data-lightness-range type="range" min="0" max="1" step="0.001" value="0.681" />
-        </label>
-        <label>
-          <span>Chroma <b data-chroma-label>0.214</b></span>
-          <input data-chroma-range type="range" min="0" max="0.42" step="0.001" value="0.214" />
-        </label>
-        <label>
-          <span>Hue <b data-hue-label>41°</b></span>
-          <input data-hue-range type="range" min="0" max="360" step="0.1" value="40.6" />
-        </label>
-      </div>
-
-      <div class="converter-row">
-        <label class="converter-field">
-          <span>Target gamut</span>
-          <select data-gamut-select>
-            <option value="p3">Display P3</option>
-            <option value="srgb">sRGB</option>
-          </select>
-        </label>
-        <label class="converter-field converter-range">
-          <span>Strength <b data-strength-label>72%</b></span>
-          <input data-strength type="range" min="0" max="1" step="0.01" value="0.72" />
-        </label>
-      </div>
-
-      <div class="converter-status" data-status role="status" aria-live="polite">Loading WASM engine...</div>
-    </aside>
-
-    <main class="converter-main" aria-label="Color conversion result and gamut views">
-      <figure class="gamut-panel gamut-panel-primary">
-        <figcaption>
-          <div>
-            <strong data-view-title>2D gamut frame</strong>
-            <span data-view-description>Fixed lightness with a labeled gamut boundary.</span>
-          </div>
-          <div class="view-toggle" aria-label="Gamut viewer mode">
-            <button type="button" class="is-active" data-view-button="2d" aria-pressed="true">2D</button>
-            <button type="button" data-view-button="3d" aria-pressed="false">3D</button>
-          </div>
-        </figcaption>
-        <canvas data-gamut-view aria-label="Interactive OKLCH gamut viewer"></canvas>
-      </figure>
-
-      <section class="converter-panel converter-output" aria-label="Converted color output">
-        <div class="swatch-comparison">
-          <div class="swatch-card">
-            <span data-source-swatch></span>
-            <small>Source</small>
-          </div>
-          <div class="swatch-card is-result">
-            <span data-result-swatch></span>
-            <small>Result</small>
-          </div>
-        </div>
-
-        <dl class="converter-readout">
-          <div>
-            <dt>Faithful OKLCH</dt>
-            <dd><code data-oklch-output>...</code></dd>
-          </div>
-          <div>
-            <dt>Mode result</dt>
-            <dd><code data-result-output>...</code></dd>
-          </div>
-          <div>
-            <dt>sRGB fallback</dt>
-            <dd><code data-fallback-output>...</code></dd>
-          </div>
-          <div>
-            <dt>Gamut check</dt>
-            <dd><span data-gamut-output>...</span></dd>
-          </div>
-        </dl>
-
-        <div class="contrast-feedback" data-contrast-feedback aria-label="Contrast feedback">
-          <div>
-            <span>Best text</span>
-            <strong data-contrast-choice>...</strong>
-          </div>
-          <div>
-            <span>WCAG ratio</span>
-            <strong data-contrast-ratio>...</strong>
-          </div>
-          <p data-contrast-note>Contrast is checked against black and white text using the OKLCH luminance path.</p>
-        </div>
-      </section>
-
-      <div class="converter-detail-grid converter-detail-grid-single">
-        <div class="converter-panel converter-css-block">
-          <div>
-            <span>CSS output</span>
-            <button type="button" data-copy-output>Copy</button>
-          </div>
-          <pre data-css-output><code>...</code></pre>
-        </div>
-      </div>
-    </main>
-  </div>
+  <main class="converter-shell" aria-label="Color conversion result and gamut views">
+    <GamutViewer />
+    <ConverterControls />
+    <section class="converter-results" aria-label="Conversion output">
+      <ConverterOutput />
+      <ConverterCssOutput />
+    </section>
+  </main>
 </section>
 
 <script>
@@ -160,6 +43,9 @@
     const elements = {
       input: root.querySelector('[data-color-input]'),
       picker: root.querySelector('[data-color-picker]'),
+      mappingToggle: root.querySelector('[data-mapping-toggle]'),
+      mappingControls: root.querySelector('[data-mapping-controls]'),
+      mappedOnly: root.querySelectorAll('[data-mapped-only]'),
       modeButtons: root.querySelectorAll('[data-mode-button]'),
       gamut: root.querySelector('[data-gamut-select]'),
       strength: root.querySelector('[data-strength]'),
@@ -186,6 +72,8 @@
       viewTitle: root.querySelector('[data-view-title]'),
       viewDescription: root.querySelector('[data-view-description]'),
       viewButtons: root.querySelectorAll('[data-view-button]'),
+      advancedViewsToggle: root.querySelector('[data-advanced-views-toggle]'),
+      advancedViewButtons: root.querySelectorAll('[data-advanced-view]'),
       examples: root.querySelectorAll('[data-example]'),
     }
 
@@ -194,6 +82,9 @@
       ready: false,
       lastCss: '',
       lastResult: null,
+      mappingEnabled: false,
+      visibleMappings: { expand: true, saturate: true },
+      advancedViewsEnabled: false,
       isDraggingGamut: false,
       viewMode: '2d',
       isRotatingVolume: false,
@@ -256,21 +147,32 @@
 
       syncChannelControls(elements, source)
 
-      const result = transformColor(source, targetGamut, strength, state.mode)
+      const sourceInTarget = oklch_in_gamut(source.l, source.c, source.h, targetGamut)
+      const visibleMappings = state.mappingEnabled ? getVisibleMappings(source, targetGamut, strength, state.visibleMappings) : []
+      const activeMapping = visibleMappings.find((entry) => entry.mode === state.mode) ?? visibleMappings[0]
+      const result =
+        activeMapping?.result ?? {
+          color: source,
+          cMax: oklch_chroma_max(source.l, source.h, targetGamut) || 0,
+          inGamut: sourceInTarget,
+          neutralSkipped: false,
+        }
       const resultCss = formatOklch(result.color)
       const resultFallback = fallbackCss
-      const sourceInTarget = oklch_in_gamut(source.l, source.c, source.h, targetGamut)
       const resultInTarget = oklch_in_gamut(result.color.l, result.color.c, result.color.h, targetGamut)
       const contrast = contrastSummary(result.color)
-      const modeLabel = state.mode === 'expand' ? 'expanded' : 'saturated'
+      const modeLabel = activeMapping?.mode === 'expand' ? 'expanded' : 'saturated'
+      const mappingSummary = visibleMappings.map((entry) => entry.label).join(' + ')
 
-      state.lastResult = { source, result: result.color, targetGamut }
+      state.lastResult = { source, result: result.color, targetGamut, mappingEnabled: state.mappingEnabled, visibleMappings }
       state.lastCss = buildCssOutput(fallbackCss, resultCss, targetGamut)
 
       elements.oklchOutput.textContent = oklchCss
       elements.resultOutput.textContent = resultCss
       elements.fallbackOutput.textContent = resultFallback
-      elements.gamutOutput.textContent = `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'}, result ${resultInTarget ? 'inside' : 'outside'} · Cmax ${formatMetric(result.cMax)}`
+      elements.gamutOutput.textContent = visibleMappings.length
+        ? `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'}, ${activeMapping.label.toLowerCase()} ${resultInTarget ? 'inside' : 'outside'} · Cmax ${formatMetric(result.cMax)}`
+        : `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'} · Cmax ${formatMetric(result.cMax)}`
       elements.contrastChoice.textContent = contrast.foreground
       elements.contrastRatio.textContent = `${contrast.ratio.toFixed(2)}:1`
       elements.contrastNote.textContent = `${contrast.status} for normal text against ${contrast.foreground.toLowerCase()} foreground. White ${contrast.whiteRatio.toFixed(2)}:1 · black ${contrast.blackRatio.toFixed(2)}:1.`
@@ -279,12 +181,22 @@
       elements.resultSwatch.style.background = resultCss
 
       syncPicker(elements, fallbackCss)
-      setStatus(elements, result.neutralSkipped ? 'Neutral color detected: chroma expansion skipped to preserve gray intent.' : `Converted and ${modeLabel} through WASM.`, 'ready')
+      setStatus(
+        elements,
+        visibleMappings.length
+          ? result.neutralSkipped
+            ? 'Neutral color detected: chroma expansion skipped to preserve gray intent.'
+            : `Showing ${mappingSummary} movement from the original color. Current output is ${modeLabel}.`
+          : 'Source shown without gamut mapping. Enable mapping to compare Expand or Saturate.',
+        'ready',
+      )
       syncViewerCopy(elements, state.viewMode)
       if (state.viewMode === '3d') {
-        drawGamutVolume(elements.canvasView, source, result.color, targetGamut, state.volumeRotation)
+        drawGamutVolume(elements.canvasView, source, visibleMappings, targetGamut, state.volumeRotation)
+      } else if (state.viewMode === 'triangle') {
+        drawGamutTriangle(elements.canvasView, source, visibleMappings, targetGamut)
       } else {
-        drawGamutSlice(elements.canvasView, source, result.color, targetGamut)
+        drawGamutSlice(elements.canvasView, source, visibleMappings, targetGamut)
       }
     }
   }
@@ -297,6 +209,16 @@
     })
     elements.gamut.addEventListener('change', render)
     elements.strength.addEventListener('input', render)
+    elements.mappingToggle?.addEventListener('click', () => {
+      state.mappingEnabled = !state.mappingEnabled
+      elements.mappingToggle.classList.toggle('is-active', state.mappingEnabled)
+      elements.mappingToggle.setAttribute('aria-pressed', state.mappingEnabled ? 'true' : 'false')
+      if (elements.mappingControls) elements.mappingControls.hidden = !state.mappingEnabled
+      for (const mappedElement of elements.mappedOnly) {
+        mappedElement.hidden = !state.mappingEnabled
+      }
+      render()
+    })
     elements.lightnessRange.addEventListener('input', () => {
       updateInputFromChannels(elements)
       render()
@@ -318,7 +240,7 @@
       }
       state.isDraggingGamut = true
       safelySetPointerCapture(elements.canvasView, event.pointerId)
-      pickFromGamut(event, elements, render)
+      pickFromGamut(event, elements, state, render)
     })
     elements.canvasView.addEventListener('pointermove', (event) => {
       if (state.viewMode === '3d') {
@@ -332,7 +254,7 @@
         return
       }
       if (!state.isDraggingGamut) return
-      pickFromGamut(event, elements, render)
+      pickFromGamut(event, elements, state, render)
     })
     elements.canvasView.addEventListener('pointerup', (event) => {
       state.isDraggingGamut = false
@@ -348,6 +270,7 @@
 
     for (const button of elements.viewButtons) {
       button.addEventListener('click', () => {
+        if (button.hidden) return
         state.viewMode = button.dataset.viewButton
         for (const candidate of elements.viewButtons) {
           const active = candidate === button
@@ -358,14 +281,33 @@
       })
     }
 
-    for (const button of elements.modeButtons) {
-      button.addEventListener('click', () => {
-        state.mode = button.dataset.modeButton
-        for (const candidate of elements.modeButtons) {
-          const active = candidate === button
+    elements.advancedViewsToggle?.addEventListener('click', () => {
+      state.advancedViewsEnabled = !state.advancedViewsEnabled
+      elements.advancedViewsToggle.classList.toggle('is-active', state.advancedViewsEnabled)
+      elements.advancedViewsToggle.setAttribute('aria-pressed', state.advancedViewsEnabled ? 'true' : 'false')
+      for (const button of elements.advancedViewButtons) {
+        button.hidden = !state.advancedViewsEnabled
+      }
+      if (!state.advancedViewsEnabled && state.viewMode !== '2d') {
+        state.viewMode = '2d'
+        for (const candidate of elements.viewButtons) {
+          const active = candidate.dataset.viewButton === '2d'
           candidate.classList.toggle('is-active', active)
           candidate.setAttribute('aria-pressed', active ? 'true' : 'false')
         }
+      }
+      render()
+    })
+
+    for (const button of elements.modeButtons) {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.modeButton
+        const visibleCount = Object.values(state.visibleMappings).filter(Boolean).length
+        if (state.visibleMappings[mode] && visibleCount === 1) return
+        state.visibleMappings[mode] = !state.visibleMappings[mode]
+        state.mode = mode
+        button.classList.toggle('is-active', state.visibleMappings[mode])
+        button.setAttribute('aria-pressed', state.visibleMappings[mode] ? 'true' : 'false')
         render()
       })
     }
@@ -410,11 +352,13 @@
     }
   }
 
-  function pickFromGamut(event, elements, render) {
+  function pickFromGamut(event, elements, state, render) {
     const current = parseOklch(convert_color(elements.input.value.trim(), 'oklch') || '')
     if (!current) return
 
-    const pick = pickHueChromaFromCanvas(elements.canvasView, event, current.l, elements.gamut.value)
+    const pick = state.viewMode === 'triangle'
+      ? pickTriangleFromCanvas(elements.canvasView, event, current.h, elements.gamut.value)
+      : pickHueChromaFromCanvas(elements.canvasView, event, current.l, elements.gamut.value)
     elements.input.value = formatOklch(pick)
     render()
   }
@@ -432,6 +376,21 @@
     const c = clamp((1 - y / height) * viewMaxC, 0, cMax)
 
     return { l, c, h: hue }
+  }
+
+
+  function pickTriangleFromCanvas(canvas, event, hue, targetGamut) {
+    const rect = canvas.getBoundingClientRect()
+    const frame = getTriangleFrame(Math.max(1, rect.width || 640), Math.max(1, rect.height || 360))
+    const x = clamp((event.clientX - rect.left - frame.x) / frame.width, 0, 1)
+    const y = clamp(1 - (event.clientY - rect.top - frame.y) / frame.height, 0, 1)
+    const halfWidth = Math.max(0.001, (1 - y) * 0.5)
+    const left = 0.5 - halfWidth
+    const right = 0.5 + halfWidth
+    const l = y > 0.999 ? 0.5 : clamp((clamp(x, left, right) - left) / Math.max(0.001, right - left), 0, 1)
+    const cMax = oklch_chroma_max(l, hue, targetGamut) || 0
+
+    return { l, c: clamp(y * cMax, 0, cMax), h: normalizeHue(hue) }
   }
 
   function transformColor(source, targetGamut, strength, mode) {
@@ -463,6 +422,18 @@
       inGamut: oklch_in_gamut(source.l, source.c, source.h, targetGamut) || false,
       neutralSkipped: false,
     }
+  }
+
+  function getVisibleMappings(source, targetGamut, strength, visibleMappings) {
+    return [
+      { mode: 'expand', label: 'Expand', stroke: '#111111' },
+      { mode: 'saturate', label: 'Saturate', stroke: '#f05a00' },
+    ]
+      .filter((entry) => visibleMappings[entry.mode])
+      .map((entry) => ({
+        ...entry,
+        result: transformColor(source, targetGamut, strength, entry.mode),
+      }))
   }
 
   function parseTransform(value) {
@@ -559,16 +530,24 @@
   }
 
   function syncViewerCopy(elements, viewMode) {
+    if (viewMode === 'triangle') {
+      elements.viewTitle.textContent = 'Gamut map'
+      elements.viewDescription.textContent = 'Triangle mode: fixed hue with lightness across the base and chroma toward the apex.'
+      elements.canvasView.dataset.viewMode = 'triangle'
+      elements.canvasView.setAttribute('aria-label', 'OKLCH triangle picker with fixed hue, lightness, and chroma')
+      return
+    }
+
     if (viewMode === '3d') {
-      elements.viewTitle.textContent = '3D gamut volume'
-      elements.viewDescription.textContent = 'Drag to rotate hue, chroma, and lightness in OKLCH space.'
+      elements.viewTitle.textContent = 'Gamut map'
+      elements.viewDescription.textContent = 'Volume mode: drag to rotate hue, chroma, and lightness in OKLCH space.'
       elements.canvasView.dataset.viewMode = '3d'
       elements.canvasView.setAttribute('aria-label', 'Rotatable 3D OKLCH gamut volume')
       return
     }
 
-    elements.viewTitle.textContent = '2D gamut frame'
-    elements.viewDescription.textContent = 'Fixed lightness with a labeled gamut boundary.'
+    elements.viewTitle.textContent = 'Gamut map'
+    elements.viewDescription.textContent = 'Plane mode: fixed lightness with a labeled gamut boundary.'
     elements.canvasView.dataset.viewMode = '2d'
     elements.canvasView.setAttribute('aria-label', 'Hue by chroma OKLCH plane with gamut boundary')
   }
@@ -607,11 +586,12 @@
     return { ctx, width, height }
   }
 
-  function drawGamutSlice(canvas, source, result, targetGamut) {
+  function drawGamutSlice(canvas, source, mappings, targetGamut) {
     const prepared = preparePixelCanvas(canvas, targetGamut)
     const { ctx, width, height, pixelWidth, pixelHeight, ratio } = prepared
     const fixedLightness = clamp(source.l, 0.02, 0.98)
-    const viewMaxC = getPlaneMaxChroma(fixedLightness, targetGamut, source.c, result.c)
+    const mappedColors = getMappedColors(mappings)
+    const viewMaxC = getPlaneMaxChroma(fixedLightness, targetGamut, source.c, ...mappedColors.map((color) => color.c))
 
     drawCanvasBackground(ctx, pixelWidth, pixelHeight)
     putPlaneImage(ctx, buildHueChromaPlane(pixelWidth, pixelHeight, fixedLightness, viewMaxC, targetGamut, prepared.colorSpace))
@@ -620,8 +600,18 @@
     drawRectangularGrid(ctx, width, height, 'Hue', 'Chroma')
     drawHueChromaContours(ctx, width, height, fixedLightness, viewMaxC, targetGamut)
     if (targetGamut === 'p3') drawHueChromaContours(ctx, width, height, fixedLightness, viewMaxC, 'srgb', true)
+    for (const mapping of mappings) {
+      drawMappingLine(
+        ctx,
+        hueChromaPoint(source, fixedLightness, viewMaxC, width, height),
+        hueChromaPoint(mapping.result.color, fixedLightness, viewMaxC, width, height),
+        mapping.stroke,
+      )
+    }
     drawHueChromaMarker(ctx, source, fixedLightness, viewMaxC, width, height, 'Source', '#111111')
-    drawHueChromaMarker(ctx, result, fixedLightness, viewMaxC, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
+    for (const mapping of mappings) {
+      drawHueChromaMarker(ctx, mapping.result.color, fixedLightness, viewMaxC, width, height, mapping.label, mapping.stroke)
+    }
 
     ctx.fillStyle = '#6f6f6a'
     ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
@@ -629,11 +619,138 @@
     ctx.fillText(`${targetGamutLabel(targetGamut)} boundary`, 16, height - 16)
   }
 
+
+  function drawGamutTriangle(canvas, source, mappings, targetGamut) {
+    const prepared = preparePixelCanvas(canvas, targetGamut)
+    const { ctx, width, height, pixelWidth, pixelHeight, ratio } = prepared
+    const fixedHue = normalizeHue(source.h)
+    const frame = getTriangleFrame(pixelWidth, pixelHeight)
+    const data = new Uint8ClampedArray(pixelWidth * pixelHeight * 4)
+    let offset = 0
+
+    for (let y = 0; y < pixelHeight; y += 1) {
+      for (let x = 0; x < pixelWidth; x += 1) {
+        const point = trianglePointToOklch(x, y, frame, fixedHue, targetGamut)
+        if (!point) {
+          data[offset] = 246
+          data[offset + 1] = 246
+          data[offset + 2] = 243
+          data[offset + 3] = 255
+        } else {
+          writeOklchSample(data, offset, point.l, point.c, point.h, targetGamut, prepared.colorSpace)
+        }
+        offset += 4
+      }
+    }
+
+    drawCanvasBackground(ctx, pixelWidth, pixelHeight)
+    putPlaneImage(ctx, createImageData(data, pixelWidth, pixelHeight, prepared.colorSpace))
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    const displayFrame = getTriangleFrame(width, height)
+    drawTriangleFrame(ctx, displayFrame, targetGamut)
+    for (const mapping of mappings) {
+      drawMappingLine(
+        ctx,
+        triangleMarkerPoint(source, fixedHue, targetGamut, displayFrame),
+        triangleMarkerPoint(mapping.result.color, fixedHue, targetGamut, displayFrame),
+        mapping.stroke,
+      )
+    }
+    drawTriangleMarker(ctx, source, fixedHue, targetGamut, displayFrame, 'Source', '#111111')
+    for (const mapping of mappings) {
+      drawTriangleMarker(ctx, mapping.result.color, fixedHue, targetGamut, displayFrame, mapping.label, mapping.stroke)
+    }
+
+    ctx.fillStyle = '#6f6f6a'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(`H ${fixedHue.toFixed(1)} deg`, 16, 24)
+    ctx.fillText(`${targetGamutLabel(targetGamut)} triangle`, 16, height - 16)
+  }
+
+  function getTriangleFrame(width, height) {
+    const marginX = Math.max(24, width * 0.07)
+    const marginTop = Math.max(28, height * 0.06)
+    const marginBottom = Math.max(38, height * 0.08)
+    return {
+      x: marginX,
+      y: marginTop,
+      width: Math.max(1, width - marginX * 2),
+      height: Math.max(1, height - marginTop - marginBottom),
+    }
+  }
+
+  function trianglePointToOklch(x, y, frame, hue, targetGamut) {
+    const px = (x - frame.x) / frame.width
+    const py = 1 - (y - frame.y) / frame.height
+    if (px < 0 || px > 1 || py < 0 || py > 1) return null
+
+    const halfWidth = (1 - py) * 0.5
+    const left = 0.5 - halfWidth
+    const right = 0.5 + halfWidth
+    if (px < left || px > right) return null
+
+    const l = py > 0.999 ? 0.5 : clamp((px - left) / Math.max(0.001, right - left), 0, 1)
+    const cMax = oklch_chroma_max(l, hue, targetGamut) || 0
+    return { l, c: py * cMax, h: hue }
+  }
+
+  function drawTriangleFrame(ctx, frame, targetGamut) {
+    const apex = { x: frame.x + frame.width * 0.5, y: frame.y }
+    const left = { x: frame.x, y: frame.y + frame.height }
+    const right = { x: frame.x + frame.width, y: frame.y + frame.height }
+
+    ctx.save()
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 3
+    ctx.shadowColor = 'rgb(0 0 0 / 0.28)'
+    ctx.shadowBlur = 4
+    ctx.beginPath()
+    ctx.moveTo(apex.x, apex.y)
+    ctx.lineTo(right.x, right.y)
+    ctx.lineTo(left.x, left.y)
+    ctx.closePath()
+    ctx.stroke()
+
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = 'rgb(20 20 20 / 0.18)'
+    ctx.lineWidth = 1
+    for (let index = 1; index < 5; index += 1) {
+      const t = index / 5
+      ctx.beginPath()
+      ctx.moveTo(frame.x + frame.width * (0.5 - (1 - t) * 0.5), frame.y + frame.height * (1 - t))
+      ctx.lineTo(frame.x + frame.width * (0.5 + (1 - t) * 0.5), frame.y + frame.height * (1 - t))
+      ctx.stroke()
+    }
+
+    ctx.fillStyle = 'rgb(20 20 20 / 0.66)'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText('Black', left.x + 4, left.y - 12)
+    ctx.fillText('White', right.x - 54, right.y - 12)
+    ctx.fillText(targetGamutLabel(targetGamut), frame.x + frame.width - 86, frame.y + 18)
+    ctx.restore()
+  }
+
+  function drawTriangleMarker(ctx, color, fixedHue, targetGamut, frame, label, fill) {
+    const point = triangleMarkerPoint(color, fixedHue, targetGamut, frame)
+    drawMarker(ctx, point.x, point.y, label, fill, Math.abs(normalizeHue(color.h) - fixedHue) > 0.01 ? 'fixed H' : '')
+  }
+
+  function triangleMarkerPoint(color, fixedHue, targetGamut, frame) {
+    const l = clamp(color.l, 0, 1)
+    const cMax = oklch_chroma_max(l, fixedHue, targetGamut) || 0.001
+    const y = clamp(color.c / cMax, 0, 1)
+    const left = 0.5 - (1 - y) * 0.5
+    const right = 0.5 + (1 - y) * 0.5
+    const x = left + l * (right - left)
+    return { x: frame.x + x * frame.width, y: frame.y + (1 - y) * frame.height }
+  }
+
   function drawLightnessChromaSlice(canvas, source, result, targetGamut) {
     const prepared = preparePixelCanvas(canvas, targetGamut)
     const { ctx, width, height, pixelWidth, pixelHeight, ratio } = prepared
     const fixedHue = normalizeHue(source.h)
-    const viewMaxC = getLightnessSliceMaxChroma(fixedHue, targetGamut, source.c, result.c)
+    const viewMaxC = getLightnessSliceMaxChroma(fixedHue, targetGamut, source.c, result?.c ?? source.c)
 
     drawCanvasBackground(ctx, pixelWidth, pixelHeight)
     putPlaneImage(ctx, buildLightnessChromaPlane(pixelWidth, pixelHeight, fixedHue, viewMaxC, targetGamut, prepared.colorSpace))
@@ -643,7 +760,9 @@
     drawLightnessChromaContours(ctx, width, height, fixedHue, viewMaxC, targetGamut)
     if (targetGamut === 'p3') drawLightnessChromaContours(ctx, width, height, fixedHue, viewMaxC, 'srgb', true)
     drawLightnessChromaMarker(ctx, source, fixedHue, viewMaxC, width, height, 'Source', '#111111')
-    drawLightnessChromaMarker(ctx, result, fixedHue, viewMaxC, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
+    if (result) {
+      drawLightnessChromaMarker(ctx, result, fixedHue, viewMaxC, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
+    }
 
     ctx.fillStyle = '#6f6f6a'
     ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
@@ -810,9 +929,15 @@
   }
 
   function drawHueChromaMarker(ctx, color, fixedLightness, viewMaxC, width, height, label, fill) {
-    const x = (normalizeHue(color.h) / 360) * width
-    const y = height - (clamp(color.c, 0, viewMaxC) / viewMaxC) * height
+    const { x, y } = hueChromaPoint(color, fixedLightness, viewMaxC, width, height)
     drawMarker(ctx, x, y, label, fill, Math.abs(color.l - fixedLightness) > 0.01 ? 'same hue/chroma, different L' : '')
+  }
+
+  function hueChromaPoint(color, _fixedLightness, viewMaxC, width, height) {
+    return {
+      x: (normalizeHue(color.h) / 360) * width,
+      y: height - (clamp(color.c, 0, viewMaxC) / viewMaxC) * height,
+    }
   }
 
   function drawLightnessChromaMarker(ctx, color, fixedHue, viewMaxC, width, height, label, fill) {
@@ -834,7 +959,37 @@
     ctx.fillText(note ? `${label} (${note})` : label, clamp(x + 9, 8, ctx.canvas.width - 120), clamp(y - 9, 16, ctx.canvas.height - 8))
   }
 
-  function drawGamutVolume(canvas, source, result, targetGamut, rotation = { x: 0.58, y: -0.72 }) {
+  function drawMappingLine(ctx, from, to, stroke) {
+    ctx.save()
+    ctx.strokeStyle = stroke
+    ctx.lineWidth = 2
+    ctx.setLineDash([7, 6])
+    ctx.globalAlpha = 0.86
+    ctx.beginPath()
+    ctx.moveTo(from.x, from.y)
+    ctx.lineTo(to.x, to.y)
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.globalAlpha = 1
+
+    const angle = Math.atan2(to.y - from.y, to.x - from.x)
+    ctx.translate(to.x, to.y)
+    ctx.rotate(angle)
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(-8, -4)
+    ctx.lineTo(-8, 4)
+    ctx.closePath()
+    ctx.fillStyle = stroke
+    ctx.fill()
+    ctx.restore()
+  }
+
+  function getMappedColors(mappings) {
+    return mappings.map((mapping) => mapping.result.color).filter(Boolean)
+  }
+
+  function drawGamutVolume(canvas, source, mappings, targetGamut, rotation = { x: 0.58, y: -0.72 }) {
     const { ctx, width, height } = prepareCanvas(canvas)
     ctx.clearRect(0, 0, width, height)
     drawCanvasBackground(ctx, width, height)
@@ -842,8 +997,18 @@
 
     if (targetGamut === 'p3') drawGamutShell(ctx, width, height, 'srgb', rotation, true)
     drawGamutShell(ctx, width, height, targetGamut, rotation, false)
+    for (const mapping of mappings) {
+      drawMappingLine(
+        ctx,
+        projectBoundarySample(source, width, height, rotation),
+        projectBoundarySample(mapping.result.color, width, height, rotation),
+        mapping.stroke,
+      )
+    }
     drawProjectedBoundaryMarker(ctx, source, width, height, 'Source', '#111111', rotation)
-    drawProjectedBoundaryMarker(ctx, result, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111', rotation)
+    for (const mapping of mappings) {
+      drawProjectedBoundaryMarker(ctx, mapping.result.color, width, height, mapping.label, mapping.stroke, rotation)
+    }
 
     ctx.fillStyle = '#6f6f6a'
     ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
@@ -1203,7 +1368,7 @@
   }
 </script>
 
-<style>
+<style is:global>
   .wasm-converter {
     container-type: inline-size;
     display: grid;
@@ -1484,6 +1649,52 @@
     color: #ffffff;
   }
 
+
+
+  .converter-shell {
+    display: grid;
+    gap: clamp(1rem, 2vw, 1.5rem);
+    min-width: 0;
+  }
+
+  .converter-results {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    gap: clamp(1rem, 2vw, 1.5rem);
+    min-width: 0;
+  }
+
+  .view-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    color: #555555;
+    font-size: 0.86rem;
+  }
+
+  .view-switch > span {
+    color: #777777;
+    font-size: 0.78rem;
+    text-align: left;
+  }
+
+  .view-switch button {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: #555555;
+    cursor: pointer;
+    font-weight: 780;
+    padding: 0.35rem 0.1rem 0.28rem;
+  }
+
+  .view-switch button.is-active {
+    border-color: #111111;
+    background: transparent;
+    color: #111111;
+  }
+
   .gamut-panel-secondary canvas {
     height: 300px;
   }
@@ -1636,7 +1847,8 @@
   @container (max-width: 980px) {
     .converter-workbench,
     .converter-detail-grid,
-    .converter-output {
+    .converter-output,
+    .converter-results {
       grid-template-columns: 1fr;
     }
 
