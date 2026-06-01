@@ -13,13 +13,13 @@ This playground is not a mock. It loads the generated Rust/WASM bundle and calls
 
 <WasmConverter />
 
-## How to read the views
+## How to read the viewer
 
-The **hue x chroma plane** fixes lightness and maps hue horizontally against chroma vertically. Painted samples are reachable in the selected target gamut. Empty samples are out of gamut. Drag inside the plane to pick a new OKLCH hue and chroma at the current lightness.
+The converter uses one shared gamut viewer so the same source/result state can be inspected without juggling separate panels.
 
-The **lightness x chroma slice** fixes hue and shows how much chroma that hue can hold across the lightness range.
+In **2D**, the viewer fixes lightness and maps hue horizontally against chroma vertically. Painted samples are reachable in the selected target gamut, dimmed samples are outside it, and the labeled contour shows the exact `sRGB` or Display P3 boundary. Drag inside the frame to pick a new OKLCH hue and chroma at the current lightness.
 
-The **sampled gamut boundary** projects RGB cube-face samples into OKLCH. This makes the important constraint visible: gamut is not one global saturation number. A hue can have plenty of room at one lightness and almost none at another.
+In **3D**, the same viewer maps hue around the volume, chroma outward, and lightness vertically. Drag to rotate the space and compare the source point against the mapped result.
 
 ## Expand vs saturate
 

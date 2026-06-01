@@ -1091,3 +1091,398 @@ p { line-height: 1.7; }
     width: 100%;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   2026 color-instrument redesign
+   Flat, non-generic, color-led docs. Spectral color only appears
+   where it is data: swatches, gamut canvases, and code examples.
+   ══════════════════════════════════════════════════════════════ */
+
+:root,
+[data-theme='dark'] {
+  --ok-ink: oklch(0.145 0.018 164);
+  --ok-ink-soft: oklch(0.28 0.018 164);
+  --ok-stone: oklch(0.93 0.018 87);
+  --ok-paper: oklch(0.985 0.006 92);
+  --ok-clay: oklch(0.82 0.075 42);
+  --ok-clay-soft: oklch(0.91 0.045 46);
+  --ok-acid: oklch(0.84 0.22 132);
+  --ok-acid-deep: oklch(0.48 0.16 138);
+  --ok-coral: oklch(0.66 0.19 38);
+
+  --sl-color-accent-low: color-mix(in oklch, var(--ok-acid), var(--ok-ink) 78%);
+  --sl-color-accent: var(--ok-acid-deep);
+  --sl-color-accent-high: var(--ok-acid);
+  --sl-color-white: var(--ok-ink);
+  --sl-color-gray-1: var(--ok-ink);
+  --sl-color-gray-2: oklch(0.24 0.014 164);
+  --sl-color-gray-3: oklch(0.38 0.012 164);
+  --sl-color-gray-4: oklch(0.52 0.01 164);
+  --sl-color-gray-5: oklch(0.76 0.012 88);
+  --sl-color-gray-6: oklch(0.88 0.014 88);
+  --sl-color-gray-7: oklch(0.94 0.012 88);
+  --sl-color-black: var(--ok-stone);
+}
+
+body {
+  background: var(--ok-stone);
+}
+
+.page {
+  background: var(--ok-stone);
+}
+
+.header,
+.sidebar-pane,
+.right-sidebar,
+.mobile-preferences {
+  background: var(--ok-stone) !important;
+  border-color: var(--ok-ink) !important;
+}
+
+.sl-markdown-content {
+  color: var(--ok-ink);
+}
+
+.sl-markdown-content:has(.ok-lab-hero),
+.sl-markdown-content:has(.wasm-converter) {
+  max-width: min(1520px, calc(100vw - 3rem));
+}
+
+.hero::before {
+  display: none;
+}
+
+.ok-lab-hero {
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  min-height: min(900px, calc(100dvh - 8rem));
+  align-content: center;
+}
+
+.ok-lab-copy h2 {
+  max-width: 13ch;
+  color: var(--ok-ink);
+  font-size: clamp(4rem, 12vw, 10.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+.ok-lab-copy p:not(.ok-lab-kicker) {
+  color: var(--ok-ink-soft);
+  font-size: clamp(1.08rem, 1.7vw, 1.38rem);
+}
+
+.ok-lab-kicker {
+  border-color: var(--ok-ink);
+  background: var(--ok-acid);
+  color: var(--ok-ink);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ok-action,
+.ok-action-primary {
+  border: 2px solid var(--ok-ink);
+  border-radius: 12px;
+  background: var(--ok-paper);
+  color: var(--ok-ink);
+  box-shadow: none;
+}
+
+.ok-action-primary,
+.ok-action:hover {
+  background: var(--ok-acid);
+  border-color: var(--ok-ink);
+  color: var(--ok-ink);
+}
+
+.ok-specimen,
+.compiler-flow,
+.ok-bento,
+.token-output,
+.audit-strip div,
+.feature-grid,
+.pipeline-step,
+.install-row,
+.playground-grid,
+.conversion-table,
+.api-table,
+.bench-stat,
+.callout-card {
+  border: 2px solid var(--ok-ink);
+  border-radius: 16px;
+  background: var(--ok-paper);
+  box-shadow: none;
+}
+
+.ok-specimen,
+.ok-bento-large {
+  background: var(--ok-clay-soft);
+}
+
+.ok-specimen::before {
+  display: none;
+}
+
+.ok-specimen-row,
+.compiler-flow div,
+.ok-bento-card,
+.feature-cell,
+.playground-pane,
+.terminal-demo-body {
+  border-color: var(--ok-ink);
+  background: var(--ok-paper);
+  color: var(--ok-ink);
+}
+
+.ok-specimen-row span,
+.compiler-flow strong,
+.ok-bento-card h3,
+.audit-strip strong,
+.feature-cell-title {
+  color: var(--ok-ink);
+}
+
+.ok-specimen-row small,
+.compiler-flow span,
+.ok-bento-card p,
+.audit-strip span,
+.feature-cell-desc {
+  color: var(--ok-ink-soft);
+}
+
+.ok-specimen-meter {
+  border: 2px solid var(--ok-ink);
+  background: var(--ok-clay);
+}
+
+.wasm-converter {
+  color: var(--ok-ink);
+  width: min(1540px, calc(100vw - 4rem)) !important;
+  margin-left: calc((60rem - min(1540px, calc(100vw - 4rem))) / 2) !important;
+  margin-right: calc((60rem - min(1540px, calc(100vw - 4rem))) / 2) !important;
+}
+
+.wasm-converter :global(.sl-markdown-content:has(.wasm-converter)),
+:global(.sl-markdown-content:has(.wasm-converter)) {
+  max-width: min(1560px, calc(100vw - 2rem));
+}
+
+.converter-header h2 {
+  max-width: 13ch;
+  color: var(--ok-ink);
+  font-size: clamp(4.2rem, 11vw, 10rem);
+  letter-spacing: -0.04em;
+}
+
+.converter-header span,
+.converter-header p {
+  color: var(--ok-ink-soft);
+}
+
+.converter-workbench {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.converter-controls {
+  position: static;
+  grid-template-columns: minmax(280px, 1.2fr) minmax(320px, 1fr) minmax(320px, 1.2fr);
+  align-items: stretch;
+}
+
+.converter-panel,
+.gamut-panel {
+  border: 2px solid var(--ok-ink);
+  border-radius: 18px;
+  background: var(--ok-paper);
+  box-shadow: none;
+}
+
+.gamut-panel-primary canvas {
+  min-height: 620px;
+  height: min(68vw, 760px);
+  border: 2px solid var(--ok-ink);
+  border-radius: 14px;
+}
+
+.converter-field input[type='text'],
+.converter-field select,
+.converter-color-picker input {
+  border: 2px solid var(--ok-ink);
+  border-radius: 10px;
+  background: var(--ok-paper);
+  color: var(--ok-ink);
+}
+
+.converter-mode-group,
+.view-toggle {
+  border: 2px solid var(--ok-ink);
+  border-radius: 12px;
+  background: var(--ok-stone);
+}
+
+.converter-mode-group button,
+.view-toggle button {
+  border-radius: 8px;
+}
+
+.converter-mode-group button.is-active,
+.view-toggle button.is-active {
+  background: var(--ok-acid);
+  color: var(--ok-ink);
+  box-shadow: none;
+}
+
+.converter-mode-group button.is-active strong {
+  color: var(--ok-ink);
+}
+
+.channel-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 2px solid var(--ok-ink);
+  border-radius: 14px;
+  background: var(--ok-clay-soft);
+}
+
+.channel-panel label {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.channel-panel span {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--ok-ink);
+  font-size: 0.82rem;
+  font-weight: 780;
+}
+
+.channel-panel b {
+  font-family: var(--__sl-font-mono, 'Cascadia Code', monospace);
+  font-size: 1rem;
+}
+
+.channel-panel input,
+.converter-range input {
+  accent-color: var(--ok-acid-deep);
+}
+
+.converter-status {
+  border: 2px solid var(--ok-ink);
+  background: var(--ok-acid);
+  color: var(--ok-ink);
+}
+
+.converter-output {
+  grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+}
+
+.swatch-card,
+.contrast-feedback,
+.converter-css-block pre,
+.converter-readout div {
+  border-color: var(--ok-ink);
+}
+
+@media (max-width: 1180px) {
+  .converter-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .gamut-panel-primary canvas {
+    min-height: 460px;
+  }
+}
+
+body:has(.wasm-converter) .right-sidebar-container {
+  display: none !important;
+}
+
+body:has(.wasm-converter) {
+  --sl-sidebar-width: 0px !important;
+}
+
+body:has(.wasm-converter) .sidebar {
+  display: none !important;
+}
+
+body:has(.wasm-converter) .main-pane {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body:has(.wasm-converter) .main-frame {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+}
+
+body:has(.wasm-converter) .content-panel,
+body:has(.wasm-converter) .content-panel > .sl-container,
+body:has(.wasm-converter) .sl-markdown-content {
+  max-width: none !important;
+}
+
+body:has(.wasm-converter) .content-panel > .sl-container {
+  width: min(1540px, calc(100vw - 4rem)) !important;
+  margin-inline: auto !important;
+}
+
+body:has(.wasm-converter) .converter-controls {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.9rem !important;
+  overflow: visible !important;
+}
+
+body:has(.wasm-converter) .converter-workbench {
+  display: grid !important;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr) !important;
+  align-items: start !important;
+}
+
+body:has(.wasm-converter) .converter-main {
+  min-width: 0 !important;
+}
+
+body:has(.wasm-converter) .converter-field-primary,
+body:has(.wasm-converter) .converter-picker-row {
+  align-self: stretch !important;
+}
+
+body:has(.wasm-converter) .converter-mode-group,
+body:has(.wasm-converter) .channel-panel,
+body:has(.wasm-converter) .converter-row,
+body:has(.wasm-converter) .converter-status {
+  min-width: 0 !important;
+}
+
+body:has(.wasm-converter) .converter-row {
+  grid-template-columns: minmax(150px, 0.72fr) minmax(180px, 1fr) !important;
+}
+
+body:has(.wasm-converter) .gamut-panel-primary canvas {
+  min-height: 640px !important;
+  height: min(62vw, 780px) !important;
+}
+
+body:has(.wasm-converter) .converter-output {
+  grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.28fr) !important;
+}
+
+@media (max-width: 1240px) {
+  body:has(.wasm-converter) .content-panel > .sl-container {
+    width: min(100%, calc(100vw - 4rem)) !important;
+  }
+
+  body:has(.wasm-converter) .converter-controls,
+  body:has(.wasm-converter) .converter-workbench,
+  body:has(.wasm-converter) .converter-output {
+    grid-template-columns: 1fr !important;
+  }
+}

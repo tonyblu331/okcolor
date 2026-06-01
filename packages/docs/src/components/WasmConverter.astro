@@ -19,7 +19,7 @@
         </label>
         <div class="converter-examples" aria-label="Example colors">
           <button type="button" data-example="#ff5a00">Orange</button>
-          <button type="button" data-example="rebeccapurple">Purple</button>
+          <button type="button" data-example="oklch(78% 0.18 132)">Acid</button>
           <button type="button" data-example="oklch(70% 0.22 145)">OKLCH</button>
         </div>
       </div>
@@ -33,6 +33,21 @@
           <strong>Saturate</strong>
           <span>Boost chroma, then fit</span>
         </button>
+      </div>
+
+      <div class="channel-panel" aria-label="OKLCH channel controls">
+        <label>
+          <span>Lightness <b data-lightness-label>68%</b></span>
+          <input data-lightness-range type="range" min="0" max="1" step="0.001" value="0.681" />
+        </label>
+        <label>
+          <span>Chroma <b data-chroma-label>0.214</b></span>
+          <input data-chroma-range type="range" min="0" max="0.42" step="0.001" value="0.214" />
+        </label>
+        <label>
+          <span>Hue <b data-hue-label>41°</b></span>
+          <input data-hue-range type="range" min="0" max="360" step="0.1" value="40.6" />
+        </label>
       </div>
 
       <div class="converter-row">
@@ -55,10 +70,16 @@
     <main class="converter-main" aria-label="Color conversion result and gamut views">
       <figure class="gamut-panel gamut-panel-primary">
         <figcaption>
-          <strong>Hue x chroma plane</strong>
-          <span>Fixed lightness. Unavailable samples are masked.</span>
+          <div>
+            <strong data-view-title>2D gamut frame</strong>
+            <span data-view-description>Fixed lightness with a labeled gamut boundary.</span>
+          </div>
+          <div class="view-toggle" aria-label="Gamut viewer mode">
+            <button type="button" class="is-active" data-view-button="2d" aria-pressed="true">2D</button>
+            <button type="button" data-view-button="3d" aria-pressed="false">3D</button>
+          </div>
         </figcaption>
-        <canvas data-gamut-2d aria-label="Hue by chroma OKLCH plane"></canvas>
+        <canvas data-gamut-view aria-label="Interactive OKLCH gamut viewer"></canvas>
       </figure>
 
       <section class="converter-panel converter-output" aria-label="Converted color output">
@@ -105,23 +126,7 @@
         </div>
       </section>
 
-      <div class="converter-detail-grid">
-        <figure class="gamut-panel gamut-panel-secondary">
-          <figcaption>
-            <strong>Lightness x chroma slice</strong>
-            <span>Fixed hue from the current color.</span>
-          </figcaption>
-          <canvas data-gamut-lc aria-label="Lightness by chroma OKLCH slice"></canvas>
-        </figure>
-
-        <figure class="gamut-panel gamut-panel-secondary">
-          <figcaption>
-            <strong>Sampled gamut boundary</strong>
-            <span>RGB cube faces projected into OKLCH.</span>
-          </figcaption>
-          <canvas data-gamut-3d aria-label="Sampled 3D OKLCH gamut boundary"></canvas>
-        </figure>
-
+      <div class="converter-detail-grid converter-detail-grid-single">
         <div class="converter-panel converter-css-block">
           <div>
             <span>CSS output</span>
@@ -159,6 +164,12 @@
       gamut: root.querySelector('[data-gamut-select]'),
       strength: root.querySelector('[data-strength]'),
       strengthLabel: root.querySelector('[data-strength-label]'),
+      lightnessRange: root.querySelector('[data-lightness-range]'),
+      chromaRange: root.querySelector('[data-chroma-range]'),
+      hueRange: root.querySelector('[data-hue-range]'),
+      lightnessLabel: root.querySelector('[data-lightness-label]'),
+      chromaLabel: root.querySelector('[data-chroma-label]'),
+      hueLabel: root.querySelector('[data-hue-label]'),
       status: root.querySelector('[data-status]'),
       sourceSwatch: root.querySelector('[data-source-swatch]'),
       resultSwatch: root.querySelector('[data-result-swatch]'),
@@ -171,9 +182,10 @@
       contrastNote: root.querySelector('[data-contrast-note]'),
       cssOutput: root.querySelector('[data-css-output]'),
       copyOutput: root.querySelector('[data-copy-output]'),
-      canvas2d: root.querySelector('[data-gamut-2d]'),
-      canvasLc: root.querySelector('[data-gamut-lc]'),
-      canvas3d: root.querySelector('[data-gamut-3d]'),
+      canvasView: root.querySelector('[data-gamut-view]'),
+      viewTitle: root.querySelector('[data-view-title]'),
+      viewDescription: root.querySelector('[data-view-description]'),
+      viewButtons: root.querySelectorAll('[data-view-button]'),
       examples: root.querySelectorAll('[data-example]'),
     }
 
@@ -183,6 +195,10 @@
       lastCss: '',
       lastResult: null,
       isDraggingGamut: false,
+      viewMode: '2d',
+      isRotatingVolume: false,
+      volumePointer: null,
+      volumeRotation: { x: 0.58, y: -0.72 },
     }
 
     bindConverterEvents(elements, state, render)
@@ -200,9 +216,7 @@
       const observer = new ResizeObserver(() => {
         window.requestAnimationFrame(render)
       })
-      observer.observe(elements.canvas2d)
-      observer.observe(elements.canvasLc)
-      observer.observe(elements.canvas3d)
+      observer.observe(elements.canvasView)
     }
 
     function render() {
@@ -230,9 +244,7 @@
         elements.sourceSwatch.style.background = 'transparent'
         elements.resultSwatch.style.background = 'transparent'
         elements.cssOutput.textContent = '/* Enter a supported CSS color. */'
-        clearCanvas(elements.canvas2d)
-        clearCanvas(elements.canvasLc)
-        clearCanvas(elements.canvas3d)
+        clearCanvas(elements.canvasView)
         return
       }
 
@@ -241,6 +253,8 @@
         setStatus(elements, 'The engine returned an OKLCH value that this demo could not parse.', 'error')
         return
       }
+
+      syncChannelControls(elements, source)
 
       const result = transformColor(source, targetGamut, strength, state.mode)
       const resultCss = formatOklch(result.color)
@@ -256,19 +270,22 @@
       elements.oklchOutput.textContent = oklchCss
       elements.resultOutput.textContent = resultCss
       elements.fallbackOutput.textContent = resultFallback
-      elements.gamutOutput.textContent = `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'}, result ${resultInTarget ? 'inside' : 'outside'} Â· Cmax ${formatMetric(result.cMax)}`
+      elements.gamutOutput.textContent = `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'}, result ${resultInTarget ? 'inside' : 'outside'} · Cmax ${formatMetric(result.cMax)}`
       elements.contrastChoice.textContent = contrast.foreground
       elements.contrastRatio.textContent = `${contrast.ratio.toFixed(2)}:1`
-      elements.contrastNote.textContent = `${contrast.status} for normal text against ${contrast.foreground.toLowerCase()} foreground. White ${contrast.whiteRatio.toFixed(2)}:1 Â· black ${contrast.blackRatio.toFixed(2)}:1.`
+      elements.contrastNote.textContent = `${contrast.status} for normal text against ${contrast.foreground.toLowerCase()} foreground. White ${contrast.whiteRatio.toFixed(2)}:1 · black ${contrast.blackRatio.toFixed(2)}:1.`
       elements.cssOutput.textContent = state.lastCss
       elements.sourceSwatch.style.background = oklchCss
       elements.resultSwatch.style.background = resultCss
 
       syncPicker(elements, fallbackCss)
       setStatus(elements, result.neutralSkipped ? 'Neutral color detected: chroma expansion skipped to preserve gray intent.' : `Converted and ${modeLabel} through WASM.`, 'ready')
-      drawGamutSlice(elements.canvas2d, source, result.color, targetGamut)
-      drawLightnessChromaSlice(elements.canvasLc, source, result.color, targetGamut)
-      drawGamutVolume(elements.canvas3d, source, result.color, targetGamut)
+      syncViewerCopy(elements, state.viewMode)
+      if (state.viewMode === '3d') {
+        drawGamutVolume(elements.canvasView, source, result.color, targetGamut, state.volumeRotation)
+      } else {
+        drawGamutSlice(elements.canvasView, source, result.color, targetGamut)
+      }
     }
   }
 
@@ -280,22 +297,66 @@
     })
     elements.gamut.addEventListener('change', render)
     elements.strength.addEventListener('input', render)
-    elements.canvas2d.addEventListener('pointerdown', (event) => {
+    elements.lightnessRange.addEventListener('input', () => {
+      updateInputFromChannels(elements)
+      render()
+    })
+    elements.chromaRange.addEventListener('input', () => {
+      updateInputFromChannels(elements)
+      render()
+    })
+    elements.hueRange.addEventListener('input', () => {
+      updateInputFromChannels(elements)
+      render()
+    })
+    elements.canvasView.addEventListener('pointerdown', (event) => {
+      if (state.viewMode === '3d') {
+        state.isRotatingVolume = true
+        state.volumePointer = { x: event.clientX, y: event.clientY }
+        safelySetPointerCapture(elements.canvasView, event.pointerId)
+        return
+      }
       state.isDraggingGamut = true
-      safelySetPointerCapture(elements.canvas2d, event.pointerId)
+      safelySetPointerCapture(elements.canvasView, event.pointerId)
       pickFromGamut(event, elements, render)
     })
-    elements.canvas2d.addEventListener('pointermove', (event) => {
+    elements.canvasView.addEventListener('pointermove', (event) => {
+      if (state.viewMode === '3d') {
+        if (!state.isRotatingVolume || !state.volumePointer) return
+        const dx = event.clientX - state.volumePointer.x
+        const dy = event.clientY - state.volumePointer.y
+        state.volumePointer = { x: event.clientX, y: event.clientY }
+        state.volumeRotation.y += dx * 0.012
+        state.volumeRotation.x = clamp(state.volumeRotation.x + dy * 0.012, -1.25, 1.25)
+        render()
+        return
+      }
       if (!state.isDraggingGamut) return
       pickFromGamut(event, elements, render)
     })
-    elements.canvas2d.addEventListener('pointerup', (event) => {
+    elements.canvasView.addEventListener('pointerup', (event) => {
       state.isDraggingGamut = false
-      safelyReleasePointerCapture(elements.canvas2d, event.pointerId)
+      state.isRotatingVolume = false
+      state.volumePointer = null
+      safelyReleasePointerCapture(elements.canvasView, event.pointerId)
     })
-    elements.canvas2d.addEventListener('pointercancel', () => {
+    elements.canvasView.addEventListener('pointercancel', () => {
       state.isDraggingGamut = false
+      state.isRotatingVolume = false
+      state.volumePointer = null
     })
+
+    for (const button of elements.viewButtons) {
+      button.addEventListener('click', () => {
+        state.viewMode = button.dataset.viewButton
+        for (const candidate of elements.viewButtons) {
+          const active = candidate === button
+          candidate.classList.toggle('is-active', active)
+          candidate.setAttribute('aria-pressed', active ? 'true' : 'false')
+        }
+        render()
+      })
+    }
 
     for (const button of elements.modeButtons) {
       button.addEventListener('click', () => {
@@ -353,7 +414,7 @@
     const current = parseOklch(convert_color(elements.input.value.trim(), 'oklch') || '')
     if (!current) return
 
-    const pick = pickHueChromaFromCanvas(elements.canvas2d, event, current.l, elements.gamut.value)
+    const pick = pickHueChromaFromCanvas(elements.canvasView, event, current.l, elements.gamut.value)
     elements.input.value = formatOklch(pick)
     render()
   }
@@ -475,9 +536,41 @@
     }
   }
 
+  function syncChannelControls(elements, color) {
+    elements.lightnessRange.value = String(clamp(color.l, 0, 1))
+    elements.chromaRange.value = String(clamp(color.c, 0, 0.42))
+    elements.hueRange.value = String(normalizeHue(color.h))
+    elements.lightnessLabel.textContent = `${Math.round(color.l * 100)}%`
+    elements.chromaLabel.textContent = color.c.toFixed(3)
+    elements.hueLabel.textContent = `${normalizeHue(color.h).toFixed(1)}°`
+  }
+
+  function updateInputFromChannels(elements) {
+    elements.input.value = formatOklch({
+      l: Number(elements.lightnessRange.value),
+      c: Number(elements.chromaRange.value),
+      h: Number(elements.hueRange.value),
+    })
+  }
+
   function setStatus(elements, message, kind) {
     elements.status.textContent = message
     elements.status.dataset.kind = kind
+  }
+
+  function syncViewerCopy(elements, viewMode) {
+    if (viewMode === '3d') {
+      elements.viewTitle.textContent = '3D gamut volume'
+      elements.viewDescription.textContent = 'Drag to rotate hue, chroma, and lightness in OKLCH space.'
+      elements.canvasView.dataset.viewMode = '3d'
+      elements.canvasView.setAttribute('aria-label', 'Rotatable 3D OKLCH gamut volume')
+      return
+    }
+
+    elements.viewTitle.textContent = '2D gamut frame'
+    elements.viewDescription.textContent = 'Fixed lightness with a labeled gamut boundary.'
+    elements.canvasView.dataset.viewMode = '2d'
+    elements.canvasView.setAttribute('aria-label', 'Hue by chroma OKLCH plane with gamut boundary')
   }
 
   function targetGamutLabel(value) {
@@ -525,13 +618,15 @@
 
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     drawRectangularGrid(ctx, width, height, 'Hue', 'Chroma')
+    drawHueChromaContours(ctx, width, height, fixedLightness, viewMaxC, targetGamut)
+    if (targetGamut === 'p3') drawHueChromaContours(ctx, width, height, fixedLightness, viewMaxC, 'srgb', true)
     drawHueChromaMarker(ctx, source, fixedLightness, viewMaxC, width, height, 'Source', '#111111')
     drawHueChromaMarker(ctx, result, fixedLightness, viewMaxC, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
 
     ctx.fillStyle = '#6f6f6a'
     ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
     ctx.fillText(`L ${(fixedLightness * 100).toFixed(1)}%`, 16, 24)
-    ctx.fillText(`${targetGamutLabel(targetGamut)} reachable samples`, 16, height - 16)
+    ctx.fillText(`${targetGamutLabel(targetGamut)} boundary`, 16, height - 16)
   }
 
   function drawLightnessChromaSlice(canvas, source, result, targetGamut) {
@@ -545,12 +640,15 @@
 
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     drawRectangularGrid(ctx, width, height, 'Lightness', 'Chroma')
+    drawLightnessChromaContours(ctx, width, height, fixedHue, viewMaxC, targetGamut)
+    if (targetGamut === 'p3') drawLightnessChromaContours(ctx, width, height, fixedHue, viewMaxC, 'srgb', true)
     drawLightnessChromaMarker(ctx, source, fixedHue, viewMaxC, width, height, 'Source', '#111111')
     drawLightnessChromaMarker(ctx, result, fixedHue, viewMaxC, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
 
     ctx.fillStyle = '#6f6f6a'
     ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
     ctx.fillText(`H ${fixedHue.toFixed(1)} deg`, 16, 24)
+    ctx.fillText(`${targetGamutLabel(targetGamut)} boundary`, 16, height - 16)
   }
 
   function putPlaneImage(ctx, imageData) {
@@ -594,10 +692,10 @@
     const reachable = isRgbInGamut(target)
 
     if (!reachable) {
-      data[offset] = 250
-      data[offset + 1] = 250
-      data[offset + 2] = 248
-      data[offset + 3] = 0
+      data[offset] = 238
+      data[offset + 1] = 238
+      data[offset + 2] = 232
+      data[offset + 3] = 96
       return
     }
 
@@ -607,6 +705,79 @@
     data[offset + 1] = encoded.g
     data[offset + 2] = encoded.b
     data[offset + 3] = 255
+  }
+
+  function drawHueChromaContours(ctx, width, height, lightness, viewMaxC, targetGamut, muted = false) {
+    const grid = buildContourGrid(96, 52, (x, y) => {
+      const hue = (x / 96) * 360
+      const chroma = (1 - y / 52) * viewMaxC
+      return oklch_in_gamut(lightness, chroma, hue, targetGamut)
+    })
+    drawContourGrid(ctx, grid, width, height, targetGamut, muted)
+  }
+
+  function drawLightnessChromaContours(ctx, width, height, hue, viewMaxC, targetGamut, muted = false) {
+    const grid = buildContourGrid(80, 52, (x, y) => {
+      const lightness = x / 80
+      const chroma = (1 - y / 52) * viewMaxC
+      return oklch_in_gamut(lightness, chroma, hue, targetGamut)
+    })
+    drawContourGrid(ctx, grid, width, height, targetGamut, muted)
+  }
+
+  function buildContourGrid(columns, rows, sample) {
+    const values = []
+    for (let y = 0; y <= rows; y += 1) {
+      const row = []
+      for (let x = 0; x <= columns; x += 1) {
+        row.push(Boolean(sample(x, y)))
+      }
+      values.push(row)
+    }
+    return { columns, rows, values }
+  }
+
+  function drawContourGrid(ctx, grid, width, height, targetGamut, muted) {
+    const cellWidth = width / grid.columns
+    const cellHeight = height / grid.rows
+
+    ctx.save()
+    ctx.strokeStyle = muted ? 'rgb(20 20 20 / 0.42)' : '#ffffff'
+    ctx.lineWidth = muted ? 1.2 : 3.2
+    ctx.shadowColor = muted ? 'transparent' : 'rgb(0 0 0 / 0.34)'
+    ctx.shadowBlur = muted ? 0 : 4
+    ctx.beginPath()
+
+    for (let y = 0; y < grid.rows; y += 1) {
+      for (let x = 0; x < grid.columns; x += 1) {
+        const topLeft = grid.values[y][x]
+        const topRight = grid.values[y][x + 1]
+        const bottomRight = grid.values[y + 1][x + 1]
+        const bottomLeft = grid.values[y + 1][x]
+
+        const points = []
+        if (topLeft !== topRight) points.push({ x: x + 0.5, y })
+        if (topRight !== bottomRight) points.push({ x: x + 1, y: y + 0.5 })
+        if (bottomLeft !== bottomRight) points.push({ x: x + 0.5, y: y + 1 })
+        if (topLeft !== bottomLeft) points.push({ x, y: y + 0.5 })
+
+        for (let index = 0; index + 1 < points.length; index += 2) {
+          ctx.moveTo(points[index].x * cellWidth, points[index].y * cellHeight)
+          ctx.lineTo(points[index + 1].x * cellWidth, points[index + 1].y * cellHeight)
+        }
+      }
+    }
+
+    ctx.stroke()
+    ctx.shadowBlur = 0
+
+    const label = targetGamutLabel(targetGamut)
+    const labelX = muted ? width - 86 : width - 74
+    const labelY = muted ? 36 : height - 34
+    ctx.fillStyle = muted ? 'rgb(20 20 20 / 0.56)' : 'rgb(20 20 20 / 0.78)'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(label, labelX, labelY)
+    ctx.restore()
   }
 
   function drawRectangularGrid(ctx, width, height, xLabel, yLabel) {
@@ -663,26 +834,95 @@
     ctx.fillText(note ? `${label} (${note})` : label, clamp(x + 9, 8, ctx.canvas.width - 120), clamp(y - 9, 16, ctx.canvas.height - 8))
   }
 
-  function drawGamutVolume(canvas, source, result, targetGamut) {
+  function drawGamutVolume(canvas, source, result, targetGamut, rotation = { x: 0.58, y: -0.72 }) {
     const { ctx, width, height } = prepareCanvas(canvas)
     ctx.clearRect(0, 0, width, height)
     drawCanvasBackground(ctx, width, height)
     drawBoundaryGrid(ctx, width, height)
 
-    const targetSamples = buildGamutBoundarySamples(targetGamut, 18)
-    const referenceSamples = targetGamut === 'p3' ? buildGamutBoundarySamples('srgb', 14) : []
-
-    drawBoundarySamples(ctx, referenceSamples, width, height, 0.35, true)
-    drawBoundarySamples(ctx, targetSamples, width, height, 0.88, false)
-    drawProjectedBoundaryMarker(ctx, source, width, height, 'Source', '#111111')
-    drawProjectedBoundaryMarker(ctx, result, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
+    if (targetGamut === 'p3') drawGamutShell(ctx, width, height, 'srgb', rotation, true)
+    drawGamutShell(ctx, width, height, targetGamut, rotation, false)
+    drawProjectedBoundaryMarker(ctx, source, width, height, 'Source', '#111111', rotation)
+    drawProjectedBoundaryMarker(ctx, result, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111', rotation)
 
     ctx.fillStyle = '#6f6f6a'
     ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
-    ctx.fillText(targetGamutLabel(targetGamut), 16, 24)
+    ctx.fillText(`${targetGamutLabel(targetGamut)} · drag to rotate`, 16, 24)
     ctx.fillText('L', width - 30, 28)
     ctx.fillText('C', width - 56, height - 18)
     ctx.fillText('H', 16, height - 18)
+  }
+
+  function drawGamutShell(ctx, width, height, targetGamut, rotation, muted) {
+    const hueSteps = 36
+    const lightnessSteps = 18
+    const vertices = []
+
+    for (let li = 0; li <= lightnessSteps; li += 1) {
+      const l = 0.02 + (li / lightnessSteps) * 0.96
+      const row = []
+      for (let hi = 0; hi <= hueSteps; hi += 1) {
+        const h = (hi / hueSteps) * 360
+        const c = oklch_chroma_max(l, h, targetGamut) || 0
+        const color = { l, c, h }
+        row.push({
+          color,
+          projected: projectBoundarySample(color, width, height, rotation),
+        })
+      }
+      vertices.push(row)
+    }
+
+    const faces = []
+    for (let li = 0; li < lightnessSteps; li += 1) {
+      for (let hi = 0; hi < hueSteps; hi += 1) {
+        const a = vertices[li][hi]
+        const b = vertices[li][hi + 1]
+        const c = vertices[li + 1][hi + 1]
+        const d = vertices[li + 1][hi]
+        faces.push({
+          points: [a.projected, b.projected, c.projected, d.projected],
+          css: muted ? 'rgb(25 25 25 / 0.13)' : formatOklch(a.color),
+          depth: (a.projected.depth + b.projected.depth + c.projected.depth + d.projected.depth) / 4,
+        })
+      }
+    }
+
+    faces.sort((a, b) => a.depth - b.depth)
+
+    ctx.save()
+    ctx.globalAlpha = muted ? 0.72 : 0.92
+    for (const face of faces) {
+      ctx.beginPath()
+      ctx.moveTo(face.points[0].x, face.points[0].y)
+      ctx.lineTo(face.points[1].x, face.points[1].y)
+      ctx.lineTo(face.points[2].x, face.points[2].y)
+      ctx.lineTo(face.points[3].x, face.points[3].y)
+      ctx.closePath()
+      ctx.fillStyle = face.css
+      ctx.fill()
+    }
+
+    ctx.globalAlpha = muted ? 0.35 : 0.48
+    ctx.strokeStyle = muted ? 'rgb(20 20 20 / 0.35)' : 'rgb(255 255 255 / 0.7)'
+    ctx.lineWidth = muted ? 0.7 : 0.8
+    for (let li = 0; li <= lightnessSteps; li += 3) {
+      drawProjectedPolyline(ctx, vertices[li].map((vertex) => vertex.projected))
+    }
+    for (let hi = 0; hi <= hueSteps; hi += 6) {
+      drawProjectedPolyline(ctx, vertices.map((row) => row[hi].projected))
+    }
+    ctx.restore()
+  }
+
+  function drawProjectedPolyline(ctx, points) {
+    if (points.length < 2) return
+    ctx.beginPath()
+    ctx.moveTo(points[0].x, points[0].y)
+    for (let index = 1; index < points.length; index += 1) {
+      ctx.lineTo(points[index].x, points[index].y)
+    }
+    ctx.stroke()
   }
 
   function drawBoundaryGrid(ctx, width, height) {
@@ -699,9 +939,9 @@
     ctx.restore()
   }
 
-  function drawBoundarySamples(ctx, samples, width, height, alpha, muted) {
+  function drawBoundarySamples(ctx, samples, width, height, alpha, muted, rotation) {
     const projected = samples
-      .map((sample) => ({ ...sample, projected: projectBoundarySample(sample, width, height) }))
+      .map((sample) => ({ ...sample, projected: projectBoundarySample(sample, width, height, rotation) }))
       .sort((a, b) => a.projected.depth - b.projected.depth)
 
     ctx.save()
@@ -715,8 +955,8 @@
     ctx.restore()
   }
 
-  function drawProjectedBoundaryMarker(ctx, color, width, height, label, fill) {
-    const point = projectBoundarySample(color, width, height)
+  function drawProjectedBoundaryMarker(ctx, color, width, height, label, fill, rotation) {
+    const point = projectBoundarySample(color, width, height, rotation)
     drawMarker(ctx, point.x, point.y, label, fill)
   }
 
@@ -744,14 +984,14 @@
     return samples
   }
 
-  function projectBoundarySample(color, width, height) {
+  function projectBoundarySample(color, width, height, rotation = { x: 0.58, y: -0.72 }) {
     const hue = (normalizeHue(color.h) * Math.PI) / 180
     const radius = color.c * 2.9
     const x0 = Math.cos(hue) * radius
     const z0 = Math.sin(hue) * radius
     const y0 = (color.l - 0.5) * 1.25
-    const rotateY = -0.72
-    const rotateX = 0.56
+    const rotateY = rotation.y
+    const rotateX = rotation.x
     const x1 = x0 * Math.cos(rotateY) - z0 * Math.sin(rotateY)
     const z1 = x0 * Math.sin(rotateY) + z0 * Math.cos(rotateY)
     const y1 = y0 * Math.cos(rotateX) - z1 * Math.sin(rotateX)
@@ -1184,9 +1424,14 @@
 
   .gamut-panel figcaption {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
+  }
+
+  .gamut-panel figcaption > div:first-child {
+    display: grid;
+    gap: 0.16rem;
   }
 
   .gamut-panel strong {
@@ -1215,8 +1460,44 @@
     touch-action: none;
   }
 
+  .view-toggle {
+    display: inline-flex;
+    border: 1px solid #d9d9d6;
+    border-radius: 999px;
+    background: #eeeeec;
+    padding: 0.2rem;
+  }
+
+  .view-toggle button {
+    min-width: 48px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #5f5f5b;
+    cursor: pointer;
+    font-weight: 780;
+    padding: 0.45rem 0.7rem;
+  }
+
+  .view-toggle button.is-active {
+    background: #111111;
+    color: #ffffff;
+  }
+
   .gamut-panel-secondary canvas {
     height: 300px;
+  }
+
+  [data-gamut-view] {
+    touch-action: none;
+  }
+
+  [data-gamut-view][data-view-mode='3d'] {
+    cursor: grab;
+  }
+
+  [data-gamut-view]:active {
+    cursor: grabbing;
   }
 
   .converter-output {

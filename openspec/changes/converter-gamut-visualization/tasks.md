@@ -30,6 +30,8 @@ created: 2026-06-01
 - [x] 2.4 Update pointer picking to map rectangular plane x/y to hue/chroma.
 - [x] 2.5 Add a secondary lightness × chroma slice at the current hue.
 - [ ] 2.6 Cache plane output by fixed lightness, target gamut, and canvas size.
+- [x] 2.7 Overlay computed gamut boundary contours on 2D planes.
+- [x] 2.8 Label the active gamut boundary directly in the canvas.
 
 ## Phase 3: Build the 3D sampled boundary renderer
 
@@ -38,15 +40,18 @@ created: 2026-06-01
 - [x] 3.3 Project OKLCH `(h, c, l)` to a stable 3D canvas view.
 - [x] 3.4 Depth-sort points or segments before drawing.
 - [x] 3.5 Draw source/result markers in the same projected coordinate system.
-- [x] 3.6 Add a static camera angle first; add orbit only if the static view is not legible.
+- [x] 3.6 Add a static camera angle first.
+- [x] 3.7 Add pointer-drag rotation for the OKLCH 3D volume.
+- [x] 3.8 Render a connected gamut shell instead of only loose boundary points.
 
 ## Phase 4: UX copy and visual hierarchy
 
 - [x] 4.1 Rename the 2D view to "Hue x chroma plane".
 - [x] 4.2 Rename the secondary view to "Lightness x chroma slice".
-- [x] 4.3 Rename the 3D view to "Sampled gamut boundary".
+- [x] 4.3 Rename the 3D view to "Rotatable 3D gamut".
 - [x] 4.4 Add one sentence explaining sampling and masking.
 - [x] 4.5 Keep styling neutral and tool-like; color belongs inside the maps.
+- [x] 4.6 Consolidate the 2D/3D gamut panels into one viewer with an explicit toggle.
 
 ## Phase 5: Verification
 
