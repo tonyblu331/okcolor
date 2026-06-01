@@ -95,10 +95,22 @@ describe('CLI token compiler argument parsing', () => {
 
   it('parses fail-on gates for token audits', () => {
     expect(
-      parseArgs(['node', 'okcolor', 'audit', 'tokens.json', '--fail-on', 'invalid-css,wcag2-regression']),
+      parseArgs([
+        'node',
+        'okcolor',
+        'audit',
+        'tokens.json',
+        '--fail-on',
+        'invalid-css,wcag2-regression',
+        '--wcag2',
+        'aaa',
+        '--min-contrast=6',
+      ]),
     ).toMatchObject({
       command: 'audit',
       failOn: ['invalid-css', 'wcag2-regression'],
+      wcag2: 'aaa',
+      minContrast: 6,
     })
   })
 

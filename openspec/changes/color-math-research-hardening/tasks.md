@@ -69,3 +69,4 @@ created: 2026-06-01
 - [x] 7.4 Add framework recipes for Astro, SvelteKit, Nuxt, Remix Vite, SolidStart, Qwik, and plain Vite.
 - [x] 7.5 Add report `schemaVersion` before 1.0 so frontend CI integrations can pin contracts.
 - [x] 7.6 Decide whether a future `okcolor/browser` export is needed after the playground proves the browser usage shape.
+- [x] 7.7 Keep frontend-first usage build-time by default: expose WCAG policy overrides through Vite/CLI, document `okcolor/browser` as runtime-tool-only, and verify root/core entrypoints stay isolated from the browser adapter.

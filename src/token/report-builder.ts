@@ -103,12 +103,17 @@ export function collectAuditFailures(reports: CompiledTokenReport[]): CompileAud
           kind: 'wcag2-regression',
           token: report.token,
           target: contrast.target,
-          message: `${report.token} contrast ${key} failed WCAG 2 AA (${contrast.ratio}:1 < ${contrast.required}:1)`,
+          message: `${report.token} contrast ${key} failed ${formatWcagRequirement(contrast.requirement)} (${contrast.ratio}:1 < ${contrast.required}:1)`,
         })
       }
     }
   }
   return failures
+}
+
+function formatWcagRequirement(requirement: string): string {
+  if (requirement === 'custom') return 'custom WCAG 2 gate'
+  return requirement.toUpperCase().replace('WCAG2-', 'WCAG 2 ')
 }
 
 function zeroDelta() {

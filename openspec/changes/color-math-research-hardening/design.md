@@ -24,8 +24,9 @@ scope, not a proof for HDR, print, or all viewing conditions.
 
 ### D2 — WCAG 2.2 is the compliance gate; APCA is advisory
 
-**Decision:** Keep WCAG 2.2 contrast ratio as the blocking compliance gate. Keep APCA
-as advisory report metadata only.
+**Decision:** Keep WCAG 2.2 contrast ratio as the blocking compliance gate, defaulting
+to AA while allowing build-time AAA or custom-ratio overrides. Keep APCA as advisory
+report metadata only.
 
 **Rationale:** WCAG 2.2 defines the current normative contrast ratio gate. WCAG 3 remains
 a draft and states that its contrast algorithm is not yet determined.
@@ -49,7 +50,7 @@ the size/DX tradeoff.
 
 **Decision:** Design `contrastLock` as an explicit contrast invariant over declared token
 pairs. In v1, the compiler MUST NOT silently mutate unrelated hue/chroma/lightness values
-to "make contrast pass." If a generated target breaks the configured WCAG 2 AA pair, the
+to "make contrast pass." If a generated target breaks the configured WCAG 2 pair, the
 report records the failing pair and the CI gate blocks when `wcag2-regression` is enabled.
 
 **Rationale:** Automatic contrast repair sounds helpful, but it hides a product decision:
@@ -63,7 +64,8 @@ the token compiler's current transform path.
   color combination in a design system.
 - The lock is evaluated per output target (`srgb`, `p3`, etc.) because a P3 transform can
   pass or fail independently from the fallback.
-- WCAG 2 AA remains the blocking predicate. APCA may be reported beside it, but MUST NOT
+- WCAG 2 AA is the default blocking predicate, and build-time policy may raise it to AAA
+  or a custom ratio. APCA may be reported beside it, but MUST NOT
   unlock or block a pair by itself.
 - Missing foreground/background tokens are reportable pair-level skips, not passes.
 - If a future repair mode is added, it must be a separate strategy with its own report

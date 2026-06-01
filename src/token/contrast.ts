@@ -1,6 +1,6 @@
 import { oklchRelativeLuminance } from '../wasm.js'
 import { isRecord } from './color.js'
-import type { ApcaContrastResult, Gamut, Oklch, WcagContrastResult } from './types.js'
+import type { ApcaContrastResult, Gamut, Oklch, Wcag2Level, WcagContrastResult } from './types.js'
 
 export interface CompiledColorTargets {
   srgb: CompiledContrastColor
@@ -15,7 +15,14 @@ export interface CompiledContrastColor {
 export interface DeclaredContrastPair {
   background: string
   foreground: string
-  requirement: 'wcag2-aa'
+  requirement: Wcag2Requirement
+}
+
+export type Wcag2Requirement = `wcag2-${Wcag2Level}`
+
+export interface Wcag2AuditPolicy {
+  level?: Wcag2Level
+  requiredRatio?: number
 }
 
 export function extractDeclaredContrastPairs(tokens: Record<string, unknown>): DeclaredContrastPair[] {
@@ -35,12 +42,15 @@ export function auditContrastPair(
   pair: DeclaredContrastPair,
   colors: Record<string, CompiledColorTargets>,
   target: Gamut,
+  policy: Wcag2AuditPolicy = {},
 ): { key: string; wcag2: WcagContrastResult; apca: ApcaContrastResult } | undefined {
   const foreground = colors[pair.foreground]?.[target]
   const background = colors[pair.background]?.[target]
   if (!foreground || !background) return undefined
 
   const ratio = wcagContrastRatio(relativeLuminance(foreground.oklch), relativeLuminance(background.oklch))
+  const requirement = resolveRequirement(pair.requirement, policy)
+  const required = requiredRatio(requirement, policy)
   const key = `${pair.foreground}@${target}`
   return {
     key,
@@ -49,8 +59,9 @@ export function auditContrastPair(
       background: pair.background,
       target,
       ratio,
-      required: requiredRatio(pair.requirement),
-      status: ratio >= requiredRatio(pair.requirement) ? 'pass' : 'fail',
+      required,
+      requirement,
+      status: ratio >= required ? 'pass' : 'fail',
     },
     apca: apcaContrast(
       relativeLuminance(foreground.oklch),
@@ -120,13 +131,29 @@ function relativeLuminance(color: Oklch): number {
   return oklchRelativeLuminance(color.l, color.c, color.h)
 }
 
-function normalizeRequirement(value: unknown): 'wcag2-aa' {
-  return value === 'wcag2-aa' ? 'wcag2-aa' : 'wcag2-aa'
+function normalizeRequirement(value: unknown): Wcag2Requirement {
+  if (value === 'wcag2-aaa') return 'wcag2-aaa'
+  return 'wcag2-aa'
 }
 
-function requiredRatio(requirement: 'wcag2-aa'): number {
+function resolveRequirement(requirement: Wcag2Requirement, policy: Wcag2AuditPolicy): Wcag2Requirement | 'custom' {
+  if (hasCustomRequiredRatio(policy)) return 'custom'
+  if (policy.level === 'aaa') return 'wcag2-aaa'
+  if (policy.level === 'aa') return 'wcag2-aa'
+  return requirement
+}
+
+function requiredRatio(requirement: Wcag2Requirement | 'custom', policy: Wcag2AuditPolicy): number {
+  if (hasCustomRequiredRatio(policy)) {
+    return round(policy.requiredRatio, 2)
+  }
+  if (requirement === 'wcag2-aaa') return 7
   if (requirement === 'wcag2-aa') return 4.5
   return 4.5
+}
+
+function hasCustomRequiredRatio(policy: Wcag2AuditPolicy): policy is Wcag2AuditPolicy & { requiredRatio: number } {
+  return typeof policy.requiredRatio === 'number' && Number.isFinite(policy.requiredRatio) && policy.requiredRatio > 0
 }
 
 function round(value: number, places: number): number {

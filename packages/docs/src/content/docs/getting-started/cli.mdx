@@ -34,11 +34,12 @@ Supported single-color output spaces are `hex`, `rgb`, `hsl`, `hwb`, and `oklch`
 
 ### `okcolor expand <color|tokens.json>`
 
-Preserve OKLCH lightness and hue, then spend part of the Display P3 chroma budget:
+Preserve OKLCH lightness and hue, then use part of the Display P3 chroma headroom:
 
 ```bash
 okcolor expand "#ff5a00" --gamut p3 --amount 0.75
 okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
+okcolor audit ./tokens.json --wcag2 aaa --fail-on wcag2-regression
 ```
 
 Token output is fallback-first: base sRGB custom properties, diagnostic OKLCH variables, then `@media (color-gamut: p3)` overrides.
@@ -63,7 +64,7 @@ okcolor fit "oklch(70% 0.35 145)" --gamut srgb
 
 ### `okcolor describe <color>`
 
-Explain the source OKLCH identity and target gamut budget without mutating the color:
+Explain the source OKLCH identity and target gamut headroom without mutating the color:
 
 ```bash
 okcolor describe "#ff5a00" --gamut p3
@@ -104,9 +105,11 @@ Token contrast is role-pair based. A background token can declare its foreground
 }
 ```
 
-Reports audit both fallback and P3 targets independently, with keys such as `color.action.primary.fg@srgb` and `color.action.primary.fg@p3`. WCAG 2 AA failures are CI-blocking by default; APCA is advisory and reported as an `lc` value, polarity, and `pass-body`/`pass-large`/`fail` hint.
+Reports audit both fallback and P3 targets independently, with keys such as `color.action.primary.fg@srgb` and `color.action.primary.fg@p3`. WCAG 2 AA is the default CI-blocking gate; use the policy flags for AAA or a custom ratio. APCA is advisory and reported as an `lc` value, polarity, and `pass-body`/`pass-large`/`fail` hint.
 
 Token compiler reports include top-level `schemaVersion: 1`. Pin this in CI before reading nested fields so report-contract changes fail loudly instead of corrupting downstream dashboards.
+
+WCAG policy is build-time only. Use `--wcag2 aa`, `--wcag2 aaa`, or `--min-contrast <ratio>` to change the contrast gate without importing runtime JavaScript into your app.
 
 ## Failure modes
 
@@ -117,7 +120,7 @@ okcolor keeps machine data and human diagnostics separate: JSON/CSS output is wr
 | Unknown recipe | CLI stderr, token compiler error | `grade --recipe unknown` and invalid token `okcolor.recipe` values fail with the supported recipe list. Token aliases must be defined in `options.recipes` or use a built-in recipe. |
 | Unsupported color space | `report.diagnostics[]` | Design Token component objects only accept `$value.colorSpace: "srgb"`. Other spaces are skipped with an `unsupported-color-space` warning diagnostic. |
 | Malformed token | `report.diagnostics[]` | Unsupported token shapes or invalid sRGB component arrays are skipped with `unsupported-token-shape` or `invalid-color-components` warning diagnostics. Valid tokens still compile. |
-| Contrast regression | `report.summary.failures[]`, CLI stderr when blocking | Declared foreground/background pairs fail the default gate when WCAG 2 AA is below the required ratio. APCA remains advisory only. |
+| Contrast regression | `report.summary.failures[]`, CLI stderr when blocking | Declared foreground/background pairs fail the configured WCAG 2 gate. APCA remains advisory only. |
 | Missing or unsupported contrast pair endpoint | `report.contrastPairs[]` | If a declared foreground/background token is missing, malformed, lacks a compiled target, or uses alpha, the pair is reported as `skipped` with `missing-background`, `missing-foreground`, `missing-target`, or `alpha-unsupported`. |
 | Out-of-gamut output | `report.summary.failures[]`, CLI stderr when blocking | A target whose generated CSS is invalid, not display-safe, or outside the requested gamut is reported under `invalid-css` or `out-of-gamut`. |
 
@@ -201,6 +204,18 @@ npx okcolor doctor ./src
       <td>
         Comma-separated CI gates: <code>invalid-css</code>, <code>out-of-gamut</code>, <code>wcag2-regression</code>
       </td>
+    </tr>
+    <tr>
+      <td>
+        <code>--wcag2</code> &lt;aa|aaa&gt;
+      </td>
+      <td>Override token WCAG 2 contrast level for token audit and compile gates</td>
+    </tr>
+    <tr>
+      <td>
+        <code>--min-contrast</code> &lt;ratio&gt;
+      </td>
+      <td>Override the required WCAG contrast ratio directly</td>
     </tr>
     <tr>
       <td>

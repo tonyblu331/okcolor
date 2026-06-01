@@ -34,6 +34,12 @@ export interface OkColorOptions {
   /** Audit options for token compiler reports. */
   audit?: {
     failOn?: Array<'invalid-css' | 'out-of-gamut' | 'wcag2-regression'>
+    wcag2?: {
+      /** Override token WCAG level for build-time contrast gates. */
+      level?: 'aa' | 'aaa'
+      /** Override the required WCAG 2 contrast ratio directly. */
+      requiredRatio?: number
+    }
   }
 }
 

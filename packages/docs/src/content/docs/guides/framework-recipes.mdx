@@ -136,6 +136,10 @@ okColor({
   input: 'src/tokens/colors.json',
   output: 'src/styles/colors.css',
   reportPath: 'src/styles/okcolor.report.json',
+  audit: {
+    failOn: ['wcag2-regression'],
+    wcag2: { level: 'aa' },
+  },
   targets: {
     base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
     p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
@@ -149,11 +153,11 @@ Then import the generated CSS once from your app root:
 import './styles/colors.css'
 ```
 
-The generated report starts with `schemaVersion: 1`; check that before reading nested diagnostics or contrast fields in CI.
+The generated report starts with `schemaVersion: 1`; check that before reading nested diagnostics or contrast fields in CI. For stricter gates, use `audit.wcag2.level: 'aaa'`; for a custom product policy, use `audit.wcag2.requiredRatio`.
 
 ## Browser UI recipe
 
-Use `okcolor/browser` only for live browser tools such as color pickers, playgrounds, inspectors, or design-system editors:
+Use `okcolor/browser` only for intentional runtime tools such as color pickers, playgrounds, inspectors, or design-system editors. Do not import this in normal app code just to modernize CSS.
 
 ```ts
 import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
@@ -164,7 +168,7 @@ const oklch = colorToOklch('#ff5a00')
 const css = transformCss('.swatch { background: #ff5a00; }')
 ```
 
-For normal app CSS, keep using the Vite plugin so conversion stays build-time and runtime-free.
+For normal app CSS, keep using the Vite plugin so conversion stays build-time and runtime-free. The browser adapter is a separate export and is not pulled into the Vite/plugin path.
 
 ## Not first-class yet
 

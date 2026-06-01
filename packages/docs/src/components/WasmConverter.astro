@@ -1,16 +1,13 @@
 <section class="wasm-converter" data-ok-converter>
-  <div class="converter-hero">
-    <p class="converter-kicker">Live WASM lab</p>
-    <h2>Convert, fit, and visualize color in OKLCH.</h2>
-    <p>
-      The page runs the same Rust/WASM conversion engine as the package: type any supported CSS color, then compare
-      faithful conversion against controlled chroma expansion.
-    </p>
-  </div>
+  <header class="converter-header">
+    <p>Color converter</p>
+    <h2>Inspect the conversion, not the decoration.</h2>
+    <span>Powered by the same Rust/WASM engine used by okcolor.</span>
+  </header>
 
-  <div class="converter-grid">
-    <div class="converter-panel converter-controls" aria-label="Color converter controls">
-      <label class="converter-field">
+  <div class="converter-workbench">
+    <aside class="converter-panel converter-controls" aria-label="Color converter controls">
+      <label class="converter-field converter-field-primary">
         <span>Input color</span>
         <input data-color-input type="text" value="#ff5a00" spellcheck="false" autocomplete="off" />
       </label>
@@ -53,76 +50,87 @@
       </div>
 
       <div class="converter-status" data-status role="status" aria-live="polite">Loading WASM engine...</div>
-    </div>
+    </aside>
 
-    <div class="converter-panel converter-output" aria-label="Converted color output">
-      <div class="swatch-comparison">
-        <div class="swatch-card">
-          <span data-source-swatch></span>
-          <small>Source</small>
+    <main class="converter-main" aria-label="Color conversion result and gamut views">
+      <figure class="gamut-panel gamut-panel-primary">
+        <figcaption>
+          <strong>Hue x chroma plane</strong>
+          <span>Fixed lightness. Unavailable samples are masked.</span>
+        </figcaption>
+        <canvas data-gamut-2d aria-label="Hue by chroma OKLCH plane"></canvas>
+      </figure>
+
+      <section class="converter-panel converter-output" aria-label="Converted color output">
+        <div class="swatch-comparison">
+          <div class="swatch-card">
+            <span data-source-swatch></span>
+            <small>Source</small>
+          </div>
+          <div class="swatch-card is-result">
+            <span data-result-swatch></span>
+            <small>Result</small>
+          </div>
         </div>
-        <div class="swatch-card is-result">
-          <span data-result-swatch></span>
-          <small>Result</small>
+
+        <dl class="converter-readout">
+          <div>
+            <dt>Faithful OKLCH</dt>
+            <dd><code data-oklch-output>...</code></dd>
+          </div>
+          <div>
+            <dt>Mode result</dt>
+            <dd><code data-result-output>...</code></dd>
+          </div>
+          <div>
+            <dt>sRGB fallback</dt>
+            <dd><code data-fallback-output>...</code></dd>
+          </div>
+          <div>
+            <dt>Gamut check</dt>
+            <dd><span data-gamut-output>...</span></dd>
+          </div>
+        </dl>
+
+        <div class="contrast-feedback" data-contrast-feedback aria-label="Contrast feedback">
+          <div>
+            <span>Best text</span>
+            <strong data-contrast-choice>...</strong>
+          </div>
+          <div>
+            <span>WCAG ratio</span>
+            <strong data-contrast-ratio>...</strong>
+          </div>
+          <p data-contrast-note>Contrast is checked against black and white text using the OKLCH luminance path.</p>
+        </div>
+      </section>
+
+      <div class="converter-detail-grid">
+        <figure class="gamut-panel gamut-panel-secondary">
+          <figcaption>
+            <strong>Lightness x chroma slice</strong>
+            <span>Fixed hue from the current color.</span>
+          </figcaption>
+          <canvas data-gamut-lc aria-label="Lightness by chroma OKLCH slice"></canvas>
+        </figure>
+
+        <figure class="gamut-panel gamut-panel-secondary">
+          <figcaption>
+            <strong>Sampled gamut boundary</strong>
+            <span>RGB cube faces projected into OKLCH.</span>
+          </figcaption>
+          <canvas data-gamut-3d aria-label="Sampled 3D OKLCH gamut boundary"></canvas>
+        </figure>
+
+        <div class="converter-panel converter-css-block">
+          <div>
+            <span>CSS output</span>
+            <button type="button" data-copy-output>Copy</button>
+          </div>
+          <pre data-css-output><code>...</code></pre>
         </div>
       </div>
-
-      <dl class="converter-readout">
-        <div>
-          <dt>Faithful OKLCH</dt>
-          <dd><code data-oklch-output>...</code></dd>
-        </div>
-        <div>
-          <dt>Mode result</dt>
-          <dd><code data-result-output>...</code></dd>
-        </div>
-        <div>
-          <dt>sRGB fallback</dt>
-          <dd><code data-fallback-output>...</code></dd>
-        </div>
-        <div>
-          <dt>Gamut check</dt>
-          <dd><span data-gamut-output>...</span></dd>
-        </div>
-      </dl>
-
-      <div class="contrast-feedback" data-contrast-feedback aria-label="Contrast feedback">
-        <div>
-          <span>Best text on result</span>
-          <strong data-contrast-choice>...</strong>
-        </div>
-        <div>
-          <span>WCAG 2 ratio</span>
-          <strong data-contrast-ratio>...</strong>
-        </div>
-        <p data-contrast-note>Contrast is checked against black and white text using the same OKLCH luminance path.</p>
-      </div>
-
-      <div class="converter-css-block">
-        <div>
-          <span>CSS output</span>
-          <button type="button" data-copy-output>Copy</button>
-        </div>
-        <pre data-css-output><code>...</code></pre>
-      </div>
-    </div>
-  </div>
-
-  <div class="gamut-grid">
-    <figure class="gamut-panel">
-      <figcaption>
-        <strong>2D gamut slice</strong>
-        <span>Fixed lightness: chroma radius by hue.</span>
-      </figcaption>
-      <canvas data-gamut-2d aria-label="2D OKLCH gamut slice"></canvas>
-    </figure>
-    <figure class="gamut-panel">
-      <figcaption>
-        <strong>3D gamut volume</strong>
-        <span>Lightness rings projected across hue and chroma.</span>
-      </figcaption>
-      <canvas data-gamut-3d aria-label="3D OKLCH gamut volume"></canvas>
-    </figure>
+    </main>
   </div>
 </section>
 
@@ -164,6 +172,7 @@
       cssOutput: root.querySelector('[data-css-output]'),
       copyOutput: root.querySelector('[data-copy-output]'),
       canvas2d: root.querySelector('[data-gamut-2d]'),
+      canvasLc: root.querySelector('[data-gamut-lc]'),
       canvas3d: root.querySelector('[data-gamut-3d]'),
       examples: root.querySelectorAll('[data-example]'),
     }
@@ -173,6 +182,7 @@
       ready: false,
       lastCss: '',
       lastResult: null,
+      isDraggingGamut: false,
     }
 
     bindConverterEvents(elements, state, render)
@@ -191,6 +201,7 @@
         window.requestAnimationFrame(render)
       })
       observer.observe(elements.canvas2d)
+      observer.observe(elements.canvasLc)
       observer.observe(elements.canvas3d)
     }
 
@@ -220,6 +231,7 @@
         elements.resultSwatch.style.background = 'transparent'
         elements.cssOutput.textContent = '/* Enter a supported CSS color. */'
         clearCanvas(elements.canvas2d)
+        clearCanvas(elements.canvasLc)
         clearCanvas(elements.canvas3d)
         return
       }
@@ -244,10 +256,10 @@
       elements.oklchOutput.textContent = oklchCss
       elements.resultOutput.textContent = resultCss
       elements.fallbackOutput.textContent = resultFallback
-      elements.gamutOutput.textContent = `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'}, result ${resultInTarget ? 'inside' : 'outside'} · Cmax ${formatMetric(result.cMax)}`
+      elements.gamutOutput.textContent = `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'}, result ${resultInTarget ? 'inside' : 'outside'} Â· Cmax ${formatMetric(result.cMax)}`
       elements.contrastChoice.textContent = contrast.foreground
       elements.contrastRatio.textContent = `${contrast.ratio.toFixed(2)}:1`
-      elements.contrastNote.textContent = `${contrast.status} for normal text against ${contrast.foreground.toLowerCase()} foreground. White ${contrast.whiteRatio.toFixed(2)}:1 · black ${contrast.blackRatio.toFixed(2)}:1.`
+      elements.contrastNote.textContent = `${contrast.status} for normal text against ${contrast.foreground.toLowerCase()} foreground. White ${contrast.whiteRatio.toFixed(2)}:1 Â· black ${contrast.blackRatio.toFixed(2)}:1.`
       elements.cssOutput.textContent = state.lastCss
       elements.sourceSwatch.style.background = oklchCss
       elements.resultSwatch.style.background = resultCss
@@ -255,6 +267,7 @@
       syncPicker(elements, fallbackCss)
       setStatus(elements, result.neutralSkipped ? 'Neutral color detected: chroma expansion skipped to preserve gray intent.' : `Converted and ${modeLabel} through WASM.`, 'ready')
       drawGamutSlice(elements.canvas2d, source, result.color, targetGamut)
+      drawLightnessChromaSlice(elements.canvasLc, source, result.color, targetGamut)
       drawGamutVolume(elements.canvas3d, source, result.color, targetGamut)
     }
   }
@@ -267,6 +280,22 @@
     })
     elements.gamut.addEventListener('change', render)
     elements.strength.addEventListener('input', render)
+    elements.canvas2d.addEventListener('pointerdown', (event) => {
+      state.isDraggingGamut = true
+      safelySetPointerCapture(elements.canvas2d, event.pointerId)
+      pickFromGamut(event, elements, render)
+    })
+    elements.canvas2d.addEventListener('pointermove', (event) => {
+      if (!state.isDraggingGamut) return
+      pickFromGamut(event, elements, render)
+    })
+    elements.canvas2d.addEventListener('pointerup', (event) => {
+      state.isDraggingGamut = false
+      safelyReleasePointerCapture(elements.canvas2d, event.pointerId)
+    })
+    elements.canvas2d.addEventListener('pointercancel', () => {
+      state.isDraggingGamut = false
+    })
 
     for (const button of elements.modeButtons) {
       button.addEventListener('click', () => {
@@ -302,6 +331,46 @@
         }, 1200)
       }
     })
+  }
+
+  function safelySetPointerCapture(element, pointerId) {
+    try {
+      element.setPointerCapture?.(pointerId)
+    } catch {
+      // Synthetic pointer events and some embedded browsers may not have an active pointer capture target.
+    }
+  }
+
+  function safelyReleasePointerCapture(element, pointerId) {
+    try {
+      element.releasePointerCapture?.(pointerId)
+    } catch {
+      // Ignore stale capture ids; the drag state has already been reset.
+    }
+  }
+
+  function pickFromGamut(event, elements, render) {
+    const current = parseOklch(convert_color(elements.input.value.trim(), 'oklch') || '')
+    if (!current) return
+
+    const pick = pickHueChromaFromCanvas(elements.canvas2d, event, current.l, elements.gamut.value)
+    elements.input.value = formatOklch(pick)
+    render()
+  }
+
+  function pickHueChromaFromCanvas(canvas, event, lightness, targetGamut) {
+    const rect = canvas.getBoundingClientRect()
+    const width = Math.max(1, rect.width || 640)
+    const height = Math.max(1, rect.height || 360)
+    const l = clamp(lightness, 0.02, 0.98)
+    const x = clamp(event.clientX - rect.left, 0, width)
+    const y = clamp(event.clientY - rect.top, 0, height)
+    const hue = normalizeHue((x / width) * 360)
+    const viewMaxC = getPlaneMaxChroma(l, targetGamut)
+    const cMax = oklch_chroma_max(l, hue, targetGamut) || 0
+    const c = clamp((1 - y / height) * viewMaxC, 0, cMax)
+
+    return { l, c, h: hue }
   }
 
   function transformColor(source, targetGamut, strength, mode) {
@@ -446,207 +515,447 @@
   }
 
   function drawGamutSlice(canvas, source, result, targetGamut) {
-    const { ctx, width, height } = prepareCanvas(canvas)
-    const centerX = width / 2
-    const centerY = height / 2 + 10
-    const l = clamp(source.l, 0.02, 0.98)
-    const maxC = Math.max(getMaxChroma(l, 'p3'), getMaxChroma(l, 'srgb'), source.c, result.c, 0.16)
-    const scale = (Math.min(width, height) * 0.39) / maxC
+    const prepared = preparePixelCanvas(canvas, targetGamut)
+    const { ctx, width, height, pixelWidth, pixelHeight, ratio } = prepared
+    const fixedLightness = clamp(source.l, 0.02, 0.98)
+    const viewMaxC = getPlaneMaxChroma(fixedLightness, targetGamut, source.c, result.c)
 
-    ctx.clearRect(0, 0, width, height)
-    drawCanvasBackground(ctx, width, height)
+    drawCanvasBackground(ctx, pixelWidth, pixelHeight)
+    putPlaneImage(ctx, buildHueChromaPlane(pixelWidth, pixelHeight, fixedLightness, viewMaxC, targetGamut, prepared.colorSpace))
 
-    for (let hue = 0; hue < 360; hue += 4) {
-      const max = oklch_chroma_max(l, hue, 'p3') || 0
-      const angle = toCanvasAngle(hue)
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    drawRectangularGrid(ctx, width, height, 'Hue', 'Chroma')
+    drawHueChromaMarker(ctx, source, fixedLightness, viewMaxC, width, height, 'Source', '#111111')
+    drawHueChromaMarker(ctx, result, fixedLightness, viewMaxC, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
+
+    ctx.fillStyle = '#6f6f6a'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(`L ${(fixedLightness * 100).toFixed(1)}%`, 16, 24)
+    ctx.fillText(`${targetGamutLabel(targetGamut)} reachable samples`, 16, height - 16)
+  }
+
+  function drawLightnessChromaSlice(canvas, source, result, targetGamut) {
+    const prepared = preparePixelCanvas(canvas, targetGamut)
+    const { ctx, width, height, pixelWidth, pixelHeight, ratio } = prepared
+    const fixedHue = normalizeHue(source.h)
+    const viewMaxC = getLightnessSliceMaxChroma(fixedHue, targetGamut, source.c, result.c)
+
+    drawCanvasBackground(ctx, pixelWidth, pixelHeight)
+    putPlaneImage(ctx, buildLightnessChromaPlane(pixelWidth, pixelHeight, fixedHue, viewMaxC, targetGamut, prepared.colorSpace))
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    drawRectangularGrid(ctx, width, height, 'Lightness', 'Chroma')
+    drawLightnessChromaMarker(ctx, source, fixedHue, viewMaxC, width, height, 'Source', '#111111')
+    drawLightnessChromaMarker(ctx, result, fixedHue, viewMaxC, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
+
+    ctx.fillStyle = '#6f6f6a'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(`H ${fixedHue.toFixed(1)} deg`, 16, 24)
+  }
+
+  function putPlaneImage(ctx, imageData) {
+    ctx.putImageData(imageData, 0, 0)
+  }
+
+  function buildHueChromaPlane(width, height, lightness, viewMaxC, targetGamut, colorSpace) {
+    const data = new Uint8ClampedArray(width * height * 4)
+    let offset = 0
+
+    for (let y = 0; y < height; y += 1) {
+      const chroma = (1 - y / Math.max(1, height - 1)) * viewMaxC
+      for (let x = 0; x < width; x += 1) {
+        const hue = (x / Math.max(1, width - 1)) * 360
+        writeOklchSample(data, offset, lightness, chroma, hue, targetGamut, colorSpace)
+        offset += 4
+      }
+    }
+
+    return createImageData(data, width, height, colorSpace)
+  }
+
+  function buildLightnessChromaPlane(width, height, hue, viewMaxC, targetGamut, colorSpace) {
+    const data = new Uint8ClampedArray(width * height * 4)
+    let offset = 0
+
+    for (let y = 0; y < height; y += 1) {
+      const chroma = (1 - y / Math.max(1, height - 1)) * viewMaxC
+      for (let x = 0; x < width; x += 1) {
+        const lightness = x / Math.max(1, width - 1)
+        writeOklchSample(data, offset, lightness, chroma, hue, targetGamut, colorSpace)
+        offset += 4
+      }
+    }
+
+    return createImageData(data, width, height, colorSpace)
+  }
+
+  function writeOklchSample(data, offset, lightness, chroma, hue, targetGamut, colorSpace) {
+    const target = oklchToLinearRgbSpace({ l: lightness, c: chroma, h: hue }, targetGamut)
+    const reachable = isRgbInGamut(target)
+
+    if (!reachable) {
+      data[offset] = 250
+      data[offset + 1] = 250
+      data[offset + 2] = 248
+      data[offset + 3] = 0
+      return
+    }
+
+    const display = colorSpace === 'display-p3' ? target : oklchToLinearRgbSpace({ l: lightness, c: chroma, h: hue }, 'srgb')
+    const encoded = encodeRgb(display)
+    data[offset] = encoded.r
+    data[offset + 1] = encoded.g
+    data[offset + 2] = encoded.b
+    data[offset + 3] = 255
+  }
+
+  function drawRectangularGrid(ctx, width, height, xLabel, yLabel) {
+    ctx.save()
+    ctx.strokeStyle = 'rgb(20 20 20 / 0.13)'
+    ctx.lineWidth = 1
+
+    for (let index = 1; index < 6; index += 1) {
+      const x = (width * index) / 6
+      const y = (height * index) / 6
       ctx.beginPath()
-      ctx.moveTo(centerX, centerY)
-      ctx.lineTo(centerX + Math.cos(angle) * max * scale, centerY + Math.sin(angle) * max * scale)
-      ctx.strokeStyle = `oklch(${(l * 100).toFixed(1)}% ${Math.min(max, 0.18).toFixed(3)} ${hue} / 0.22)`
-      ctx.lineWidth = 2
+      ctx.moveTo(x, 0)
+      ctx.lineTo(x, height)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(0, y)
+      ctx.lineTo(width, y)
       ctx.stroke()
     }
 
-    drawGamutPolygon(ctx, l, 'p3', centerX, centerY, scale, 'oklch(0.68 0.18 44 / 0.22)', 'oklch(0.72 0.17 44)')
-    drawGamutPolygon(ctx, l, 'srgb', centerX, centerY, scale, 'oklch(0.72 0.02 160 / 0.12)', 'oklch(0.82 0.01 160)')
-
-    drawPolarGrid(ctx, centerX, centerY, scale, maxC)
-    drawPoint(ctx, source, centerX, centerY, scale, 'Source', 'oklch(0.86 0.04 160)')
-    drawPoint(ctx, result, centerX, centerY, scale, 'Result', targetGamut === 'p3' ? 'oklch(0.76 0.2 44)' : 'oklch(0.72 0.03 160)')
-
-    ctx.fillStyle = 'oklch(0.76 0.02 160)'
-    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
-    ctx.fillText(`L ${(l * 100).toFixed(1)}%`, 18, 28)
-    ctx.fillText('sRGB', 18, height - 34)
-    ctx.fillText('P3', 18, height - 16)
+    ctx.fillStyle = 'rgb(20 20 20 / 0.62)'
+    ctx.font = '11px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(xLabel, width - 70, height - 16)
+    ctx.save()
+    ctx.translate(18, 70)
+    ctx.rotate(-Math.PI / 2)
+    ctx.fillText(yLabel, 0, 0)
+    ctx.restore()
+    ctx.restore()
   }
 
-  function drawGamutPolygon(ctx, l, gamut, centerX, centerY, scale, fill, stroke) {
+  function drawHueChromaMarker(ctx, color, fixedLightness, viewMaxC, width, height, label, fill) {
+    const x = (normalizeHue(color.h) / 360) * width
+    const y = height - (clamp(color.c, 0, viewMaxC) / viewMaxC) * height
+    drawMarker(ctx, x, y, label, fill, Math.abs(color.l - fixedLightness) > 0.01 ? 'same hue/chroma, different L' : '')
+  }
+
+  function drawLightnessChromaMarker(ctx, color, fixedHue, viewMaxC, width, height, label, fill) {
+    const x = clamp(color.l, 0, 1) * width
+    const y = height - (clamp(color.c, 0, viewMaxC) / viewMaxC) * height
+    drawMarker(ctx, x, y, label, fill, Math.abs(normalizeHue(color.h) - fixedHue) > 0.01 ? 'different H' : '')
+  }
+
+  function drawMarker(ctx, x, y, label, fill, note = '') {
     ctx.beginPath()
-    for (let hue = 0; hue <= 360; hue += 3) {
-      const max = oklch_chroma_max(l, hue, gamut) || 0
-      const angle = toCanvasAngle(hue)
-      const x = centerX + Math.cos(angle) * max * scale
-      const y = centerY + Math.sin(angle) * max * scale
-      if (hue === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
-    }
-    ctx.closePath()
+    ctx.arc(x, y, 6, 0, Math.PI * 2)
     ctx.fillStyle = fill
-    ctx.strokeStyle = stroke
+    ctx.strokeStyle = '#ffffff'
     ctx.lineWidth = 2
     ctx.fill()
     ctx.stroke()
-  }
-
-  function drawPolarGrid(ctx, centerX, centerY, scale, maxC) {
-    ctx.strokeStyle = 'oklch(0.72 0.01 160 / 0.18)'
-    ctx.lineWidth = 1
-    for (let ring = 0.25; ring <= 1; ring += 0.25) {
-      ctx.beginPath()
-      ctx.arc(centerX, centerY, maxC * ring * scale, 0, Math.PI * 2)
-      ctx.stroke()
-    }
-
-    for (let hue = 0; hue < 360; hue += 45) {
-      const angle = toCanvasAngle(hue)
-      ctx.beginPath()
-      ctx.moveTo(centerX, centerY)
-      ctx.lineTo(centerX + Math.cos(angle) * maxC * scale, centerY + Math.sin(angle) * maxC * scale)
-      ctx.stroke()
-    }
+    ctx.fillStyle = '#202020'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(note ? `${label} (${note})` : label, clamp(x + 9, 8, ctx.canvas.width - 120), clamp(y - 9, 16, ctx.canvas.height - 8))
   }
 
   function drawGamutVolume(canvas, source, result, targetGamut) {
     const { ctx, width, height } = prepareCanvas(canvas)
     ctx.clearRect(0, 0, width, height)
     drawCanvasBackground(ctx, width, height)
+    drawBoundaryGrid(ctx, width, height)
 
-    const project = (color) => projectOklch(color, width, height)
-    const levels = [0.12, 0.25, 0.38, 0.5, 0.62, 0.75, 0.88]
-    const hues = Array.from({ length: 25 }, (_, index) => index * 15)
+    const targetSamples = buildGamutBoundarySamples(targetGamut, 18)
+    const referenceSamples = targetGamut === 'p3' ? buildGamutBoundarySamples('srgb', 14) : []
 
-    drawVolumeGrid(ctx, width, height)
-    drawVolumeRings(ctx, levels, hues, 'srgb', project, 'oklch(0.82 0.01 160 / 0.28)')
-    drawVolumeRings(ctx, levels, hues, targetGamut, project, targetGamut === 'p3' ? 'oklch(0.72 0.18 44 / 0.56)' : 'oklch(0.88 0.01 160 / 0.48)')
-    drawVolumeMeridians(ctx, levels, [0, 60, 120, 180, 240, 300], targetGamut, project)
+    drawBoundarySamples(ctx, referenceSamples, width, height, 0.35, true)
+    drawBoundarySamples(ctx, targetSamples, width, height, 0.88, false)
+    drawProjectedBoundaryMarker(ctx, source, width, height, 'Source', '#111111')
+    drawProjectedBoundaryMarker(ctx, result, width, height, 'Result', targetGamut === 'p3' ? '#f05a00' : '#111111')
 
-    drawProjectedPoint(ctx, source, project, 'Source', 'oklch(0.9 0.03 160)')
-    drawProjectedPoint(ctx, result, project, 'Result', targetGamut === 'p3' ? 'oklch(0.77 0.2 44)' : 'oklch(0.82 0.02 160)')
-
-    ctx.fillStyle = 'oklch(0.76 0.02 160)'
+    ctx.fillStyle = '#6f6f6a'
     ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
-    ctx.fillText('L', width - 28, 28)
-    ctx.fillText('C', width - 58, height - 22)
-    ctx.fillText('H', 18, height - 22)
+    ctx.fillText(targetGamutLabel(targetGamut), 16, 24)
+    ctx.fillText('L', width - 30, 28)
+    ctx.fillText('C', width - 56, height - 18)
+    ctx.fillText('H', 16, height - 18)
   }
 
-  function drawVolumeGrid(ctx, width, height) {
-    ctx.strokeStyle = 'oklch(0.72 0.01 160 / 0.16)'
+  function drawBoundaryGrid(ctx, width, height) {
+    ctx.save()
+    ctx.strokeStyle = 'rgb(20 20 20 / 0.11)'
     ctx.lineWidth = 1
-    for (let i = 0; i <= 6; i += 1) {
-      const y = 34 + i * ((height - 78) / 6)
+    for (let i = 0; i <= 5; i += 1) {
+      const y = 30 + i * ((height - 62) / 5)
       ctx.beginPath()
-      ctx.moveTo(24, y)
-      ctx.lineTo(width - 24, y + 26)
+      ctx.moveTo(28, y)
+      ctx.lineTo(width - 28, y + 16)
       ctx.stroke()
     }
+    ctx.restore()
   }
 
-  function drawVolumeRings(ctx, levels, hues, gamut, project, stroke) {
-    ctx.strokeStyle = stroke
-    ctx.lineWidth = gamut === 'p3' ? 1.8 : 1.2
+  function drawBoundarySamples(ctx, samples, width, height, alpha, muted) {
+    const projected = samples
+      .map((sample) => ({ ...sample, projected: projectBoundarySample(sample, width, height) }))
+      .sort((a, b) => a.projected.depth - b.projected.depth)
 
-    for (const l of levels) {
+    ctx.save()
+    ctx.globalAlpha = alpha
+    for (const sample of projected) {
       ctx.beginPath()
-      for (let index = 0; index <= hues.length; index += 1) {
-        const hue = hues[index % hues.length]
-        const c = oklch_chroma_max(l, hue, gamut) || 0
-        const point = project({ l, c, h: hue })
-        if (index === 0) ctx.moveTo(point.x, point.y)
-        else ctx.lineTo(point.x, point.y)
+      ctx.arc(sample.projected.x, sample.projected.y, muted ? 1.1 : 1.65, 0, Math.PI * 2)
+      ctx.fillStyle = muted ? 'rgb(20 20 20 / 0.55)' : sample.css
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  function drawProjectedBoundaryMarker(ctx, color, width, height, label, fill) {
+    const point = projectBoundarySample(color, width, height)
+    drawMarker(ctx, point.x, point.y, label, fill)
+  }
+
+  function buildGamutBoundarySamples(gamut, steps) {
+    const samples = []
+    const add = (r, g, b) => {
+      const color = linearRgbSpaceToOklch({ r, g, b }, gamut)
+      if (!Number.isFinite(color.h)) return
+      samples.push({ ...color, css: rgbSpaceCss({ r, g, b }, gamut) })
+    }
+
+    for (let i = 0; i <= steps; i += 1) {
+      const a = i / steps
+      for (let j = 0; j <= steps; j += 1) {
+        const b = j / steps
+        add(0, a, b)
+        add(1, a, b)
+        add(a, 0, b)
+        add(a, 1, b)
+        add(a, b, 0)
+        add(a, b, 1)
       }
-      ctx.stroke()
     }
+
+    return samples
   }
 
-  function drawVolumeMeridians(ctx, levels, hues, gamut, project) {
-    ctx.strokeStyle = 'oklch(0.72 0.18 44 / 0.24)'
-    ctx.lineWidth = 1
-
-    for (const hue of hues) {
-      ctx.beginPath()
-      levels.forEach((l, index) => {
-        const c = oklch_chroma_max(l, hue, gamut) || 0
-        const point = project({ l, c, h: hue })
-        if (index === 0) ctx.moveTo(point.x, point.y)
-        else ctx.lineTo(point.x, point.y)
-      })
-      ctx.stroke()
-    }
-  }
-
-  function drawPoint(ctx, color, centerX, centerY, scale, label, fill) {
-    const angle = toCanvasAngle(color.h)
-    const x = centerX + Math.cos(angle) * color.c * scale
-    const y = centerY + Math.sin(angle) * color.c * scale
-
-    ctx.beginPath()
-    ctx.arc(x, y, 6, 0, Math.PI * 2)
-    ctx.fillStyle = fill
-    ctx.strokeStyle = 'oklch(0.08 0.01 160)'
-    ctx.lineWidth = 2
-    ctx.fill()
-    ctx.stroke()
-    ctx.fillStyle = 'oklch(0.9 0.02 160)'
-    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
-    ctx.fillText(label, x + 10, y - 10)
-  }
-
-  function drawProjectedPoint(ctx, color, project, label, fill) {
-    const point = project(color)
-    ctx.beginPath()
-    ctx.arc(point.x, point.y, 6.5, 0, Math.PI * 2)
-    ctx.fillStyle = fill
-    ctx.strokeStyle = 'oklch(0.08 0.01 160)'
-    ctx.lineWidth = 2
-    ctx.fill()
-    ctx.stroke()
-    ctx.fillStyle = 'oklch(0.9 0.02 160)'
-    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
-    ctx.fillText(label, point.x + 9, point.y - 9)
-  }
-
-  function projectOklch(color, width, height) {
-    const angle = (normalizeHue(color.h) * Math.PI) / 180
-    const x = Math.cos(angle) * color.c
-    const z = Math.sin(angle) * color.c
-    const scale = Math.min(width, height) * 1.25
+  function projectBoundarySample(color, width, height) {
+    const hue = (normalizeHue(color.h) * Math.PI) / 180
+    const radius = color.c * 2.9
+    const x0 = Math.cos(hue) * radius
+    const z0 = Math.sin(hue) * radius
+    const y0 = (color.l - 0.5) * 1.25
+    const rotateY = -0.72
+    const rotateX = 0.56
+    const x1 = x0 * Math.cos(rotateY) - z0 * Math.sin(rotateY)
+    const z1 = x0 * Math.sin(rotateY) + z0 * Math.cos(rotateY)
+    const y1 = y0 * Math.cos(rotateX) - z1 * Math.sin(rotateX)
+    const z2 = y0 * Math.sin(rotateX) + z1 * Math.cos(rotateX)
+    const scale = Math.min(width, height) * 0.62
 
     return {
-      x: width / 2 + (x - z) * scale,
-      y: height * 0.84 - color.l * height * 0.68 + (x + z) * scale * 0.24,
+      x: width / 2 + x1 * scale,
+      y: height * 0.54 - y1 * scale,
+      depth: z2,
     }
+  }
+
+  function preparePixelCanvas(canvas, gamut) {
+    const rect = canvas.getBoundingClientRect()
+    const width = Math.max(1, rect.width || 640)
+    const height = Math.max(1, rect.height || 360)
+    const ratio = Math.min(window.devicePixelRatio || 1, 2)
+    const pixelWidth = Math.max(1, Math.floor(width * ratio))
+    const pixelHeight = Math.max(1, Math.floor(height * ratio))
+    const colorSpace = gamut === 'p3' ? 'display-p3' : 'srgb'
+
+    canvas.width = pixelWidth
+    canvas.height = pixelHeight
+
+    let ctx = canvas.getContext('2d', { colorSpace })
+    if (!ctx) ctx = canvas.getContext('2d')
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+    return { ctx, width, height, pixelWidth, pixelHeight, ratio, colorSpace }
+  }
+
+  function createImageData(data, width, height, colorSpace) {
+    try {
+      return new ImageData(data, width, height, { colorSpace })
+    } catch {
+      return new ImageData(data, width, height)
+    }
+  }
+
+  function getPlaneMaxChroma(l, gamut, ...extraChroma) {
+    let max = 0.12
+    for (let hue = 0; hue <= 360; hue += 4) {
+      max = Math.max(max, oklch_chroma_max(l, hue, gamut) || 0)
+    }
+    for (const c of extraChroma) {
+      if (Number.isFinite(c)) max = Math.max(max, c * 1.08)
+    }
+    return clamp(max, 0.12, 0.42)
+  }
+
+  function getLightnessSliceMaxChroma(hue, gamut, ...extraChroma) {
+    let max = 0.12
+    for (let l = 0.02; l <= 0.98; l += 0.02) {
+      max = Math.max(max, oklch_chroma_max(l, hue, gamut) || 0)
+    }
+    for (const c of extraChroma) {
+      if (Number.isFinite(c)) max = Math.max(max, c * 1.08)
+    }
+    return clamp(max, 0.12, 0.42)
+  }
+
+  function oklchToLinearRgbSpace(color, space) {
+    const lab = oklchToOklab(color)
+    const xyz = oklabToXyz(lab)
+    return space === 'p3' ? xyzToLinearP3(xyz) : oklabToLinearSrgb(lab)
+  }
+
+  function linearRgbSpaceToOklch(rgb, space) {
+    const xyz = space === 'p3' ? linearP3ToXyz(rgb) : linearSrgbToXyz(rgb)
+    return oklabToOklch(xyzToOklab(xyz))
+  }
+
+  function oklchToOklab(color) {
+    const hue = (normalizeHue(color.h) * Math.PI) / 180
+    return {
+      l: color.l,
+      a: color.c * Math.cos(hue),
+      b: color.c * Math.sin(hue),
+    }
+  }
+
+  function oklabToOklch(lab) {
+    const c = Math.sqrt(lab.a * lab.a + lab.b * lab.b)
+    return {
+      l: lab.l,
+      c,
+      h: c < 0.000001 ? 0 : normalizeHue((Math.atan2(lab.b, lab.a) * 180) / Math.PI),
+    }
+  }
+
+  function oklabToLinearSrgb(lab) {
+    const l_ = lab.l + 0.3963377774 * lab.a + 0.2158037573 * lab.b
+    const m_ = lab.l - 0.1055613458 * lab.a - 0.0638541728 * lab.b
+    const s_ = lab.l - 0.0894841775 * lab.a - 1.291485548 * lab.b
+    const l = l_ * l_ * l_
+    const m = m_ * m_ * m_
+    const s = s_ * s_ * s_
+    return {
+      r: 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      g: -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      b: -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+    }
+  }
+
+  function linearSrgbToXyz(rgb) {
+    return {
+      x: 0.4124564 * rgb.r + 0.3575761 * rgb.g + 0.1804375 * rgb.b,
+      y: 0.2126729 * rgb.r + 0.7151522 * rgb.g + 0.072175 * rgb.b,
+      z: 0.0193339 * rgb.r + 0.119192 * rgb.g + 0.9503041 * rgb.b,
+    }
+  }
+
+  function linearP3ToXyz(rgb) {
+    return {
+      x: 0.4865709486 * rgb.r + 0.2656676932 * rgb.g + 0.1982172852 * rgb.b,
+      y: 0.2289745641 * rgb.r + 0.6917385218 * rgb.g + 0.0792869141 * rgb.b,
+      z: 0.0451133819 * rgb.g + 1.0439443689 * rgb.b,
+    }
+  }
+
+  function xyzToLinearP3(xyz) {
+    return {
+      r: 2.4934969119 * xyz.x - 0.9313836179 * xyz.y - 0.4027107845 * xyz.z,
+      g: -0.8294889696 * xyz.x + 1.7626640603 * xyz.y + 0.0236246858 * xyz.z,
+      b: 0.0358458302 * xyz.x - 0.0761723893 * xyz.y + 0.956884524 * xyz.z,
+    }
+  }
+
+  function oklabToXyz(lab) {
+    const l_ = lab.l + 0.3963377774 * lab.a + 0.2158037573 * lab.b
+    const m_ = lab.l - 0.1055613458 * lab.a - 0.0638541728 * lab.b
+    const s_ = lab.l - 0.0894841775 * lab.a - 1.291485548 * lab.b
+    const l = l_ * l_ * l_
+    const m = m_ * m_ * m_
+    const s = s_ * s_ * s_
+    return {
+      x: 1.2270138511 * l - 0.5577999807 * m + 0.281256149 * s,
+      y: -0.0405801784 * l + 1.1122568696 * m - 0.0716766787 * s,
+      z: -0.0763812845 * l - 0.4214819784 * m + 1.5861632204 * s,
+    }
+  }
+
+  function xyzToOklab(xyz) {
+    const l = Math.cbrt(0.8190224432 * xyz.x + 0.3619062563 * xyz.y - 0.1288737826 * xyz.z)
+    const m = Math.cbrt(0.0329836672 * xyz.x + 0.9292868469 * xyz.y + 0.0361446682 * xyz.z)
+    const s = Math.cbrt(0.0481771996 * xyz.x + 0.2642395249 * xyz.y + 0.6335478258 * xyz.z)
+    return {
+      l: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+      a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+      b: 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+    }
+  }
+
+  function isRgbInGamut(rgb) {
+    const epsilon = 0.00002
+    return rgb.r >= -epsilon && rgb.r <= 1 + epsilon && rgb.g >= -epsilon && rgb.g <= 1 + epsilon && rgb.b >= -epsilon && rgb.b <= 1 + epsilon
+  }
+
+  function encodeRgb(rgb) {
+    return {
+      r: Math.round(linearToEncodedByte(rgb.r)),
+      g: Math.round(linearToEncodedByte(rgb.g)),
+      b: Math.round(linearToEncodedByte(rgb.b)),
+    }
+  }
+
+  function linearToEncodedByte(value) {
+    const channel = clamp(value, 0, 1)
+    const encoded = channel <= 0.0031308 ? 12.92 * channel : 1.055 * channel ** (1 / 2.4) - 0.055
+    return clamp(encoded * 255, 0, 255)
+  }
+
+  function rgbSpaceCss(rgb, gamut) {
+    const encoded = {
+      r: linearToUnit(rgb.r),
+      g: linearToUnit(rgb.g),
+      b: linearToUnit(rgb.b),
+    }
+    if (gamut === 'p3') return `color(display-p3 ${encoded.r.toFixed(4)} ${encoded.g.toFixed(4)} ${encoded.b.toFixed(4)})`
+    return `rgb(${Math.round(encoded.r * 255)} ${Math.round(encoded.g * 255)} ${Math.round(encoded.b * 255)})`
+  }
+
+  function linearToUnit(value) {
+    return linearToEncodedByte(value) / 255
   }
 
   function drawCanvasBackground(ctx, width, height) {
-    const gradient = ctx.createLinearGradient(0, 0, width, height)
-    gradient.addColorStop(0, 'oklch(0.12 0.006 160)')
-    gradient.addColorStop(1, 'oklch(0.08 0.008 44)')
-    ctx.fillStyle = gradient
+    ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, width, height)
-  }
-
-  function getMaxChroma(l, gamut) {
-    let max = 0
-    for (let hue = 0; hue < 360; hue += 10) {
-      max = Math.max(max, oklch_chroma_max(l, hue, gamut) || 0)
+    ctx.strokeStyle = 'rgb(20 20 20 / 0.08)'
+    ctx.lineWidth = 1
+    for (let x = 24; x < width; x += 48) {
+      ctx.beginPath()
+      ctx.moveTo(x, 0)
+      ctx.lineTo(x, height)
+      ctx.stroke()
     }
-    return max
-  }
-
-  function toCanvasAngle(hue) {
-    return ((normalizeHue(hue) - 90) * Math.PI) / 180
+    for (let y = 24; y < height; y += 48) {
+      ctx.beginPath()
+      ctx.moveTo(0, y)
+      ctx.lineTo(width, y)
+      ctx.stroke()
+    }
   }
 
   function clamp(value, min, max) {
@@ -659,100 +968,99 @@
     container-type: inline-size;
     display: grid;
     gap: 1.25rem;
-    margin: 2rem 0;
+    margin: 2rem 0 3rem;
+    color: #111111;
   }
 
   :global(.sl-markdown-content:has(.wasm-converter)) {
-    max-width: 1180px;
+    max-width: 1240px;
   }
 
-  .converter-hero {
+  .converter-header {
     display: grid;
-    gap: 0.75rem;
-    max-width: 860px;
+    gap: 0.35rem;
+    max-width: 760px;
   }
 
-  .converter-kicker {
-    width: fit-content;
+  .converter-header p,
+  .converter-field span,
+  .converter-color-picker span,
+  .converter-css-block > div span,
+  .contrast-feedback span {
     margin: 0;
-    padding: 0.34rem 0.68rem;
-    border: 1px solid color-mix(in oklch, var(--sl-color-accent), transparent 46%);
-    border-radius: 999px;
-    background: color-mix(in oklch, var(--sl-color-accent-low), transparent 24%);
-    color: var(--sl-color-accent-high);
-    font-size: 0.72rem;
-    font-weight: 800;
+    color: #737373;
+    font-size: 0.73rem;
+    font-weight: 750;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
-  .converter-hero h2 {
-    max-width: 14ch;
+  .converter-header h2 {
+    max-width: 17ch;
     margin: 0;
     color: var(--sl-color-white);
-    font-size: clamp(2.25rem, 6.5vw, 4.6rem);
-    line-height: 0.92;
-    letter-spacing: -0.07em;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 0.96;
+    letter-spacing: -0.055em;
   }
 
-  .converter-hero p:not(.converter-kicker) {
-    max-width: 68ch;
-    margin: 0;
-    color: var(--sl-color-gray-2);
-    font-size: 1rem;
+  .converter-header span {
+    color: var(--sl-color-gray-3);
+    font-size: 0.98rem;
   }
 
-  .converter-grid,
-  .gamut-grid {
+  .converter-workbench {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
     gap: 1rem;
+    align-items: start;
+  }
+
+  .converter-main {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
   }
 
   .converter-panel,
   .gamut-panel {
-    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 32%);
-    border-radius: 24px;
-    background:
-      radial-gradient(circle at 12% 0%, oklch(0.72 0.18 44 / 0.12), transparent 32%),
-      color-mix(in oklch, var(--sl-color-black), var(--sl-color-white) 3%);
-    box-shadow: 0 18px 56px oklch(0 0 0 / 0.14);
+    border: 1px solid #dedede;
+    border-radius: 22px;
+    background: #fbfbfa;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 0.08);
   }
 
-  .converter-controls,
-  .converter-output {
+  .converter-controls {
+    position: sticky;
+    top: 1rem;
     display: grid;
     gap: 1rem;
-    padding: clamp(1rem, 2vw, 1.25rem);
+    padding: 1rem;
   }
 
-  .converter-field {
+  .converter-field,
+  .converter-color-picker {
     display: grid;
     gap: 0.45rem;
     min-width: 0;
-  }
-
-  .converter-field span,
-  .converter-color-picker span,
-  .converter-css-block > div span {
-    color: var(--sl-color-gray-3);
-    font-size: 0.78rem;
-    font-weight: 760;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
 
   .converter-field input[type='text'],
   .converter-field select {
     width: 100%;
     min-height: 46px;
-    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 25%);
-    border-radius: 14px;
-    background: oklch(0.1 0.004 160 / 0.74);
-    color: var(--sl-color-white);
-    font: 0.95rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+    border: 1px solid #d9d9d6;
+    border-radius: 13px;
+    background: #ffffff;
+    color: #151515;
+    font: 0.93rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
     outline: none;
     padding: 0.75rem 0.85rem;
+  }
+
+  .converter-field-primary input[type='text'] {
+    min-height: 54px;
+    font-size: 1.05rem;
   }
 
   .converter-field input[type='text']:focus,
@@ -761,247 +1069,109 @@
   .converter-mode-group button:focus-visible,
   .converter-examples button:focus-visible,
   .converter-css-block button:focus-visible {
-    border-color: var(--sl-color-accent);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--sl-color-accent), transparent 72%);
+    border-color: #f05a00;
+    box-shadow: 0 0 0 3px rgb(240 90 0 / 0.16);
   }
 
   .converter-picker-row,
   .converter-row {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: 0.85rem;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 0.75rem;
     align-items: end;
-  }
-
-  .converter-color-picker {
-    display: grid;
-    gap: 0.45rem;
   }
 
   .converter-color-picker input {
     width: 100%;
     min-height: 46px;
-    padding: 0.2rem;
-    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 25%);
-    border-radius: 14px;
-    background: oklch(0.1 0.004 160 / 0.74);
+    padding: 0.25rem;
+    border: 1px solid #d9d9d6;
+    border-radius: 13px;
+    background: #ffffff;
   }
 
   .converter-examples {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.4rem;
   }
 
   .converter-examples button,
   .converter-css-block button {
     min-height: 38px;
-    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 26%);
+    border: 1px solid #d9d9d6;
     border-radius: 999px;
-    background: color-mix(in oklch, var(--sl-color-gray-7), transparent 12%);
-    color: var(--sl-color-gray-2);
+    background: #ffffff;
+    color: #303030;
     cursor: pointer;
-    font-weight: 720;
+    font-weight: 680;
     padding: 0.55rem 0.72rem;
-  }
-
-  .converter-examples button:active,
-  .converter-css-block button:active,
-  .converter-mode-group button:active {
-    transform: translateY(1px);
   }
 
   .converter-mode-group {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
+    overflow: hidden;
+    border: 1px solid #d9d9d6;
+    border-radius: 15px;
+    background: #eeeeec;
+    padding: 0.2rem;
   }
 
   .converter-mode-group button {
     display: grid;
-    gap: 0.26rem;
-    min-height: 88px;
-    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 26%);
-    border-radius: 18px;
-    background: oklch(0.1 0.004 160 / 0.54);
-    color: var(--sl-color-gray-2);
+    gap: 0.18rem;
+    min-height: 72px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #696969;
     cursor: pointer;
-    padding: 0.85rem;
+    padding: 0.72rem;
     text-align: left;
   }
 
   .converter-mode-group button.is-active {
-    border-color: color-mix(in oklch, var(--sl-color-accent), transparent 16%);
-    background:
-      radial-gradient(circle at 12% 10%, oklch(0.74 0.18 44 / 0.16), transparent 46%),
-      oklch(0.14 0.018 44 / 0.84);
-    color: var(--sl-color-white);
+    background: #ffffff;
+    color: #111111;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
+  }
+
+  .converter-mode-group button.is-active strong {
+    color: #f05a00;
   }
 
   .converter-mode-group strong {
-    font-size: 0.96rem;
+    font-size: 0.92rem;
   }
 
   .converter-mode-group span {
-    color: var(--sl-color-gray-3);
-    font-size: 0.8rem;
+    color: #757575;
+    font-size: 0.76rem;
+    line-height: 1.25;
   }
 
   .converter-range input {
     width: 100%;
-    accent-color: var(--sl-color-accent);
+    accent-color: #f05a00;
   }
 
   .converter-status {
     min-height: 44px;
     border-radius: 14px;
-    background: color-mix(in oklch, var(--sl-color-gray-7), transparent 16%);
-    color: var(--sl-color-gray-2);
-    font-size: 0.86rem;
+    background: #f1f1ef;
+    color: #555555;
+    font-size: 0.84rem;
     line-height: 1.5;
     padding: 0.75rem 0.85rem;
   }
 
   .converter-status[data-kind='ready'] {
-    color: oklch(0.78 0.1 150);
+    color: #2f6f48;
   }
 
   .converter-status[data-kind='error'] {
-    color: oklch(0.78 0.16 25);
-  }
-
-  .swatch-comparison {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
-
-  .swatch-card {
-    display: grid;
-    gap: 0.55rem;
-    min-height: 168px;
-    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 28%);
-    border-radius: 20px;
-    background-image:
-      linear-gradient(45deg, oklch(0.2 0.003 160) 25%, transparent 25%),
-      linear-gradient(-45deg, oklch(0.2 0.003 160) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, oklch(0.2 0.003 160) 75%),
-      linear-gradient(-45deg, transparent 75%, oklch(0.2 0.003 160) 75%);
-    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
-    background-size: 16px 16px;
-    overflow: hidden;
-    padding: 0.65rem;
-  }
-
-  .swatch-card span {
-    display: block;
-    min-height: 108px;
-    border-radius: 16px;
-    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.2);
-  }
-
-  .swatch-card small {
-    color: var(--sl-color-gray-3);
-    font-size: 0.76rem;
-    font-weight: 760;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .converter-readout {
-    display: grid;
-    gap: 0.65rem;
-    margin: 0;
-  }
-
-  .converter-readout div {
-    display: grid;
-    gap: 0.24rem;
-    padding-bottom: 0.65rem;
-    border-bottom: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 50%);
-  }
-
-  .converter-readout dt {
-    color: var(--sl-color-gray-3);
-    font-size: 0.72rem;
-    font-weight: 780;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .converter-readout dd {
-    min-width: 0;
-    margin: 0;
-    color: var(--sl-color-gray-2);
-    overflow-wrap: anywhere;
-  }
-
-  .converter-readout code {
-    font-size: 0.82rem;
-  }
-
-  .contrast-feedback {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    border: 1px solid color-mix(in oklch, var(--sl-color-accent), transparent 64%);
-    border-radius: 18px;
-    background:
-      radial-gradient(circle at 10% 0%, oklch(0.74 0.18 44 / 0.12), transparent 45%),
-      oklch(0.1 0.006 160 / 0.72);
-    padding: 0.9rem;
-  }
-
-  .contrast-feedback div {
-    display: grid;
-    gap: 0.28rem;
-  }
-
-  .contrast-feedback span {
-    color: var(--sl-color-gray-3);
-    font-size: 0.72rem;
-    font-weight: 780;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .contrast-feedback strong {
-    color: var(--sl-color-white);
-    font-size: 1.15rem;
-    letter-spacing: -0.03em;
-  }
-
-  .contrast-feedback p {
-    grid-column: 1 / -1;
-    margin: 0;
-    color: var(--sl-color-gray-3);
-    font-size: 0.82rem;
-    line-height: 1.45;
-  }
-
-  .converter-css-block {
-    display: grid;
-    gap: 0.65rem;
-  }
-
-  .converter-css-block > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .converter-css-block pre {
-    max-height: 260px;
-    margin: 0;
-    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 38%);
-    border-radius: 18px;
-    background: oklch(0.08 0.005 160);
-    color: oklch(0.86 0.02 160);
-    font-size: 0.78rem;
-    line-height: 1.6;
-    overflow: auto;
-    padding: 1rem;
+    color: #a33a22;
   }
 
   .gamut-panel {
@@ -1020,7 +1190,8 @@
   }
 
   .gamut-panel strong {
-    color: var(--sl-color-white);
+    color: #171717;
+    font-size: 0.98rem;
   }
 
   .gamut-panel span {
@@ -1032,22 +1203,164 @@
   .gamut-panel canvas {
     display: block;
     width: 100%;
-    height: 360px;
+    border: 1px solid #e5e5e2;
     border-radius: 18px;
-    background: oklch(0.1 0.004 160);
+    background: #ffffff;
   }
 
-  @container (max-width: 940px) {
-    .converter-grid,
-    .gamut-grid {
+  .gamut-panel-primary canvas {
+    height: min(58vw, 560px);
+    min-height: 420px;
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .gamut-panel-secondary canvas {
+    height: 300px;
+  }
+
+  .converter-output {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .swatch-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .swatch-card {
+    display: grid;
+    gap: 0.55rem;
+    min-height: 150px;
+    border: 1px solid #e1e1df;
+    border-radius: 18px;
+    background: #f4f4f2;
+    overflow: hidden;
+    padding: 0.65rem;
+  }
+
+  .swatch-card span {
+    display: block;
+    min-height: 98px;
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+
+  .swatch-card small {
+    color: #737373;
+    font-size: 0.72rem;
+    font-weight: 760;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .converter-readout {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0;
+  }
+
+  .converter-readout div {
+    display: grid;
+    gap: 0.22rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid #e3e3e0;
+  }
+
+  .converter-readout dt {
+    color: #737373;
+    font-size: 0.7rem;
+    font-weight: 780;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .converter-readout dd {
+    min-width: 0;
+    margin: 0;
+    color: #252525;
+    overflow-wrap: anywhere;
+  }
+
+  .converter-readout code {
+    font-size: 0.8rem;
+  }
+
+  .contrast-feedback {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    border: 1px solid #e1e1df;
+    border-radius: 16px;
+    background: #f4f4f2;
+    padding: 0.85rem;
+  }
+
+  .contrast-feedback div {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .contrast-feedback strong {
+    color: #171717;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+  }
+
+  .contrast-feedback p {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #6e6e6a;
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .converter-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr);
+    gap: 1rem;
+  }
+
+  .converter-css-block {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1rem;
+  }
+
+  .converter-css-block > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .converter-css-block pre {
+    max-height: 300px;
+    margin: 0;
+    border: 1px solid #e1e1df;
+    border-radius: 16px;
+    background: #f5f5f3;
+    color: #202020;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    overflow: auto;
+    padding: 1rem;
+  }
+
+  @container (max-width: 980px) {
+    .converter-workbench,
+    .converter-detail-grid,
+    .converter-output {
       grid-template-columns: 1fr;
     }
-  }
 
-  @media (max-width: 980px) {
-    .converter-grid,
-    .gamut-grid {
-      grid-template-columns: 1fr;
+    .converter-controls {
+      position: static;
     }
   }
 
@@ -1060,10 +1373,6 @@
       grid-template-columns: 1fr;
     }
 
-    .converter-hero h2 {
-      max-width: 10ch;
-    }
-
     .gamut-panel figcaption {
       display: grid;
     }
@@ -1071,13 +1380,10 @@
     .gamut-panel span {
       text-align: left;
     }
-  }
 
-  @media (prefers-reduced-motion: reduce) {
-    .converter-examples button:active,
-    .converter-css-block button:active,
-    .converter-mode-group button:active {
-      transform: none;
+    .gamut-panel-primary canvas {
+      min-height: 340px;
+      height: 420px;
     }
   }
 </style>

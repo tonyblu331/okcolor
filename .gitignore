@@ -15,3 +15,4 @@ coverage/
 # Rust / WASM build artifacts
 packages/core-wasm/target/
 packages/core-wasm/pkg/
+packages/docs/.astro/

@@ -1,6 +1,7 @@
 import type { ColorMathPort } from './color-math-port.js'
 export type Gamut = 'srgb' | 'p3'
 export type AuditFailureKind = 'invalid-css' | 'out-of-gamut' | 'wcag2-regression'
+export type Wcag2Level = 'aa' | 'aaa'
 export type Strategy = 'convert' | 'expand' | 'grade' | 'fit'
 export type TokenFormat = 'hex' | 'oklch'
 export const RECIPE_NAMES = ['literal', 'vivid', 'deeper', 'premium', 'muted', 'softer', 'warmer', 'cooler'] as const
@@ -75,6 +76,12 @@ export interface OkColorCompileOptions {
   recipes?: Record<string, OkColorTargetConfig & { intent?: RecipeName; recipe?: RecipeName; lightness?: number }>
   audit?: {
     failOn?: AuditFailureKind[]
+    wcag2?: {
+      /** Default is the token's declared requirement, falling back to AA. */
+      level?: Wcag2Level
+      /** Overrides level and token requirement when set. */
+      requiredRatio?: number
+    }
   }
 }
 
@@ -84,6 +91,7 @@ export interface WcagContrastResult {
   target: Gamut
   ratio: number
   required: number
+  requirement: `wcag2-${Wcag2Level}` | 'custom'
   status: 'pass' | 'fail'
 }
 

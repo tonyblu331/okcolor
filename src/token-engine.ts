@@ -21,6 +21,7 @@ export type {
   TokenParseDiagnostic,
   TokenParseDiagnosticKind,
   TransformSkippedReason,
+  Wcag2Level,
 } from './token/types.js'
 export { wasmColorMath } from './token/color-math-port.js'
 export { COMPILE_REPORT_SCHEMA_VERSION, DEFAULT_AMOUNT, isRecipeName, NEUTRAL_CHROMA_THRESHOLD, RECIPE_NAMES } from './token/types.js'

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <title>Volume – 3D OKLCH Color Palette Creator</title>
+
+  <meta name="description"
+        content="Volume is a 3D OKLCH color palette creator. Adjust hue, chroma & lightness in a perceptually-uniform space—export harmonious palettes in seconds." />
+  <link rel="canonical" href="https://www.volumecolor.io/" />
+  <link rel="alternate" hreflang="en-US" href="https://www.volumecolor.io/" />
+  <meta name="robots" content="index,follow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#292929" />
+
+  <link rel="icon" type="image/png" href="/favicon.png" />
+
+  <link
+    rel="preload"
+    href="/fonts/mona-sans-latin-wght-normal.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
+  />
+  
+  <meta property="og:title" content="Volume – 3D OKLCH Color Palette Creator" />
+  <meta property="og:description" content="Build harmonious palettes in a 3D OKLCH space. Explore, create and save harmonious palettes." />
+  <meta property="og:url" content="https://www.volumecolor.io/" />
+  <meta property="og:type" content="website" />
+  <!-- OG image: ensure public/assets/volume_og_image.jpg exists (e.g. 1200×630) -->
+  <meta property="og:image" content="https://www.volumecolor.io/assets/volume_og_image.jpg" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Volume – 3D OKLCH Color Palette Creator" />
+  <meta name="twitter:description" content="Explore, create, and save color systems in a human-centric 3D OKLCH model." />
+  <meta name="twitter:image" content="https://www.volumecolor.io/assets/volume_og_image.jpg" />
+
+  <style>
+    /* body{font-family:system-ui,sans-serif;margin:0;line-height:1.45;background:#292929;color:#fff} */
+    /* .slides{padding:4rem 1.5rem;max-width:600px;margin:auto;line-height:1.5}
+    .slide{margin-bottom:3rem}
+    .slide h2{margin:0 0 .75rem;font-size:2rem;line-height:1.2}
+    .tagline{font-size:1.1rem;color:#6c6c6c;margin-bottom:.5rem}
+    img{max-width:70%;border-radius:8px; margin:0 auto; display:block} */
+  </style>
+  <script type="module" crossorigin src="/assets/index-C81h7S3O.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-zustand-DQVXGuNQ.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-react-B9DwSceu.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-Yx_inPUB.css">
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <noscript>
+    <main class="slides">
+      <!-- Slide 1 -->
+      <section class="slide">
+        <h1>Introducing Volume</h1>
+        <div class="tagline">GPS for Color</div>
+        <p>
+          Volume turns color selection from a flat swatch-hunt into a sculptural,
+          3D design journey. Explore, build, and manipulate color structures as
+          tangible objects—revealing hidden harmonies no flat picker can show.
+        </p>
+        <img src="/assets/poster_introducing.png"
+             alt="Volume 3D OKLCH preview" />
+      </section>
+
+      <!-- Slide 2 -->
+      <section class="slide">
+        <h2>Perceptual Geometry</h2>
+        <p>
+          Powered by the perceptually-uniform OKLCH color space, chroma radiates
+          uniformly from neutral gray, lightness is vertical, and hue distances
+          stay constant—rotate by any degree and get an equal perceptual shift.
+        </p>
+        <img src="/assets/poster_perceptual.png"
+             alt="Perceptual OKLCH geometry" />
+      </section>
+
+      <!-- Slide 3 -->
+      <section class="slide">
+        <h2>No Side-Effects</h2>
+        <p>
+          Cycle through hues at constant lightness, increase chroma for brilliance,
+          or shift brightness across your entire palette—zero hue drift, zero
+          surprises.
+        </p>
+        <img src="/assets/poster_noside.png"
+             alt="No unintended hue shifts" />
+      </section>
+
+      <!-- Slide 4 -->
+      <section class="slide">
+        <h2>Modular Editing</h2>
+        <p>
+          Extract segments of your palette for precise tweaks—adjust chroma,
+          lightness, or hue on each subgroup—then snap them back together,
+          preserving every node’s spatial relationships.
+        </p>
+        <img src="/assets/poster_modular.png"
+             alt="Modular palette editing in Volume" />
+      </section>
+
+      <!-- Slide 5 -->
+      <section class="slide">
+        <h2>Try Volume</h2>
+        <p>
+          Whether you’re crafting brands, UI themes, or art-direction mood boards,
+          Volume’s 3D color structures give unprecedented insight and precision—
+          ensuring every palette is harmonious and human-centered.
+        </p>
+        <img src="/assets/poster_introducing.png"
+             alt="Try Volume call-to-action" />
+      </section>
+    </main>
+  </noscript>
+
+  <!-- Boot your SPA (hydrateRoot in main.jsx) -->
+</body>
+</html>

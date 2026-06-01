@@ -36,18 +36,26 @@ test-only reference oracles before any production algorithm change.
 **When** the mismatch exceeds the documented tolerance
 **Then** the test MUST fail or be tracked as an explicit known mismatch with source citation
 
-### Requirement: APCA advisory status
+### Requirement: Build-time contrast policy
 
-APCA output MUST remain advisory metadata. WCAG 2.2 contrast ratio SHALL be the default
-blocking compliance gate.
+APCA output MUST remain advisory metadata. WCAG 2 contrast ratio SHALL be the default
+blocking compliance gate, with WCAG 2 AA as the default threshold unless the build-time
+caller configures WCAG 2 AAA or a custom minimum ratio.
 
-#### Scenario: APCA passes but WCAG 2.2 fails
+#### Scenario: APCA passes but WCAG 2 fails
 
 **Given** a declared contrast pair
 **And** APCA advisory status is pass-like
-**But** WCAG 2.2 ratio is below the configured threshold
+**But** WCAG 2 ratio is below the configured threshold
 **When** token audit runs
 **Then** the pair MUST be reported as a blocking contrast failure
+
+#### Scenario: Frontend app uses a stricter contrast gate
+
+**Given** a frontend app uses the Vite token compiler or CLI token audit
+**When** the caller sets the WCAG 2 policy to AAA or a custom minimum ratio
+**Then** okcolor MUST evaluate declared contrast pairs against that configured threshold
+**And** the emitted report MUST identify the effective requirement as `wcag2-aaa` or `custom`
 
 ### Requirement: Contrast lock semantics
 
@@ -58,8 +66,8 @@ proposal defines a repair strategy, report contract, and visual-delta policy.
 #### Scenario: P3 transform breaks a declared pair
 
 **Given** a background token declares a foreground token
-**And** the fallback target passes WCAG 2 AA
-**But** the P3 target falls below the required WCAG 2 AA ratio
+**And** the fallback target passes the configured WCAG 2 gate
+**But** the P3 target falls below the configured WCAG 2 gate
 **When** token audit runs with `wcag2-regression` enabled
 **Then** the P3 pair MUST be reported as a blocking failure
 
@@ -98,9 +106,11 @@ pairs, target data, or failure summaries.
 
 ### Requirement: Browser runtime adapter
 
-okcolor SHOULD expose a dedicated browser entry point for live frontend tools that need
-runtime color conversion. The browser entry point MUST NOT import Node-only modules and
-MUST require explicit WASM initialization before synchronous conversion helpers are used.
+okcolor SHOULD expose a dedicated browser entry point only for live frontend tools that
+need runtime color conversion. Normal frontend app modernization MUST remain a dev/build-time
+workflow through the Vite plugin or CLI. The browser entry point MUST NOT import Node-only
+modules and MUST require explicit WASM initialization before synchronous conversion helpers
+are used.
 
 #### Scenario: Vite app bundles browser adapter
 
@@ -108,6 +118,14 @@ MUST require explicit WASM initialization before synchronous conversion helpers 
 **When** the app is built with Vite
 **Then** the browser adapter MUST bundle without Node polyfills
 **And** the WASM asset MUST be emitted for the browser runtime
+
+#### Scenario: Vite app uses normal build-time integration
+
+**Given** a frontend app uses the okcolor Vite plugin to compile tokens or transform CSS
+**When** the app is built
+**Then** okcolor MUST run as build tooling
+**And** the normal app bundle MUST NOT import `okcolor/browser`
+**And** no okcolor runtime API MUST be required in application source
 
 ## MODIFIED Requirements
 

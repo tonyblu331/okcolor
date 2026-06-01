@@ -77,15 +77,15 @@ Checked 2026-06-01 on Windows (`G:\Antonio Bonet\okcolor`):
 
 | Gate | Result | Notes |
 |------|--------|-------|
-| `npm test` | Passed | 148 Vitest tests, including TypeScript no-emit pretest. |
-| `npm run test:e2e` | Passed | 11 packaged CLI/Vite/package-install/browser-export E2E tests. |
+| `npm test` | Passed | 154 Vitest tests, including TypeScript no-emit pretest. |
+| `npm run test:e2e` | Passed | 14 packaged CLI/Vite/package-install/browser-export E2E tests. |
 | `npm run lint` | Passed | ESLint over `src`. |
 | `cargo test --manifest-path packages/core-wasm/Cargo.toml` | Passed | 150 Rust tests. |
 | `cargo clippy --manifest-path packages/core-wasm/Cargo.toml -- -D warnings` | Passed | No warnings. |
 | `npm run build:docs` | Passed | Astro/Starlight docs build. |
 | `npm run bench:ci` | Passed | Regression gate passed; one throughput measurement was noisy but non-failing. |
 | `git diff --check` | Passed | Only LF-to-CRLF working-copy warnings. |
-| `npm pack --dry-run --json` | Passed | Packed size: 163,837 bytes; unpacked size: 459,112 bytes; 27 entries. |
+| `npm pack --dry-run --json` | Passed | Packed size: 165,849 bytes; unpacked size: 467,103 bytes; 27 entries. |
 
 Cross-platform install verification remains pending for Ubuntu and macOS. Windows package
 install is covered by the packaged CLI E2E tarball consumer test.

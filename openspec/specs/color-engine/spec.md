@@ -92,7 +92,7 @@ Do not copy old benchmark claims into release copy without rerunning the current
 |----------|----------------|
 | Scanner regression guard | `npm run bench:ci` compares `.tmp/bench-results.json` against `bench/baseline.json` with noisy high-RME readings reported instead of treated as exact. |
 | WASM size target | The old `<100 KB` target is not met by recent evidence; latest recorded e2e build was `wasm-opt: 242 KB → 221 KB`. |
-| Package size | Latest recorded `npm pack --dry-run --json`: 163,837 bytes package size, 459,112 bytes unpacked size, 27 files. |
+| Package size | Latest recorded `npm pack --dry-run --json`: 165,849 bytes package size, 467,103 bytes unpacked size, 27 files. |
 | Install matrix | Ubuntu and Windows are covered; macOS install verification remains missing. |
 
 ## Architecture Status

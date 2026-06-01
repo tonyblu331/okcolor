@@ -3,7 +3,7 @@ title: okcolor
 description: Wide-gamut OKLCH compiler for web color tokens
 template: splash
 hero:
-  tagline: Preserve sRGB intent, model it in OKLCH, then safely spend the extra gamut of modern displays.
+  tagline: Preserve sRGB intent, model it in OKLCH, then safely use the wider range of modern displays.
   image:
     file: ../../assets/hero.svg
   actions:
@@ -26,7 +26,7 @@ import TerminalDemo from '../../components/TerminalDemo.astro'
 <div class="ok-lab-hero" aria-label="okcolor product summary">
   <div class="ok-lab-copy">
     <p class="ok-lab-kicker">Build-time color compiler</p>
-    <h2>Hex stays your source. OKLCH becomes the model. P3 becomes the budget.</h2>
+    <h2>Hex stays your source. OKLCH becomes the model. P3 adds the headroom.</h2>
     <p class="ok-lab-lede">okcolor takes legacy sRGB tokens, preserves their perceptual identity, expands chroma only when a target gamut can hold it, and audits the result before it reaches production CSS.</p>
     <div class="ok-lab-actions">
       <a class="ok-action ok-action-primary" href="/okcolor/getting-started/">Install okcolor</a>
@@ -45,7 +45,7 @@ import TerminalDemo from '../../components/TerminalDemo.astro'
     </div>
     <div class="ok-specimen-row ok-expand">
       <span>oklch(0.66 0.24 42)</span>
-      <small>P3 premium grade</small>
+      <small>wide-gamut result</small>
     </div>
     <div class="ok-specimen-meter">
       <i class="tick-source"></i>
@@ -58,7 +58,7 @@ import TerminalDemo from '../../components/TerminalDemo.astro'
 <div class="compiler-flow" aria-label="Compiler mental model">
   <div><strong>hex</strong><span>portable source</span></div>
   <div><strong>OKLCH</strong><span>perceptual identity</span></div>
-  <div><strong>gamut</strong><span>available budget</span></div>
+  <div><strong>gamut</strong><span>usable range</span></div>
   <div><strong>audit</strong><span>release gate</span></div>
 </div>
 

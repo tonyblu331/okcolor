@@ -5,17 +5,17 @@
 
 ![okcolor repository card](packages/docs/public/og.png)
 
-Frontend-first color modernizer for **Vite** and Vite-based frameworks. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** during your build. The default path has zero runtime overhead; `okcolor/browser` is available when you intentionally want the WASM engine in a browser UI.
+Frontend-first, build-time color modernizer for **Vite** and Vite-based frameworks. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** during your build. The normal app path has zero runtime overhead and ships no okcolor runtime code.
 
 - **Vite-first DX** — drop in `okColor()` and modernize app CSS without runtime code
-- **Rust/WASM engine** — ~164 KB npm package, ~225 KB optimized WASM
+- **Rust/WASM engine** — ~166 KB npm package, ~225 KB optimized WASM
 - **Standards-aligned OKLCH conversion** — based on Ottosson 2020 and CSS Color 4
 - **Idempotent** — second pass is a no-op
 - **Cache** — 4096-slot direct-mapped: `#ff0000`, `rgb(255,0,0)`, and `red` hit the same slot
 - **Framework-aware scanning** — handles Vite virtual CSS modules, Vue/Astro/Svelte-style embedded styles, symlinked CSS trees, and CSS escape edge cases
 - **Token compiler** — converts sRGB design tokens into fallback-first CSS with optional Display P3 OKLCH expansion
-- **Pair-based contrast reports** — audits declared foreground/background token pairs for WCAG 2 AA in both fallback and P3 targets, with APCA advisory output validated against `apca-w3`
-- **Browser adapter** — import `okcolor/browser` for playgrounds, inspectors, color pickers, and design-system tooling that needs live conversion in the browser
+- **Pair-based contrast reports** — audits declared foreground/background token pairs for WCAG 2 in both fallback and P3 targets, defaulting to AA with build-time overrides for AAA or custom ratios
+- **Tree-shakeable entry points** — the Vite/plugin path, Node core API, and optional browser adapter are split so browser tooling is not pulled into normal builds
 
 ## Why okcolor?
 
@@ -68,7 +68,17 @@ import { defineConfig } from 'vite'
 import { okColor } from 'okcolor'
 
 export default defineConfig({
-  plugins: [okColor()],
+  plugins: [
+    okColor({
+      input: 'src/tokens/colors.json',
+      output: 'src/styles/colors.css',
+      reportPath: 'okcolor.report.json',
+      audit: {
+        failOn: ['wcag2-regression'],
+        wcag2: { level: 'aa' },
+      },
+    }),
+  ],
 })
 ```
 
@@ -93,11 +103,13 @@ npx okcolor convert "#ff5a00" --to oklch
 # Compile color tokens with P3 enhancement
 npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
 
-# Explain available chroma budget
+# Explain available chroma headroom
 npx okcolor describe "#ff5a00" --gamut p3
 ```
 
-### Programmatic
+### Advanced: programmatic Node API
+
+Most frontend apps do not need this. Use it for build scripts, custom tooling, or adapters outside Vite.
 
 ```ts
 import { transformCss, auditCss } from 'okcolor/core'
@@ -111,9 +123,9 @@ const stats = auditCss(source)
 console.log(stats.legacy_count) // number of legacy colors
 ```
 
-### Browser UI
+### Advanced: browser UI adapter
 
-Use this only when you need live conversion in the browser. Build-time Vite usage remains the recommended app path.
+Use this only when you intentionally ship a color picker, inspector, playground, or docs demo. Build-time Vite usage remains the recommended app path.
 
 ```ts
 import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
@@ -208,7 +220,7 @@ Latest local benchmark run:
 | Whole-file transform vs color.js | ~2.1× faster in this run    |
 | Fast path, no legacy colors      | ~7,212 ops/sec on 50 KB CSS |
 | Optimized WASM payload           | ~225 KB                     |
-| npm package dry-run              | ~164 KB, 27 files           |
+| npm package dry-run              | ~166 KB, 27 files           |
 
 Benchmarks are workload-sensitive. Run them on your machine:
 

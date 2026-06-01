@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { formatOklch, isRecord, parseColor, tokenNameToCssVar, withAlpha } from './color.js'
 import { auditContrastPair, extractDeclaredContrastPairs } from './contrast.js'
-import type { CompiledColorTargets } from './contrast.js'
+import type { CompiledColorTargets, Wcag2AuditPolicy } from './contrast.js'
 import { renderLayeredCss } from './css-emitter.js'
 import { parseTokenInputs } from './parser.js'
 import { resolveTokenRecipePolicy } from './recipe-policy.js'
@@ -88,7 +88,7 @@ export function compileTokenObject(
   }
 
   const auditTargets: Gamut[] = Object.values(colorsByToken).some((targets) => targets.p3) ? ['srgb', 'p3'] : ['srgb']
-  const contrastPairs = applyContrastAudits(tokens, colorsByToken, reportByToken, auditTargets)
+  const contrastPairs = applyContrastAudits(tokens, colorsByToken, reportByToken, auditTargets, options.audit?.wcag2)
 
   return {
     css: renderLayeredCss({ base: baseLines, literal: literalLines, p3: p3Lines }),
@@ -127,6 +127,7 @@ function applyContrastAudits(
   colorsByToken: Record<string, CompiledColorTargets>,
   reportByToken: Map<string, CompiledTokenReport>,
   auditTargets: readonly Gamut[],
+  wcag2Policy: Wcag2AuditPolicy | undefined,
 ): ContrastPairReport[] {
   const pairReports: ContrastPairReport[] = []
 
@@ -140,7 +141,7 @@ function applyContrastAudits(
         continue
       }
 
-      const result = auditContrastPair(pair, colorsByToken, target)
+      const result = auditContrastPair(pair, colorsByToken, target, wcag2Policy)
       if (!result) continue
       pairReports.push({
         background: pair.background,

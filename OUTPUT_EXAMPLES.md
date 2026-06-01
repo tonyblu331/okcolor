@@ -300,8 +300,18 @@ const result = compileTokenObject(tokens, {
       },
       "contrast": {
         "wcag2": {
-          "color.action.primary.fg@srgb": { "ratio": 5.61, "required": 4.5, "status": "pass" },
-          "color.action.primary.fg@p3": { "ratio": 5.66, "required": 4.5, "status": "pass" }
+          "color.action.primary.fg@srgb": {
+            "ratio": 5.61,
+            "required": 4.5,
+            "requirement": "wcag2-aa",
+            "status": "pass"
+          },
+          "color.action.primary.fg@p3": {
+            "ratio": 5.66,
+            "required": 4.5,
+            "requirement": "wcag2-aa",
+            "status": "pass"
+          }
         },
         "apca": {
           "color.action.primary.fg@srgb": { "lc": -80, "polarity": "reverse", "advisory": "pass-body" },
@@ -376,9 +386,9 @@ Outputs:
 - `colors.css`: fallback-first CSS with optional P3 overrides.
 - `okcolor.report.json`: versioned report with `schemaVersion`, token diagnostics, pair-level contrast results, and summary failures.
 
-## 10. Browser runtime adapter
+## 10. Advanced browser runtime adapter
 
-Use this for playgrounds, inspectors, color pickers, and design-system UIs. For normal app CSS, prefer the Vite plugin so conversion stays build-time.
+Use this only for playgrounds, inspectors, color pickers, and design-system UIs. For normal app CSS, prefer the Vite plugin so conversion stays build-time and okcolor is not shipped in your app bundle.
 
 ### Input
 

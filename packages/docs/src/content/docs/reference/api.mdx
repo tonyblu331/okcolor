@@ -14,17 +14,17 @@ okcolor exposes three entry points:
 | Entry             | What you get                                      | Use when                                |
 | ----------------- | ------------------------------------------------- | --------------------------------------- |
 | `okcolor`         | Vite plugin factory                               | You're adding okcolor to a Vite project |
-| `okcolor/core`    | Node/programmatic transform, audit, token compiler | You need the engine without Vite        |
-| `okcolor/browser` | Browser WASM adapter                              | You need live conversion in browser UI  |
+| `okcolor/core`    | Node/programmatic transform, audit, token compiler | You are writing build scripts or adapters |
+| `okcolor/browser` | Browser WASM adapter                              | You intentionally ship a color tool UI  |
 
 ```ts
 // Vite plugin
 import { okColor, type OkColorOptions } from 'okcolor'
 
-// Programmatic
+// Advanced build tooling
 import { transformCss, auditCss, compileTokens, expandChroma, describeColor, type ScanResult } from 'okcolor/core'
 
-// Browser UI
+// Advanced runtime color tools only
 import { initOkColorBrowser, colorToOklch } from 'okcolor/browser'
 ```
 
@@ -32,7 +32,7 @@ import { initOkColorBrowser, colorToOklch } from 'okcolor/browser'
 
 ## Browser adapter
 
-`okcolor/browser` is the runtime browser seam for playgrounds, inspectors, color pickers, and design-system tools. It is separate from `okcolor/core` because `core` uses a Node WASM loader.
+`okcolor/browser` is the optional runtime seam for playgrounds, inspectors, color pickers, and design-system tools. It is not the default frontend app path. Normal apps should use the Vite plugin so okcolor runs during build and ships no runtime code.
 
 ```ts
 import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
@@ -44,6 +44,8 @@ console.log(transformCss('.btn { color: #ff5a00; }'))
 ```
 
 The adapter exposes `OKCOLOR_WASM_URL` for preloading/custom asset handling and throws a clear error if a WASM API is called before `initOkColorBrowser()`.
+
+The browser adapter is a separate package export. The root Vite/plugin entry and `okcolor/core` do not import it, so normal build-time usage stays tree-shakeable.
 
 ---
 
@@ -262,6 +264,7 @@ result.report.tokens[0].contrast.wcag2['color.action.primary.fg@srgb']
 //   target: 'srgb',
 //   ratio: 6.82,
 //   required: 4.5,
+//   requirement: 'wcag2-aa',
 //   status: 'pass'
 // }
 
@@ -269,7 +272,7 @@ result.report.summary
 // { contrastPassed: true, failureCount: 0, failures: [] }
 ```
 
-WCAG 2 AA is the blocking model. APCA is advisory: report entries include `lc`, `polarity`, and an advisory `pass-body`/`pass-large`/`fail` hint. The implementation is checked against the W3-licensed `apca-w3` package as a test oracle, but APCA still does not replace WCAG 2 AA for CI gating.
+WCAG 2 AA is the default blocking model. Override it at build time with `audit.wcag2.level: 'aaa'` or `audit.wcag2.requiredRatio`. APCA is advisory: report entries include `lc`, `polarity`, and an advisory `pass-body`/`pass-large`/`fail` hint. The implementation is checked against the W3-licensed `apca-w3` package as a test oracle, but APCA still does not replace WCAG 2 AA for CI gating.
 
 Pair-level status is also reported, including skipped pairs where one side could not be compiled:
 
@@ -300,9 +303,9 @@ type AuditFailureKind = 'invalid-css' | 'out-of-gamut' | 'wcag2-regression'
 
 - `invalid-css`: a target emitted invalid CSS.
 - `out-of-gamut`: a target is outside the requested gamut or is not display-safe.
-- `wcag2-regression`: a declared contrast pair failed WCAG 2 AA.
+- `wcag2-regression`: a declared contrast pair failed the configured WCAG 2 gate.
 
-`assertNoBlockingFailures(result)` blocks on all three by default. Pass `audit.failOn` to narrow the CI gate.
+`assertNoBlockingFailures(result)` blocks on all three by default. Pass `audit.failOn` to narrow the CI gate. Pass `audit.wcag2.level` or `audit.wcag2.requiredRatio` to change the WCAG threshold before the report is built.
 
 ---
 
@@ -379,6 +382,26 @@ function okColor(options?: Partial<OkColorOptions>): Plugin
       </td>
       <td>—</td>
       <td>Optional JSON report output path for token compiler mode</td>
+    </tr>
+    <tr>
+      <td>
+        <code>audit.failOn</code>
+      </td>
+      <td>
+        <code>AuditFailureKind[]</code>
+      </td>
+      <td>All blocking gates</td>
+      <td>Which report failures should fail the build</td>
+    </tr>
+    <tr>
+      <td>
+        <code>audit.wcag2</code>
+      </td>
+      <td>
+        <code>{`{ level?: 'aa' | 'aaa'; requiredRatio?: number }`}</code>
+      </td>
+      <td>AA / 4.5</td>
+      <td>Build-time WCAG 2 contrast policy override for token reports</td>
     </tr>
   </tbody>
 </table>

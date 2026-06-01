@@ -15,13 +15,15 @@ This playground is not a mock. It loads the generated Rust/WASM bundle and calls
 
 ## How to read the views
 
-The **2D gamut slice** fixes lightness and shows how much chroma each hue can hold. The inner neutral contour is sRGB; the larger warm contour is the selected target gamut. The dots show the faithful source color and the transformed result.
+The **hue x chroma plane** fixes lightness and maps hue horizontally against chroma vertically. Painted samples are reachable in the selected target gamut. Empty samples are out of gamut. Drag inside the plane to pick a new OKLCH hue and chroma at the current lightness.
 
-The **3D gamut volume** stacks those chroma boundaries across lightness. This makes the important constraint visible: gamut is not one global saturation number. A hue can have plenty of room at one lightness and almost none at another.
+The **lightness x chroma slice** fixes hue and shows how much chroma that hue can hold across the lightness range.
+
+The **sampled gamut boundary** projects RGB cube-face samples into OKLCH. This makes the important constraint visible: gamut is not one global saturation number. A hue can have plenty of room at one lightness and almost none at another.
 
 ## Expand vs saturate
 
-**Expand** moves the source chroma toward the target gamut boundary while preserving OKLCH lightness and hue. Use it when you want a controlled wide-gamut enhancement that respects the available display budget.
+**Expand** moves the source chroma toward the target gamut boundary while preserving OKLCH lightness and hue. Use it when you want a controlled wide-gamut enhancement that respects the available display range.
 
 **Saturate** multiplies chroma first, then fits the result back into the target gamut. Use it when you want to test a more aggressive art-direction move, knowing that clipping pressure will appear sooner.
 

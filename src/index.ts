@@ -39,5 +39,6 @@ export type {
   TokenParseDiagnostic,
   TokenParseDiagnosticKind,
   TransformSkippedReason,
+  Wcag2Level,
 } from './token-engine.js'
 export type { OkColorOptions, ScanResult } from './types.js'

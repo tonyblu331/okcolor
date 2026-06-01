@@ -51,6 +51,23 @@ describe('okcolor CLI E2E', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
+  it('keeps package entrypoints tree-shakeable and browser runtime isolated', async () => {
+    const packageJson = JSON.parse(await readFile(resolve('package.json'), 'utf-8')) as {
+      sideEffects?: unknown
+      exports?: Record<string, unknown>
+    }
+    const rootEntry = await readFile(resolve('dist/index.js'), 'utf-8')
+    const coreEntry = await readFile(resolve('dist/core.js'), 'utf-8')
+    const browserEntry = await readFile(resolve('dist/browser.js'), 'utf-8')
+
+    expect(packageJson.sideEffects).toBe(false)
+    expect(packageJson.exports).toHaveProperty('./browser')
+    expect(rootEntry).not.toContain('./browser')
+    expect(coreEntry).not.toContain('./browser')
+    expect(browserEntry).not.toContain('node:')
+    expect(browserEntry).toContain('./okcolor_core.js')
+  })
+
   it('compiles token JSON into layered CSS and a token audit report through the packaged CLI', async () => {
     const tokens = join(dir, 'tokens.json')
     const cssOut = join(dir, 'colors.css')
@@ -123,6 +140,33 @@ describe('okcolor CLI E2E', () => {
 
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('okcolor audit failed')
+  })
+
+  it('applies CLI WCAG 2 contrast policy overrides to token audits', async () => {
+    const tokens = join(dir, 'tokens.json')
+    await writeFile(
+      tokens,
+      JSON.stringify({
+        surface: {
+          $type: 'color',
+          $value: '#0055ff',
+          okcolor: { text: 'foreground', contrast: 'wcag2-aa' },
+        },
+        foreground: '#ffffff',
+      }),
+    )
+
+    const result = await runOkcolor(['audit', tokens, '--format=json', '--wcag2=aaa'])
+    const report = JSON.parse(result.stdout) as {
+      tokens: Array<{ contrast: { wcag2: Record<string, { required: number; requirement: string; status: string }> } }>
+    }
+
+    expect(result.code).toBe(1)
+    expect(report.tokens[0]?.contrast.wcag2['foreground@srgb']).toMatchObject({
+      required: 7,
+      requirement: 'wcag2-aaa',
+      status: 'fail',
+    })
   })
 
   it('labels token audit JSON output with token contrast mode', async () => {
@@ -258,6 +302,7 @@ describe('okcolor CLI E2E', () => {
                   "foreground": "string",
                   "ratio": "number",
                   "required": "number",
+                  "requirement": "string",
                   "status": "string",
                   "target": "string",
                 },
@@ -266,6 +311,7 @@ describe('okcolor CLI E2E', () => {
                   "foreground": "string",
                   "ratio": "number",
                   "required": "number",
+                  "requirement": "string",
                   "status": "string",
                   "target": "string",
                 },

@@ -21,7 +21,7 @@ export default defineConfig({
 })
 ```
 
-Every `.css` file processed by Vite will have legacy colors converted to OKLCH automatically. No config needed.
+Every `.css` file processed by Vite will have legacy colors converted to OKLCH automatically at build time. No app imports, no client runtime, no shipped okcolor code.
 
 The plugin also handles Vite's virtual style modules, including ids like `Component.vue?vue&type=style&lang.css`. Non-style virtual modules such as Vue templates or scripts are skipped, even if they contain CSS-looking text.
 
@@ -67,6 +67,10 @@ interface OkColorOptions {
 
   audit?: {
     failOn?: Array<'invalid-css' | 'out-of-gamut' | 'wcag2-regression'>
+    wcag2?: {
+      level?: 'aa' | 'aaa'
+      requiredRatio?: number
+    }
   }
 }
 ```
@@ -107,6 +111,10 @@ export default defineConfig({
       input: 'src/tokens/colors.json',
       output: 'src/styles/colors.css',
       reportPath: 'src/styles/okcolor.report.json',
+      audit: {
+        failOn: ['wcag2-regression'],
+        wcag2: { level: 'aa' },
+      },
       targets: {
         base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
         p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
@@ -120,9 +128,11 @@ When `input`/`output` are omitted, okcolor keeps the original zero-config CSS tr
 
 Token compiler output is layered: sRGB custom properties first, optional OKLCH diagnostics, then Display P3 overrides guarded by `@media (color-gamut: p3)` and `@supports`. If `reportPath` is set, okcolor also writes a JSON report with top-level `schemaVersion: 1`, token diagnostics, pair-level contrast status, WCAG 2 gate results, and APCA advisory values.
 
+WCAG policy is build-time configuration. `audit.wcag2.level` can be `aa` or `aaa`; `audit.wcag2.requiredRatio` overrides both the level and per-token declaration when you need a custom gate.
+
 ## Browser runtime adapter
 
-Most apps should use the Vite plugin at build time. If you are building a color picker, inspector, playground, or design-system UI that needs live conversion in the browser, use `okcolor/browser`:
+Most apps should never import okcolor from application code. If you are intentionally building a color picker, inspector, playground, or design-system UI that needs live conversion in the browser, use `okcolor/browser`:
 
 ```ts
 import { colorToOklch, initOkColorBrowser } from 'okcolor/browser'

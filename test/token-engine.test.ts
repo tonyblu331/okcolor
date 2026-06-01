@@ -438,6 +438,7 @@ describe('token color engine', () => {
         background: 'color.action.primary.bg',
         status: 'pass',
         required: 4.5,
+        requirement: 'wcag2-aa',
       })
       expect(bg?.contrast.wcag2['color.action.primary.fg@p3']).toMatchObject({
         foreground: 'color.action.primary.fg',
@@ -469,6 +470,59 @@ describe('token color engine', () => {
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+
+  it('allows build-time WCAG 2 policy overrides without runtime app imports', () => {
+    const result = compileTokenObject(
+      {
+        surface: {
+          $type: 'color',
+          $value: '#0055ff',
+          okcolor: { text: 'foreground', contrast: 'wcag2-aa' },
+        },
+        foreground: '#ffffff',
+      },
+      {
+        audit: {
+          wcag2: { level: 'aaa' },
+        },
+      },
+    )
+    const surface = result.report.tokens.find((token) => token.token === 'surface')
+
+    expect(surface?.contrast.wcag2['foreground@srgb']).toMatchObject({
+      required: 7,
+      requirement: 'wcag2-aaa',
+      status: 'fail',
+    })
+    expect(result.report.summary.failures).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'wcag2-regression' })]),
+    )
+  })
+
+  it('allows a custom build-time WCAG 2 required ratio override', () => {
+    const result = compileTokenObject(
+      {
+        surface: {
+          $type: 'color',
+          $value: '#0055ff',
+          okcolor: { text: 'foreground', contrast: 'wcag2-aa' },
+        },
+        foreground: '#ffffff',
+      },
+      {
+        audit: {
+          wcag2: { requiredRatio: 5.5 },
+        },
+      },
+    )
+    const surface = result.report.tokens.find((token) => token.token === 'surface')
+
+    expect(surface?.contrast.wcag2['foreground@srgb']).toMatchObject({
+      required: 5.5,
+      requirement: 'custom',
+      status: 'pass',
+    })
   })
 
   it('preserves alpha in token fallback and OKLCH output layers', () => {
@@ -667,6 +721,7 @@ describe('token color engine', () => {
       target: 'srgb',
       ratio: 1.16,
       required: 4.5,
+      requirement: 'wcag2-aa',
       status: 'fail',
     }
 
@@ -707,6 +762,7 @@ describe('token color engine', () => {
       target: 'srgb',
       ratio: 4.49,
       required: 4.5,
+      requirement: 'wcag2-aa',
       status: 'fail',
     }
     wcagFailApcaPass.contrast.apca['foreground@srgb'] = {
@@ -731,6 +787,7 @@ describe('token color engine', () => {
       target: 'srgb',
       ratio: 4.5,
       required: 4.5,
+      requirement: 'wcag2-aa',
       status: 'pass',
     }
     apcaFailWcagPass.contrast.apca['inverse.foreground@srgb'] = {

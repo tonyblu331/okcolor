@@ -40,4 +40,5 @@ export type {
   TokenParseDiagnostic,
   TokenParseDiagnosticKind,
   TransformSkippedReason,
+  Wcag2Level,
 } from './token-engine.js'

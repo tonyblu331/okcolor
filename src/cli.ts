@@ -17,7 +17,7 @@ import {
   RECIPE_NAMES,
 } from './token-engine.js'
 import type { ScanResult } from './types.js'
-import type { AuditFailureKind, Gamut, OkColorTargetConfig, RecipeName, Strategy } from './token-engine.js'
+import type { AuditFailureKind, Gamut, OkColorTargetConfig, RecipeName, Strategy, Wcag2Level } from './token-engine.js'
 
 const CSS_EXTS = new Set(['.css', '.scss', '.sass', '.less', '.styl', '.stylus', '.vue', '.svelte', '.astro'])
 const EMBEDDED_STYLE_EXTS = new Set(['.vue', '.svelte', '.astro'])
@@ -31,7 +31,7 @@ function showHelp(stream: 'stdout' | 'stderr' = 'stdout'): void {
   okcolor — build-time color modernizer
 
   Usage:
-    okcolor audit <css-dir|tokens.json> [--mode css|tokens] [--format json]
+    okcolor audit <css-dir|tokens.json> [--mode css|tokens] [--format json] [--wcag2 aa|aaa] [--min-contrast N]
       Audit CSS color debt or token gamut/contrast safety.
 
     okcolor check <path> [--max-legacy-colors N] [--allow-named]
@@ -44,7 +44,7 @@ function showHelp(stream: 'stdout' | 'stderr' = 'stdout'): void {
       Convert a single color between spaces.
       Supported spaces: hex, rgb, hsl, hwb, oklch
 
-    okcolor expand <color|tokens.json> [--gamut p3] [--amount 0.75] [--format json] [--out <file>]
+    okcolor expand <color|tokens.json> [--gamut p3] [--amount 0.75] [--format json] [--out <file>] [--wcag2 aa|aaa] [--min-contrast N]
       Create controlled wide-gamut OKLCH enhancement.
 
     okcolor grade <color|tokens.json> [--recipe premium] [--gamut p3] [--format json] [--out <file>]
@@ -82,6 +82,8 @@ interface CliArgs {
   out?: string
   report?: string
   failOn?: AuditFailureKind[]
+  wcag2?: Wcag2Level
+  minContrast?: number
   exitCode?: number
 }
 
@@ -117,6 +119,8 @@ export function parseArgs(argv: string[]): CliArgs {
   let out: string | undefined
   let report: string | undefined
   let failOn: AuditFailureKind[] | undefined
+  let wcag2: Wcag2Level | undefined
+  let minContrast: number | undefined
 
   for (let i = 1; i < args.length; i++) {
     const arg = args[i]
@@ -171,6 +175,27 @@ export function parseArgs(argv: string[]): CliArgs {
       failOn = splitCsv(peek) as AuditFailureKind[]
       i++
     } else if (arg.startsWith('--fail-on=')) failOn = splitCsv(arg.slice(10)) as AuditFailureKind[]
+    else if (arg === '--wcag2' && peek) {
+      const level = parseWcag2Level(peek)
+      if (!level) return die(`Invalid WCAG 2 level: ${peek}. Use: aa, aaa`)
+      wcag2 = level
+      i++
+    } else if (arg.startsWith('--wcag2=')) {
+      const value = arg.slice(8)
+      const level = parseWcag2Level(value)
+      if (!level) return die(`Invalid WCAG 2 level: ${value}. Use: aa, aaa`)
+      wcag2 = level
+    } else if (arg === '--min-contrast' && peek) {
+      const n = Number(peek)
+      if (!isValidRatio(n)) return die(`Invalid contrast ratio: ${peek}`)
+      minContrast = n
+      i++
+    } else if (arg.startsWith('--min-contrast=')) {
+      const value = arg.slice(15)
+      const n = Number(value)
+      if (!isValidRatio(n)) return die(`Invalid contrast ratio: ${value}`)
+      minContrast = n
+    }
     else if (arg === '--max-legacy-colors' && peek) {
       const n = parseInt(peek, 10)
       if (Number.isNaN(n)) return die(`Invalid number: ${peek}`)
@@ -205,7 +230,19 @@ export function parseArgs(argv: string[]): CliArgs {
     out,
     report,
     failOn,
+    wcag2,
+    minContrast,
   }
+}
+
+function parseWcag2Level(value: string): Wcag2Level | undefined {
+  const normalized = value.toLowerCase()
+  if (normalized === 'aa' || normalized === 'aaa') return normalized
+  return undefined
+}
+
+function isValidRatio(value: number): boolean {
+  return Number.isFinite(value) && value > 0
 }
 
 function parseAuditMode(value: string): AuditMode | undefined {
@@ -390,7 +427,7 @@ async function runAudit(args: CliArgs): Promise<number> {
 
   if (auditMode === 'tokens') {
     const result = await compileTokens(resolve(args.path!), {
-      audit: { failOn: args.failOn },
+      audit: toAuditOptions(args),
     })
     const json = JSON.stringify({ mode: 'token-contrast', ...result.report }, null, 2)
     if (args.report) await writeTextFile(resolve(args.report), json)
@@ -615,7 +652,7 @@ async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promi
           }
     const result = await compileTokens(resolve(args.path), {
       targets,
-      audit: { failOn: args.failOn },
+      audit: toAuditOptions(args),
     })
     if (args.out) await writeTextFile(resolve(args.out), result.css)
     else console.log(result.css)
@@ -650,6 +687,19 @@ async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promi
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e))
     return 1
+  }
+}
+
+function toAuditOptions(args: CliArgs) {
+  return {
+    failOn: args.failOn,
+    wcag2:
+      args.wcag2 || args.minContrast
+        ? {
+            level: args.wcag2,
+            requiredRatio: args.minContrast,
+          }
+        : undefined,
   }
 }
 
