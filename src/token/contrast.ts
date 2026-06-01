@@ -3,8 +3,13 @@ import { isRecord } from './color.js'
 import type { ApcaContrastResult, Gamut, Oklch, WcagContrastResult } from './types.js'
 
 export interface CompiledColorTargets {
-  srgb: Oklch
-  p3?: Oklch
+  srgb: CompiledContrastColor
+  p3?: CompiledContrastColor
+}
+
+export interface CompiledContrastColor {
+  oklch: Oklch
+  alpha: number
 }
 
 export interface DeclaredContrastPair {
@@ -35,7 +40,7 @@ export function auditContrastPair(
   const background = colors[pair.background]?.[target]
   if (!foreground || !background) return undefined
 
-  const ratio = wcagContrastRatio(relativeLuminance(foreground), relativeLuminance(background))
+  const ratio = wcagContrastRatio(relativeLuminance(foreground.oklch), relativeLuminance(background.oklch))
   const key = `${pair.foreground}@${target}`
   return {
     key,
@@ -48,8 +53,8 @@ export function auditContrastPair(
       status: ratio >= requiredRatio(pair.requirement) ? 'pass' : 'fail',
     },
     apca: apcaContrast(
-      relativeLuminance(foreground),
-      relativeLuminance(background),
+      relativeLuminance(foreground.oklch),
+      relativeLuminance(background.oklch),
       pair.foreground,
       pair.background,
       target,

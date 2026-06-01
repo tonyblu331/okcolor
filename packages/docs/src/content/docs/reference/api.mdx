@@ -9,12 +9,13 @@ import { Tabs, TabItem } from '@astrojs/starlight/components'
 
 ## Package exports
 
-okcolor exposes two entry points:
+okcolor exposes three entry points:
 
-| Entry          | What you get                                   | Use when                                |
-| -------------- | ---------------------------------------------- | --------------------------------------- |
-| `okcolor`      | Vite plugin factory                            | You're adding okcolor to a Vite project |
-| `okcolor/core` | Transform, audit, and token compiler functions | You need the engine without Vite        |
+| Entry             | What you get                                      | Use when                                |
+| ----------------- | ------------------------------------------------- | --------------------------------------- |
+| `okcolor`         | Vite plugin factory                               | You're adding okcolor to a Vite project |
+| `okcolor/core`    | Node/programmatic transform, audit, token compiler | You need the engine without Vite        |
+| `okcolor/browser` | Browser WASM adapter                              | You need live conversion in browser UI  |
 
 ```ts
 // Vite plugin
@@ -22,7 +23,27 @@ import { okColor, type OkColorOptions } from 'okcolor'
 
 // Programmatic
 import { transformCss, auditCss, compileTokens, expandChroma, describeColor, type ScanResult } from 'okcolor/core'
+
+// Browser UI
+import { initOkColorBrowser, colorToOklch } from 'okcolor/browser'
 ```
+
+---
+
+## Browser adapter
+
+`okcolor/browser` is the runtime browser seam for playgrounds, inspectors, color pickers, and design-system tools. It is separate from `okcolor/core` because `core` uses a Node WASM loader.
+
+```ts
+import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
+
+await initOkColorBrowser()
+
+console.log(colorToOklch('#ff5a00'))
+console.log(transformCss('.btn { color: #ff5a00; }'))
+```
+
+The adapter exposes `OKCOLOR_WASM_URL` for preloading/custom asset handling and throws a clear error if a WASM API is called before `initOkColorBrowser()`.
 
 ---
 
@@ -177,7 +198,9 @@ const result = await compileTokens('src/tokens/colors.json', {
 })
 
 console.log(result.css)
+console.log(result.report.schemaVersion)
 console.log(result.report.tokens)
+console.log(result.report.diagnostics)
 ```
 
 Supported token shapes:
@@ -197,6 +220,26 @@ Supported token shapes:
   "color.action.primary.fg": "#ffffff"
 }
 ```
+
+Malformed or unsupported token shapes do not disappear silently. They are skipped and reported in `result.report.diagnostics`:
+
+The report contract is versioned at the top level. `result.report.schemaVersion` is `1` for the current token compiler report shape; bumping it means frontend CI integrations should re-check their parser expectations.
+
+```ts
+type TokenParseDiagnosticKind = 'unsupported-token-shape' | 'unsupported-color-space' | 'invalid-color-components'
+
+interface TokenParseDiagnostic {
+  token: string
+  kind: TokenParseDiagnosticKind
+  severity: 'warning'
+  path: string
+  message: string
+}
+```
+
+Only sRGB Design Token component objects are accepted today. A token using another `$value.colorSpace` is reported as `unsupported-color-space`; invalid component arrays are reported as `invalid-color-components`.
+
+Unknown recipes are hard failures. Built-in recipes are `literal`, `vivid`, `deeper`, `premium`, `muted`, `softer`, `warmer`, and `cooler`; custom aliases must be declared in `options.recipes`.
 
 ### Color transforms
 
@@ -227,6 +270,39 @@ result.report.summary
 ```
 
 WCAG 2 AA is the blocking model. APCA is advisory: report entries include `lc`, `polarity`, and an advisory `pass-body`/`pass-large`/`fail` hint. The implementation is checked against the W3-licensed `apca-w3` package as a test oracle, but APCA still does not replace WCAG 2 AA for CI gating.
+
+Pair-level status is also reported, including skipped pairs where one side could not be compiled:
+
+```ts
+result.report.contrastPairs
+// [
+//   {
+//     background: 'color.action.primary.bg',
+//     foreground: 'color.action.primary.fg',
+//     target: 'srgb',
+//     status: 'evaluated',
+//     wcag2Key: 'color.action.primary.fg@srgb',
+//     apcaKey: 'color.action.primary.fg@srgb'
+//   }
+// ]
+```
+
+Skipped pairs use `status: 'skipped'` with `skippedReason: 'missing-background'`, `missing-foreground`, `missing-target`, or `alpha-unsupported`.
+Alpha-involved contrast pairs are skipped because okcolor does not yet composite semi-transparent foreground/background chains for WCAG/APCA evaluation.
+
+### Audit failure kinds
+
+`result.report.summary.failures` contains deterministic failure records:
+
+```ts
+type AuditFailureKind = 'invalid-css' | 'out-of-gamut' | 'wcag2-regression'
+```
+
+- `invalid-css`: a target emitted invalid CSS.
+- `out-of-gamut`: a target is outside the requested gamut or is not display-safe.
+- `wcag2-regression`: a declared contrast pair failed WCAG 2 AA.
+
+`assertNoBlockingFailures(result)` blocks on all three by default. Pass `audit.failOn` to narrow the CI gate.
 
 ---
 
@@ -294,6 +370,16 @@ function okColor(options?: Partial<OkColorOptions>): Plugin
       <td>—</td>
       <td>Fallback and P3 target strategies for token compiler mode</td>
     </tr>
+    <tr>
+      <td>
+        <code>reportPath</code>
+      </td>
+      <td>
+        <code>string</code>
+      </td>
+      <td>—</td>
+      <td>Optional JSON report output path for token compiler mode</td>
+    </tr>
   </tbody>
 </table>
 
@@ -321,11 +407,14 @@ Embedded style transform failures are logged as `[okcolor]` warnings and return 
 ## CLI
 
 ```bash
-# Transform a file
-npx okcolor input.css -o output.css
-
 # Audit a directory
 npx okcolor audit ./src
+
+# Convert a single color
+npx okcolor convert "#ff5a00" --to oklch
+
+# Compile token JSON into CSS and a report
+npx okcolor expand ./tokens.json --gamut p3 --out ./colors.css --report ./okcolor.report.json
 
 # CI gate
 npx okcolor check ./src --max-legacy-colors=10

@@ -17,7 +17,7 @@ import {
   RECIPE_NAMES,
 } from './token-engine.js'
 import type { ScanResult } from './types.js'
-import type { AuditFailureKind, Gamut, RecipeName, Strategy } from './token-engine.js'
+import type { AuditFailureKind, Gamut, OkColorTargetConfig, RecipeName, Strategy } from './token-engine.js'
 
 const CSS_EXTS = new Set(['.css', '.scss', '.sass', '.less', '.styl', '.stylus', '.vue', '.svelte', '.astro'])
 const EMBEDDED_STYLE_EXTS = new Set(['.vue', '.svelte', '.astro'])
@@ -26,8 +26,8 @@ const CONCURRENCY = 32
 
 const SPACES = ['hex', 'rgb', 'hsl', 'hwb', 'oklch'] as const
 
-function showHelp(): void {
-  console.log(`
+function showHelp(stream: 'stdout' | 'stderr' = 'stdout'): void {
+  const message = `
   okcolor — build-time color modernizer
 
   Usage:
@@ -62,7 +62,9 @@ function showHelp(): void {
     npx okcolor doctor ./src --format json
     npx okcolor convert "#ff0000" --to hsl
     npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out colors.css
-`)
+`
+  if (stream === 'stderr') console.error(message)
+  else console.log(message)
 }
 
 interface CliArgs {
@@ -79,7 +81,6 @@ interface CliArgs {
   recipe?: RecipeName
   out?: string
   report?: string
-  contrast?: string[]
   failOn?: AuditFailureKind[]
   exitCode?: number
 }
@@ -88,7 +89,7 @@ export type AuditMode = 'css' | 'tokens'
 
 function die(msg: string): CliArgs {
   console.error(msg)
-  showHelp()
+  showHelp('stderr')
   return { command: 'help', format: 'pretty', exitCode: 1 }
 }
 
@@ -115,7 +116,6 @@ export function parseArgs(argv: string[]): CliArgs {
   let recipe: RecipeName | undefined
   let out: string | undefined
   let report: string | undefined
-  let contrast: string[] | undefined
   let failOn: AuditFailureKind[] | undefined
 
   for (let i = 1; i < args.length; i++) {
@@ -167,10 +167,6 @@ export function parseArgs(argv: string[]): CliArgs {
       report = peek
       i++
     } else if (arg.startsWith('--report=')) report = arg.slice(9)
-    else if (arg === '--contrast' && peek) {
-      contrast = splitCsv(peek)
-      i++
-    } else if (arg.startsWith('--contrast=')) contrast = splitCsv(arg.slice(11))
     else if (arg === '--fail-on' && peek) {
       failOn = splitCsv(peek) as AuditFailureKind[]
       i++
@@ -208,7 +204,6 @@ export function parseArgs(argv: string[]): CliArgs {
     recipe,
     out,
     report,
-    contrast,
     failOn,
   }
 }
@@ -395,7 +390,7 @@ async function runAudit(args: CliArgs): Promise<number> {
 
   if (auditMode === 'tokens') {
     const result = await compileTokens(resolve(args.path!), {
-      audit: { contrast: args.contrast, failOn: args.failOn },
+      audit: { failOn: args.failOn },
     })
     const json = JSON.stringify({ mode: 'token-contrast', ...result.report }, null, 2)
     if (args.report) await writeTextFile(resolve(args.report), json)
@@ -603,17 +598,24 @@ async function runConvert(args: CliArgs): Promise<number> {
 
 async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promise<number> {
   if (isJsonPath(args.path)) {
+    const targetGamut = validateGamut(args.gamut, strategy === 'fit' ? 'srgb' : 'p3')
+    const targets: Record<string, OkColorTargetConfig> =
+      targetGamut === 'srgb'
+        ? {
+            base: { gamut: 'srgb' as const, strategy, amount: args.amount, format: 'oklch' as const },
+          }
+        : {
+            base: { gamut: 'srgb' as const, strategy: 'convert' as const, format: 'hex' as const },
+            p3: {
+              gamut: targetGamut,
+              strategy,
+              amount: args.amount,
+              format: 'oklch' as const,
+            },
+          }
     const result = await compileTokens(resolve(args.path), {
-      targets: {
-        base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
-        p3: {
-          gamut: validateGamut(args.gamut, strategy === 'fit' ? 'srgb' : 'p3'),
-          strategy,
-          amount: args.amount,
-          format: 'oklch',
-        },
-      },
-      audit: { contrast: args.contrast, failOn: args.failOn },
+      targets,
+      audit: { failOn: args.failOn },
     })
     if (args.out) await writeTextFile(resolve(args.out), result.css)
     else console.log(result.css)
@@ -630,7 +632,7 @@ async function runTokenCompilerCommand(args: CliArgs, strategy: Strategy): Promi
   const color = args.color ?? args.path
   if (!color) {
     console.error(`Missing color or token file argument`)
-    showHelp()
+    showHelp('stderr')
     return 1
   }
 
@@ -660,7 +662,7 @@ async function runDescribe(args: CliArgs): Promise<number> {
   const color = args.color ?? args.path
   if (!color) {
     console.error('Missing color argument')
-    showHelp()
+    showHelp('stderr')
     return 1
   }
 
@@ -689,7 +691,7 @@ async function main(): Promise<void> {
     case 'audit':
       if (!args.path) {
         console.error('Missing path argument')
-        showHelp()
+        showHelp('stderr')
         process.exitCode = 1
         return
       }
@@ -698,7 +700,7 @@ async function main(): Promise<void> {
     case 'check':
       if (!args.path) {
         console.error('Missing path argument')
-        showHelp()
+        showHelp('stderr')
         process.exitCode = 1
         return
       }
@@ -707,7 +709,7 @@ async function main(): Promise<void> {
     case 'doctor':
       if (!args.path) {
         console.error('Missing path argument')
-        showHelp()
+        showHelp('stderr')
         process.exitCode = 1
         return
       }
@@ -716,7 +718,7 @@ async function main(): Promise<void> {
     case 'convert':
       if (!args.color && !args.path) {
         console.error('Missing color or token file argument')
-        showHelp()
+        showHelp('stderr')
         process.exitCode = 1
         return
       }
@@ -736,7 +738,7 @@ async function main(): Promise<void> {
       break
     default:
       console.error(`Unknown command: ${args.command}`)
-      showHelp()
+      showHelp('stderr')
       process.exitCode = 1
       return
   }

@@ -48,6 +48,7 @@ export function okColor(options?: OkColorOptions): Plugin {
       if (!options?.input || !options.output) return
       await writeCompileResult(options.input, {
         output: options.output,
+        reportPath: options.reportPath,
         targets: options.targets,
         recipes: options.recipes,
         audit: options.audit,

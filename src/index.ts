@@ -5,6 +5,7 @@ export {
   collectBlockingFailures,
   compileTokenObject,
   compileTokens,
+  COMPILE_REPORT_SCHEMA_VERSION,
   describeColor,
   expandChroma,
   findChromaMax,
@@ -15,12 +16,16 @@ export {
   parseColor,
   RECIPE_NAMES,
   tokenNameToCssVar,
+  wasmColorMath,
   writeCompileResult,
 } from './token-engine.js'
 export type {
   AuditFailureKind,
+  ChromaTransformResult,
+  ColorMathPort,
   CompileAuditFailure,
   CompileReport,
+  CompileReportSchemaVersion,
   CompileResult,
   Gamut,
   GradeOptions,
@@ -31,6 +36,8 @@ export type {
   TargetOptions,
   TransformDelta,
   TransformResult,
+  TokenParseDiagnostic,
+  TokenParseDiagnosticKind,
   TransformSkippedReason,
 } from './token-engine.js'
 export type { OkColorOptions, ScanResult } from './types.js'

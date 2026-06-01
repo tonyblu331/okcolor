@@ -132,12 +132,14 @@ describe('Vite plugin', () => {
     const dir = await mkdtemp(join(tmpdir(), 'okcolor-vite-'))
     const input = join(dir, 'tokens.json')
     const output = join(dir, 'colors.css')
+    const reportPath = join(dir, 'okcolor.report.json')
     await writeFile(input, JSON.stringify({ 'brand.orange': '#ff5a00' }))
 
     try {
       const plugin = okColor({
         input,
         output,
+        reportPath,
         targets: {
           base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
           p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
@@ -146,8 +148,14 @@ describe('Vite plugin', () => {
 
       await plugin.buildStart?.({} as never)
       const css = await readFile(output, 'utf-8')
+      const report = JSON.parse(await readFile(reportPath, 'utf-8')) as {
+        schemaVersion: number
+        tokens: Array<{ token: string }>
+      }
       expect(css).toContain('--brand-orange: #ff5a00;')
       expect(css).toContain('@media (color-gamut: p3)')
+      expect(report.schemaVersion).toBe(1)
+      expect(report.tokens).toEqual([expect.objectContaining({ token: 'brand.orange' })])
     } finally {
       await rm(dir, { recursive: true, force: true })
     }

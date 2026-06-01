@@ -59,7 +59,7 @@ pub fn find_chroma_max(l: f64, h: f64, gamut: Gamut) -> f64 {
         }
     }
 
-    round(low, 5)
+    floor_to_places(low, 5)
 }
 
 pub fn expand_chroma(source: Oklch, gamut: Gamut, amount: f64) -> ChromaTransform {
@@ -152,9 +152,9 @@ fn is_unit(value: f64) -> bool {
     (-EPSILON..=1.0 + EPSILON).contains(&value)
 }
 
-fn round(value: f64, places: i32) -> f64 {
+fn floor_to_places(value: f64, places: i32) -> f64 {
     let factor = 10_f64.powi(places);
-    (value * factor).round() / factor
+    (value * factor).floor() / factor
 }
 
 #[cfg(test)]
@@ -208,6 +208,19 @@ mod tests {
         let fitted = fit_gamut(source, Gamut::Srgb);
         assert!(fitted.color.c < source.c);
         assert!(fitted.in_gamut);
+    }
+
+    #[test]
+    fn p3_fit_result_stays_inside_reported_gamut_boundary() {
+        let source = Oklch {
+            l: 0.65,
+            c: 0.4,
+            h: 30.0,
+        };
+        let fitted = fit_gamut(source, Gamut::DisplayP3);
+        assert!(fitted.color.c < source.c);
+        assert!(fitted.in_gamut);
+        assert!(is_in_gamut(fitted.color, Gamut::DisplayP3));
     }
 
     #[test]

@@ -41,6 +41,9 @@ interface OkColorOptions {
   /** CSS output path for compiled tokens. */
   output?: string
 
+  /** Optional JSON report output path for compiled tokens. */
+  reportPath?: string
+
   /** Fallback and progressive-enhancement targets. */
   targets?: Record<
     string,
@@ -63,7 +66,6 @@ interface OkColorOptions {
   >
 
   audit?: {
-    contrast?: Array<'wcag2-aa' | 'apca'>
     failOn?: Array<'invalid-css' | 'out-of-gamut' | 'wcag2-regression'>
   }
 }
@@ -104,6 +106,7 @@ export default defineConfig({
     okColor({
       input: 'src/tokens/colors.json',
       output: 'src/styles/colors.css',
+      reportPath: 'src/styles/okcolor.report.json',
       targets: {
         base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
         p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
@@ -115,9 +118,22 @@ export default defineConfig({
 
 When `input`/`output` are omitted, okcolor keeps the original zero-config CSS transform behavior.
 
-Token compiler output is layered: sRGB custom properties first, optional OKLCH diagnostics, then Display P3 overrides guarded by `@media (color-gamut: p3)` and `@supports`.
+Token compiler output is layered: sRGB custom properties first, optional OKLCH diagnostics, then Display P3 overrides guarded by `@media (color-gamut: p3)` and `@supports`. If `reportPath` is set, okcolor also writes a JSON report with top-level `schemaVersion: 1`, token diagnostics, pair-level contrast status, WCAG 2 gate results, and APCA advisory values.
+
+## Browser runtime adapter
+
+Most apps should use the Vite plugin at build time. If you are building a color picker, inspector, playground, or design-system UI that needs live conversion in the browser, use `okcolor/browser`:
+
+```ts
+import { colorToOklch, initOkColorBrowser } from 'okcolor/browser'
+
+await initOkColorBrowser()
+console.log(colorToOklch('#ff5a00'))
+```
 
 ## Framework compatibility
+
+Need the exact config shape for a Vite-based framework? See the [Framework Recipes](/okcolor/guides/framework-recipes/) guide for Astro, SvelteKit, Nuxt, Remix Vite, SolidStart, Qwik, and plain Vite.
 
 | Framework        | Works | Notes                                       |
 | ---------------- | ----- | ------------------------------------------- |
@@ -128,8 +144,8 @@ Token compiler output is layered: sRGB custom properties first, optional OKLCH d
 | Remix            | Yes   | Vite compiler                               |
 | SolidStart       | Yes   | Built on Vite                               |
 | Qwik             | Yes   | Built on Vite                               |
-| Next.js          | —     | Uses webpack/turbopack. Use the CLI instead |
-| Create React App | —     | Uses webpack. Use the CLI instead           |
+| Next.js          | —     | Uses webpack/turbopack. Use `okcolor/core` or CLI audits until a dedicated adapter exists |
+| Create React App | —     | Uses webpack. Use `okcolor/core` or CLI audits until a dedicated adapter exists |
 
 ## Supported file types
 

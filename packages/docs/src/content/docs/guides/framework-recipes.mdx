@@ -1,0 +1,178 @@
+---
+title: Framework Recipes
+description: Add okcolor to Vite, Astro, SvelteKit, Nuxt, Remix Vite, SolidStart, and Qwik.
+sidebar:
+  order: 4
+---
+
+okcolor is frontend-first. If your framework is built on Vite, start with the Vite plugin. Put `okColor()` in the framework's Vite plugin surface, then let your existing CSS imports keep working.
+
+## Plain Vite
+
+Use this for vanilla Vite, React, Vue, Preact, Lit, and other direct Vite apps.
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite'
+import { okColor } from 'okcolor'
+
+export default defineConfig({
+  plugins: [okColor()],
+})
+```
+
+## Astro
+
+Astro exposes Vite configuration through the `vite` option in `astro.config.*`.
+
+```ts
+// astro.config.ts
+import { defineConfig } from 'astro/config'
+import { okColor } from 'okcolor'
+
+export default defineConfig({
+  vite: {
+    plugins: [okColor()],
+  },
+})
+```
+
+Astro `<style>` blocks are supported. okcolor transforms color values and preserves markup, selectors, strings, and non-style virtual modules.
+
+## SvelteKit
+
+SvelteKit uses `vite.config.ts`. Add okcolor beside the SvelteKit plugin.
+
+```ts
+// vite.config.ts
+import { sveltekit } from '@sveltejs/kit/vite'
+import { defineConfig } from 'vite'
+import { okColor } from 'okcolor'
+
+export default defineConfig({
+  plugins: [sveltekit(), okColor()],
+})
+```
+
+Svelte `<style>` blocks are supported through Vite's virtual style modules.
+
+## Nuxt
+
+Nuxt exposes Vite plugins through the `vite.plugins` option in `nuxt.config.ts`.
+
+```ts
+// nuxt.config.ts
+import { okColor } from 'okcolor'
+
+export default defineNuxtConfig({
+  vite: {
+    plugins: [okColor()],
+  },
+})
+```
+
+Use this for Nuxt app CSS and Vue SFC styles. If a Nuxt module also modifies CSS, keep okcolor near the end of the Vite plugin list so it sees framework-generated style modules.
+
+## Remix Vite
+
+Remix Vite uses a normal `vite.config.ts` with the Remix plugin.
+
+```ts
+// vite.config.ts
+import { vitePlugin as remix } from '@remix-run/dev'
+import { defineConfig } from 'vite'
+import { okColor } from 'okcolor'
+
+export default defineConfig({
+  plugins: [remix(), okColor()],
+})
+```
+
+Use okcolor for app CSS imports and design-token output. If you run Vitest or Storybook against the same Vite config, keep Remix-specific plugin caveats in mind and split configs if needed.
+
+## SolidStart
+
+SolidStart exposes Vite options through `app.config.ts`.
+
+```ts
+// app.config.ts
+import { defineConfig } from '@solidjs/start/config'
+import { okColor } from 'okcolor'
+
+export default defineConfig({
+  vite: {
+    plugins: [okColor()],
+  },
+})
+```
+
+If you customize SolidStart's per-router Vite config, add okcolor to the client/app CSS path where your styles are processed.
+
+## Qwik
+
+Qwik apps use `vite.config.ts`. Add okcolor beside Qwik City, Qwik optimizer, and path plugins.
+
+```ts
+// vite.config.ts
+import { qwikCity } from '@builder.io/qwik-city/vite'
+import { qwikVite } from '@builder.io/qwik/optimizer'
+import { defineConfig } from 'vite'
+import tsconfigPaths from 'vite-tsconfig-paths'
+import { okColor } from 'okcolor'
+
+export default defineConfig({
+  plugins: [qwikCity(), qwikVite(), tsconfigPaths({ root: '.' }), okColor()],
+})
+```
+
+## Token compiler recipe
+
+The token compiler works the same way in every Vite-based framework. Add `input`, `output`, and optionally `reportPath`:
+
+```ts
+import { okColor } from 'okcolor'
+
+okColor({
+  input: 'src/tokens/colors.json',
+  output: 'src/styles/colors.css',
+  reportPath: 'src/styles/okcolor.report.json',
+  targets: {
+    base: { gamut: 'srgb', strategy: 'convert', format: 'hex' },
+    p3: { gamut: 'p3', strategy: 'expand', amount: 0.75, format: 'oklch' },
+  },
+})
+```
+
+Then import the generated CSS once from your app root:
+
+```ts
+import './styles/colors.css'
+```
+
+The generated report starts with `schemaVersion: 1`; check that before reading nested diagnostics or contrast fields in CI.
+
+## Browser UI recipe
+
+Use `okcolor/browser` only for live browser tools such as color pickers, playgrounds, inspectors, or design-system editors:
+
+```ts
+import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
+
+await initOkColorBrowser()
+
+const oklch = colorToOklch('#ff5a00')
+const css = transformCss('.swatch { background: #ff5a00; }')
+```
+
+For normal app CSS, keep using the Vite plugin so conversion stays build-time and runtime-free.
+
+## Not first-class yet
+
+Next.js, webpack-only apps, and older Create React App projects are not first-class plugin targets yet. Use `okcolor/core` for programmatic transforms, or run CLI audits in CI:
+
+```bash
+npx okcolor audit ./src --format=json
+npx okcolor check ./src --max-legacy-colors=10
+```
+
+That is intentional. okcolor's primary package story is Vite-first until a dedicated PostCSS, webpack, or Next.js adapter has its own tests and maintenance budget.

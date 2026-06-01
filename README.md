@@ -3,15 +3,19 @@
 [![npm](https://img.shields.io/npm/v/okcolor?label=okcolor&color=16a34a)](https://www.npmjs.com/package/okcolor)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
-Zero-config, build-time color modernizer for **Vite** and **Tailwind CSS**. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** at build time. Zero runtime overhead.
+![okcolor repository card](packages/docs/public/og.png)
 
-- **Rust/WASM engine** — ~151 KB npm package, ~225 KB optimized WASM
-- **W3C-exact matrices** (Ottosson 2020, CSS Color 4) — sub-5e-5 error vs Culori
+Frontend-first color modernizer for **Vite** and Vite-based frameworks. Converts legacy Hex, RGB, HSL, HWB, and named colors to perceptually uniform **OKLCH** during your build. The default path has zero runtime overhead; `okcolor/browser` is available when you intentionally want the WASM engine in a browser UI.
+
+- **Vite-first DX** — drop in `okColor()` and modernize app CSS without runtime code
+- **Rust/WASM engine** — ~164 KB npm package, ~225 KB optimized WASM
+- **Standards-aligned OKLCH conversion** — based on Ottosson 2020 and CSS Color 4
 - **Idempotent** — second pass is a no-op
 - **Cache** — 4096-slot direct-mapped: `#ff0000`, `rgb(255,0,0)`, and `red` hit the same slot
 - **Framework-aware scanning** — handles Vite virtual CSS modules, Vue/Astro/Svelte-style embedded styles, symlinked CSS trees, and CSS escape edge cases
 - **Token compiler** — converts sRGB design tokens into fallback-first CSS with optional Display P3 OKLCH expansion
 - **Pair-based contrast reports** — audits declared foreground/background token pairs for WCAG 2 AA in both fallback and P3 targets, with APCA advisory output validated against `apca-w3`
+- **Browser adapter** — import `okcolor/browser` for playgrounds, inspectors, color pickers, and design-system tooling that needs live conversion in the browser
 
 ## Why okcolor?
 
@@ -56,7 +60,7 @@ bun add -D okcolor
 
 ## Usage
 
-### Vite plugin
+### Vite and Vite frameworks
 
 ```ts
 // vite.config.ts
@@ -68,21 +72,23 @@ export default defineConfig({
 })
 ```
 
+Works with Vite, Astro, SvelteKit, Nuxt, Remix Vite, SolidStart, Qwik, Vue, React, and vanilla Vite apps.
+
 ### CLI
 
 ```bash
-# Transform files
-npx okcolor input.css -o output.css
-
 # Audit color debt
 npx okcolor audit ./src
-npx okcolor audit --format=json
+npx okcolor audit ./src --format=json
 
 # CI gate
-npx okcolor check --max-legacy-colors=10
+npx okcolor check ./src --max-legacy-colors=10
 
 # Diagnose issues
 npx okcolor doctor ./src
+
+# Convert a single color
+npx okcolor convert "#ff5a00" --to oklch
 
 # Compile color tokens with P3 enhancement
 npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
@@ -103,6 +109,19 @@ const result = transformCss(`
 
 const stats = auditCss(source)
 console.log(stats.legacy_count) // number of legacy colors
+```
+
+### Browser UI
+
+Use this only when you need live conversion in the browser. Build-time Vite usage remains the recommended app path.
+
+```ts
+import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
+
+await initOkColorBrowser()
+
+console.log(colorToOklch('#ff5a00'))
+console.log(transformCss('.btn { color: #ff5a00; }'))
 ```
 
 ### Token compiler
@@ -189,7 +208,7 @@ Latest local benchmark run:
 | Whole-file transform vs color.js | ~2.1× faster in this run    |
 | Fast path, no legacy colors      | ~7,212 ops/sec on 50 KB CSS |
 | Optimized WASM payload           | ~225 KB                     |
-| npm package dry-run              | ~151 KB, 21 files           |
+| npm package dry-run              | ~164 KB, 27 files           |
 
 Benchmarks are workload-sensitive. Run them on your machine:
 
@@ -224,5 +243,7 @@ That runs the Rust unit suite without relying on a broken Visual Studio linker i
 Full docs and interactive playground: **[tonyblu331.github.io/okcolor](https://tonyblu331.github.io/okcolor)**
 
 ## License
+
+okcolor is released under the [MIT License](LICENSE).
 
 MIT &copy; Antonio Bonet

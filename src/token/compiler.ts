@@ -1,21 +1,32 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { formatOklch, isRecord, parseColor, tokenNameToCssVar } from './color.js'
+import { formatOklch, isRecord, parseColor, tokenNameToCssVar, withAlpha } from './color.js'
 import { auditContrastPair, extractDeclaredContrastPairs } from './contrast.js'
+import type { CompiledColorTargets } from './contrast.js'
+import { renderLayeredCss } from './css-emitter.js'
+import { parseTokenInputs } from './parser.js'
+import { resolveTokenRecipePolicy } from './recipe-policy.js'
+import {
+  buildCompileReport,
+  createCompiledTokenReport,
+  toFallbackTargetReport,
+  toTransformTargetReport,
+} from './report-builder.js'
 import { expandChroma, fitGamut, gradeColor } from './transforms.js'
 import type {
   AuditFailureKind,
   CompiledTokenReport,
   CompileAuditFailure,
   CompileResult,
+  ContrastPairReport,
+  ContrastPairSkippedReason,
+  Gamut,
   OkColorCompileOptions,
   OkColorTargetConfig,
-  Oklch,
   ParsedColor,
-  RecipeName,
   TransformResult,
 } from './types.js'
-import { DEFAULT_AMOUNT, isRecipeName, RECIPE_NAMES } from './types.js'
+import { DEFAULT_AMOUNT } from './types.js'
 
 export async function compileTokens(inputPath: string, options: OkColorCompileOptions = {}): Promise<CompileResult> {
   const raw = JSON.parse(await readFile(inputPath, 'utf-8')) as Record<string, unknown>
@@ -32,58 +43,56 @@ export function compileTokenObject(
   const p3Lines: string[] = []
   const reports: CompiledTokenReport[] = []
   const reportByToken = new Map<string, CompiledTokenReport>()
-  const colorsByToken: Record<string, { srgb: Oklch; p3?: Oklch }> = {}
+  const colorsByToken: Record<string, CompiledColorTargets> = {}
   const designTokens: Record<string, unknown> = {}
+  const parsedTokens = parseTokenInputs(tokens)
 
-  for (const [name, token] of Object.entries(tokens)) {
-    const value = extractTokenColor(token)
-    if (!value) continue
-
-    const source = parseColor(value)
+  for (const tokenInput of parsedTokens.colors) {
+    const { name, original, color, recipe, alpha } = tokenInput
+    const parsedSource = parseColor(color)
+    const source = withAlpha(parsedSource, alpha ?? parsedSource.alpha)
     const cssVar = tokenNameToCssVar(name)
+    const baseConfig = targets.base ?? { gamut: 'srgb', strategy: 'convert', format: 'hex' }
+    const baseTransform =
+      baseConfig.strategy && baseConfig.strategy !== 'convert'
+        ? transformForConfig(name, source, baseConfig, recipe, options)
+        : undefined
+
     baseLines.push(`  ${cssVar}: ${source.hex};`)
-    literalLines.push(`  ${cssVar}-oklch: ${formatOklch(source.oklch)};`)
+    if (baseTransform) {
+      literalLines.push(`  ${cssVar}: ${baseTransform.css};`)
+      literalLines.push(`  ${cssVar}-oklch: ${baseTransform.css};`)
+    } else {
+      literalLines.push(`  ${cssVar}-oklch: ${formatOklch(source.oklch, source.alpha)};`)
+    }
 
     const targetReports: CompiledTokenReport['targets'] = {
-      srgb: toFallbackTargetReport(source),
+      srgb: baseTransform ? toTransformTargetReport(baseTransform) : toFallbackTargetReport(source),
     }
-    colorsByToken[name] = { srgb: source.oklch }
+    colorsByToken[name] = {
+      srgb: { oklch: baseTransform?.oklch ?? source.oklch, alpha: source.alpha },
+    }
 
     const p3Config = targets.p3
     if (p3Config) {
-      const transform = transformForConfig(name, source, p3Config, extractTokenRecipe(token), options)
+      const transform = transformForConfig(name, source, p3Config, recipe, options)
       p3Lines.push(`  ${cssVar}: ${transform.css};`)
-      targetReports.p3 = toTargetReport(transform)
-      colorsByToken[name].p3 = transform.oklch
+      targetReports.p3 = toTransformTargetReport(transform)
+      colorsByToken[name].p3 = { oklch: transform.oklch, alpha: source.alpha }
     }
 
-    designTokens[name] = toDesignToken(token, source)
-    const report = {
-      token: name,
-      source: source.hex,
-      sourceGamut: 'srgb',
-      oklch: source.oklch,
-      targets: targetReports,
-      contrast: { wcag2: {}, apca: {} },
-    } satisfies CompiledTokenReport
+    designTokens[name] = toDesignToken(original, source)
+    const report = createCompiledTokenReport({ token: name, source, targets: targetReports })
     reports.push(report)
     reportByToken.set(name, report)
   }
 
-  applyContrastAudits(tokens, colorsByToken, reportByToken)
-
-  const failures = collectAuditFailures(reports)
+  const auditTargets: Gamut[] = Object.values(colorsByToken).some((targets) => targets.p3) ? ['srgb', 'p3'] : ['srgb']
+  const contrastPairs = applyContrastAudits(tokens, colorsByToken, reportByToken, auditTargets)
 
   return {
-    css: renderLayeredCss(baseLines, literalLines, p3Lines),
-    report: {
-      tokens: reports,
-      summary: {
-        contrastPassed: !failures.some((failure) => failure.kind === 'wcag2-regression'),
-        failureCount: failures.length,
-        failures,
-      },
-    },
+    css: renderLayeredCss({ base: baseLines, literal: literalLines, p3: p3Lines }),
+    report: buildCompileReport({ tokens: reports, diagnostics: parsedTokens.diagnostics, contrastPairs }),
     designTokens,
   }
 }
@@ -109,62 +118,91 @@ export function assertNoBlockingFailures(
   throw new Error(`okcolor audit failed (${failures.length}): ${preview}`)
 }
 
-function collectAuditFailures(reports: CompiledTokenReport[]): CompileAuditFailure[] {
-  const failures: CompileAuditFailure[] = []
-  for (const report of reports) {
-    for (const [target, result] of Object.entries(report.targets)) {
-      if (!result.syntaxValid) {
-        failures.push({
-          kind: 'invalid-css',
-          token: report.token,
-          target,
-          message: `${report.token}@${target} emitted invalid CSS`,
-        })
-      }
-      if (!result.inGamut || !result.displaySafe) {
-        failures.push({
-          kind: 'out-of-gamut',
-          token: report.token,
-          target,
-          message: `${report.token}@${target} is outside the target gamut`,
-        })
-      }
-    }
-
-    for (const [key, contrast] of Object.entries(report.contrast.wcag2)) {
-      if (contrast.status === 'fail') {
-        failures.push({
-          kind: 'wcag2-regression',
-          token: report.token,
-          target: contrast.target,
-          message: `${report.token} contrast ${key} failed WCAG 2 AA (${contrast.ratio}:1 < ${contrast.required}:1)`,
-        })
-      }
-    }
-  }
-  return failures
-}
-
 function defaultFailOn(): AuditFailureKind[] {
   return ['invalid-css', 'out-of-gamut', 'wcag2-regression']
 }
 
 function applyContrastAudits(
   tokens: Record<string, unknown>,
-  colorsByToken: Record<string, { srgb: Oklch; p3?: Oklch }>,
+  colorsByToken: Record<string, CompiledColorTargets>,
   reportByToken: Map<string, CompiledTokenReport>,
-): void {
+  auditTargets: readonly Gamut[],
+): ContrastPairReport[] {
+  const pairReports: ContrastPairReport[] = []
+
   for (const pair of extractDeclaredContrastPairs(tokens)) {
     const report = reportByToken.get(pair.background)
-    if (!report) continue
 
-    for (const target of ['srgb', 'p3'] as const) {
+    for (const target of auditTargets) {
+      const skippedReason = getContrastPairSkippedReason(pair.background, pair.foreground, target, colorsByToken)
+      if (skippedReason) {
+        pairReports.push(toSkippedContrastPair(pair.background, pair.foreground, target, skippedReason))
+        continue
+      }
+
       const result = auditContrastPair(pair, colorsByToken, target)
       if (!result) continue
-      report.contrast.wcag2[result.key] = result.wcag2
-      report.contrast.apca[result.key] = result.apca
+      pairReports.push({
+        background: pair.background,
+        foreground: pair.foreground,
+        target,
+        status: 'evaluated',
+        wcag2Key: result.key,
+        apcaKey: result.key,
+      })
+      if (report) {
+        report.contrast.wcag2[result.key] = result.wcag2
+        report.contrast.apca[result.key] = result.apca
+      }
     }
   }
+
+  return pairReports
+}
+
+function getContrastPairSkippedReason(
+  background: string,
+  foreground: string,
+  target: Gamut,
+  colorsByToken: Record<string, CompiledColorTargets>,
+): ContrastPairSkippedReason | undefined {
+  const backgroundTargets = colorsByToken[background]
+  const foregroundTargets = colorsByToken[foreground]
+  if (!backgroundTargets) return 'missing-background'
+  if (!foregroundTargets) return 'missing-foreground'
+  if (!backgroundTargets[target] || !foregroundTargets[target]) return 'missing-target'
+  if (backgroundTargets[target].alpha < 1 || foregroundTargets[target].alpha < 1) return 'alpha-unsupported'
+  return undefined
+}
+
+function toSkippedContrastPair(
+  background: string,
+  foreground: string,
+  target: Gamut,
+  skippedReason: ContrastPairSkippedReason,
+): ContrastPairReport {
+  return {
+    background,
+    foreground,
+    target,
+    status: 'skipped',
+    skippedReason,
+    message: skippedContrastPairMessage(background, foreground, target, skippedReason),
+  }
+}
+
+function skippedContrastPairMessage(
+  background: string,
+  foreground: string,
+  target: Gamut,
+  skippedReason: ContrastPairSkippedReason,
+): string {
+  if (skippedReason === 'missing-background') return `${background}@${target} is missing or could not be compiled`
+  if (skippedReason === 'missing-foreground') return `${foreground}@${target} is missing or could not be compiled`
+  if (skippedReason === 'alpha-unsupported') {
+    return `${background}/${foreground}@${target} uses alpha; contrast compositing is not supported yet`
+  }
+  return `${background}/${foreground}@${target} is missing a compiled target`
 }
 
 export async function writeCompileResult(
@@ -185,45 +223,26 @@ function transformForConfig(
   tokenRecipe: string | undefined,
   options: OkColorCompileOptions,
 ): TransformResult {
-  const recipeConfig = resolveTokenRecipeConfig(tokenName, tokenRecipe, options)
-  const merged = { ...config, ...recipeConfig }
-  const strategy = merged.strategy ?? 'expand'
-  const recipe = resolveConfiguredRecipe(merged.recipe ?? merged.intent, tokenName)
+  const policy = resolveTokenRecipePolicy({
+    tokenName,
+    tokenRecipe,
+    targetConfig: config,
+    recipes: options.recipes,
+  })
+  const strategy = policy.config.strategy ?? 'expand'
 
-  if (strategy === 'convert') return toLiteralTransform(source, merged)
-  if (strategy === 'fit') return fitGamut(source, merged)
-  if (strategy === 'grade') return gradeColor(source, { ...merged, recipe: recipe ?? 'premium' })
-  return expandChroma(source, merged)
-}
-
-function resolveTokenRecipeConfig(
-  tokenName: string,
-  tokenRecipe: string | undefined,
-  options: OkColorCompileOptions,
-): Partial<OkColorTargetConfig & { intent?: RecipeName; recipe?: RecipeName; lightness?: number }> | undefined {
-  if (!tokenRecipe) return undefined
-  const configured = options.recipes?.[tokenRecipe]
-  if (configured) return configured
-  if (!isRecipeName(tokenRecipe)) {
-    throw new Error(
-      `Unknown okcolor recipe "${tokenRecipe}" for token "${tokenName}". Define options.recipes["${tokenRecipe}"] or use: ${RECIPE_NAMES.join(', ')}`,
-    )
-  }
-  if (tokenRecipe === 'literal') return { strategy: 'convert', recipe: tokenRecipe }
-  return { strategy: 'grade', recipe: tokenRecipe }
-}
-
-function resolveConfiguredRecipe(value: unknown, tokenName: string): RecipeName | undefined {
-  if (value == null) return undefined
-  if (isRecipeName(value)) return value
-  throw new Error(`Unsupported okcolor recipe "${String(value)}" for token "${tokenName}". Use: ${RECIPE_NAMES.join(', ')}`)
+  if (strategy === 'convert') return toLiteralTransform(source, policy.config)
+  if (strategy === 'fit') return fitGamut(source, policy.config)
+  if (strategy === 'grade') return gradeColor(source, { ...policy.config, recipe: policy.gradeRecipe })
+  return expandChroma(source, policy.config)
 }
 
 function toLiteralTransform(source: ParsedColor, config: OkColorTargetConfig): TransformResult {
   return {
     source,
     oklch: source.oklch,
-    css: formatOklch(source.oklch),
+    alpha: source.alpha,
+    css: formatOklch(source.oklch, source.alpha),
     cMax: source.oklch.c,
     amount: 0,
     gamut: config.gamut ?? 'srgb',
@@ -232,37 +251,6 @@ function toLiteralTransform(source: ParsedColor, config: OkColorTargetConfig): T
     inGamut: true,
     syntaxValid: true,
     displaySafe: true,
-  }
-}
-
-function toTargetReport(transform: TransformResult): CompiledTokenReport['targets'][string] {
-  return {
-    gamut: transform.gamut,
-    strategy: transform.strategy,
-    recipe: transform.recipe,
-    delta: transform.delta,
-    inGamut: transform.inGamut,
-    syntaxValid: transform.syntaxValid,
-    displaySafe: transform.displaySafe,
-    css: transform.css,
-    cMax: transform.cMax,
-    amount: transform.amount,
-    neutralSkipped: transform.neutralSkipped,
-    skippedReason: transform.skippedReason,
-  }
-}
-
-function toFallbackTargetReport(source: ParsedColor): CompiledTokenReport['targets'][string] {
-  return {
-    gamut: 'srgb',
-    strategy: 'convert',
-    delta: zeroDelta(),
-    inGamut: true,
-    syntaxValid: true,
-    displaySafe: true,
-    css: source.hex,
-    cMax: source.oklch.c,
-    amount: 0,
   }
 }
 
@@ -277,70 +265,15 @@ function defaultTargets(): NonNullable<OkColorCompileOptions['targets']> {
   }
 }
 
-function renderLayeredCss(baseLines: string[], literalLines: string[], p3Lines: string[]): string {
-  return [
-    ':root {',
-    ...baseLines,
-    '}',
-    '',
-    '@supports (color: oklch(0.5 0.1 40)) {',
-    '  :root {',
-    ...literalLines,
-    '  }',
-    '}',
-    '',
-    '@media (color-gamut: p3) {',
-    '  @supports (color: oklch(0.5 0.1 40)) {',
-    '    :root {',
-    ...p3Lines.map((line) => `  ${line}`),
-    '    }',
-    '  }',
-    '}',
-    '',
-  ].join('\n')
-}
-
-function extractTokenColor(token: unknown): string | undefined {
-  if (typeof token === 'string') return token
-  if (!isRecord(token)) return undefined
-  const value = token.$value
-  if (typeof value === 'string') return value
-  if (!isRecord(value)) return undefined
-  if (typeof value.hex === 'string') return value.hex
-  return colorSpaceComponentsToRgb(value)
-}
-
-function colorSpaceComponentsToRgb(value: Record<string, unknown>): string | undefined {
-  if (value.colorSpace !== 'srgb' || !Array.isArray(value.components) || value.components.length < 3) return undefined
-  const components = value.components.slice(0, 3)
-  if (!components.every((component) => typeof component === 'number' && Number.isFinite(component))) return undefined
-  const [r, g, b] = components
-  return `rgb(${Math.round(clamp01(r) * 255)} ${Math.round(clamp01(g) * 255)} ${Math.round(clamp01(b) * 255)})`
-}
-
-function extractTokenRecipe(token: unknown): string | undefined {
-  if (!isRecord(token) || !isRecord(token.okcolor) || typeof token.okcolor.recipe !== 'string') return undefined
-  return token.okcolor.recipe
-}
-
 function toDesignToken(original: unknown, source: ParsedColor): unknown {
   const value = {
     colorSpace: 'srgb',
     components: hexToComponents(source.hex),
-    alpha: extractTokenAlpha(original),
+    alpha: source.alpha,
     hex: source.hex,
   }
   if (isRecord(original)) return { ...original, $type: original.$type ?? 'color', $value: value }
   return { $type: 'color', $value: value }
-}
-
-function extractTokenAlpha(original: unknown): number {
-  if (!isRecord(original) || !isRecord(original.$value) || typeof original.$value.alpha !== 'number') return 1
-  return clamp01(original.$value.alpha)
-}
-
-function clamp01(value: number): number {
-  return Math.min(1, Math.max(0, value))
 }
 
 function hexToComponents(hex: string): [number, number, number] {

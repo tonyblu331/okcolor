@@ -6,6 +6,8 @@ export interface OkColorOptions {
   input?: string
   /** Optional CSS output path for token compiler mode. */
   output?: string
+  /** Optional JSON report output path for token compiler mode. */
+  reportPath?: string
   /** Output targets for token compiler mode. */
   targets?: Record<
     string,
@@ -31,7 +33,6 @@ export interface OkColorOptions {
   >
   /** Audit options for token compiler reports. */
   audit?: {
-    contrast?: string[]
     failOn?: Array<'invalid-css' | 'out-of-gamut' | 'wcag2-regression'>
   }
 }

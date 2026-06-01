@@ -1,0 +1,142 @@
+{
+  "generatedBy": "scripts/generate-coloraide-fixtures.py",
+  "oracle": {
+    "name": "ColorAide",
+    "version": "8.8.1",
+    "docs": "https://facelessuser.github.io/coloraide/gamut/"
+  },
+  "fixtures": [
+    {
+      "name": "out-of-sRGB green",
+      "gamut": "srgb",
+      "oklch": {
+        "l": 0.7,
+        "c": 0.35,
+        "h": 145
+      },
+      "sourceInGamut": false,
+      "methods": {
+        "raytrace": {
+          "oklch": {
+            "l": 0.699999999106,
+            "c": 0.220161792239,
+            "h": 144.999995167415
+          },
+          "inGamut": true
+        },
+        "oklch-chroma": {
+          "oklch": {
+            "l": 0.708984958693,
+            "c": 0.241249434336,
+            "h": 142.495345041444
+          },
+          "inGamut": true
+        },
+        "minde-chroma": {
+          "oklch": {
+            "l": 0.708984958693,
+            "c": 0.241249434336,
+            "h": 142.495345041444
+          },
+          "inGamut": true
+        },
+        "clip": {
+          "oklch": {
+            "l": 0.735794571546,
+            "c": 0.250372059374,
+            "h": 142.495345041444
+          },
+          "inGamut": true
+        }
+      }
+    },
+    {
+      "name": "out-of-P3 cyan",
+      "gamut": "display-p3",
+      "oklch": {
+        "l": 0.75,
+        "c": 0.32,
+        "h": 210
+      },
+      "sourceInGamut": false,
+      "methods": {
+        "raytrace": {
+          "oklch": {
+            "l": 0.750000031437,
+            "c": 0.172920824312,
+            "h": 210.000104170217
+          },
+          "inGamut": true
+        },
+        "oklch-chroma": {
+          "oklch": {
+            "l": 0.757670748545,
+            "c": 0.175784593614,
+            "h": 211.970496107488
+          },
+          "inGamut": true
+        },
+        "minde-chroma": {
+          "oklch": {
+            "l": 0.757670748545,
+            "c": 0.175784593614,
+            "h": 211.970496107488
+          },
+          "inGamut": true
+        },
+        "clip": {
+          "oklch": {
+            "l": 0.789598770603,
+            "c": 0.185717631799,
+            "h": 215.321244144515
+          },
+          "inGamut": true
+        }
+      }
+    },
+    {
+      "name": "out-of-P3 blue",
+      "gamut": "display-p3",
+      "oklch": {
+        "l": 0.45,
+        "c": 0.35,
+        "h": 265
+      },
+      "sourceInGamut": false,
+      "methods": {
+        "raytrace": {
+          "oklch": {
+            "l": 0.450000004529,
+            "c": 0.309129475895,
+            "h": 265.000030784319
+          },
+          "inGamut": true
+        },
+        "oklch-chroma": {
+          "oklch": {
+            "l": 0.466243993659,
+            "c": 0.321480411038,
+            "h": 264.590797475191
+          },
+          "inGamut": true
+        },
+        "minde-chroma": {
+          "oklch": {
+            "l": 0.466243993659,
+            "c": 0.321480411038,
+            "h": 264.590797475191
+          },
+          "inGamut": true
+        },
+        "clip": {
+          "oklch": {
+            "l": 0.46723193794,
+            "c": 0.322456396776,
+            "h": 264.490669299792
+          },
+          "inGamut": true
+        }
+      }
+    }
+  ]
+}

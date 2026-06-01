@@ -1,0 +1,32 @@
+---
+title: Live Converter
+description: Interactive WASM-powered color conversion with OKLCH gamut and contrast feedback.
+sidebar:
+  order: 3
+---
+
+import WasmConverter from '../../../components/WasmConverter.astro'
+
+## Convert against the actual engine
+
+This playground is not a mock. It loads the generated Rust/WASM bundle and calls the same low-level conversion and gamut functions that power okcolor's compiler path.
+
+<WasmConverter />
+
+## How to read the views
+
+The **2D gamut slice** fixes lightness and shows how much chroma each hue can hold. The inner neutral contour is sRGB; the larger warm contour is the selected target gamut. The dots show the faithful source color and the transformed result.
+
+The **3D gamut volume** stacks those chroma boundaries across lightness. This makes the important constraint visible: gamut is not one global saturation number. A hue can have plenty of room at one lightness and almost none at another.
+
+## Expand vs saturate
+
+**Expand** moves the source chroma toward the target gamut boundary while preserving OKLCH lightness and hue. Use it when you want a controlled wide-gamut enhancement that respects the available display budget.
+
+**Saturate** multiplies chroma first, then fits the result back into the target gamut. Use it when you want to test a more aggressive art-direction move, knowing that clipping pressure will appear sooner.
+
+Neutral colors are intentionally protected. If chroma is near zero, the demo skips expansion so grays do not pick up accidental hue.
+
+## Contrast feedback
+
+The contrast panel checks the transformed color against black and white text with the same OKLCH relative-luminance path used by the token report. It is intentionally simple: pick the safer foreground, show the WCAG 2 ratio, and keep APCA/compliance policy in the token compiler reports.

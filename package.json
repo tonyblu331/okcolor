@@ -1,7 +1,7 @@
 {
   "name": "okcolor",
   "version": "1.0.0",
-  "description": "Zero-config, build-time color modernizer for Vite and Tailwind CSS",
+  "description": "Frontend-first, build-time OKLCH modernizer for Vite apps and design systems",
   "license": "MIT",
   "author": "Antonio Bonet",
   "repository": {
@@ -34,6 +34,10 @@
     "./core": {
       "types": "./dist/core.d.ts",
       "import": "./dist/core.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
     }
   },
   "main": "./dist/index.js",
@@ -67,6 +71,7 @@
     "@types/node": "22.19.19",
     "apca-w3": "^0.1.9",
     "binaryen": "^129.0.0",
+    "colorjs.io": "^0.6.1",
     "eslint": "9.39.4",
     "prettier": "3.8.3",
     "tsdown": "^0.22.0",

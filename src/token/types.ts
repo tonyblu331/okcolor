@@ -1,3 +1,4 @@
+import type { ColorMathPort } from './color-math-port.js'
 export type Gamut = 'srgb' | 'p3'
 export type AuditFailureKind = 'invalid-css' | 'out-of-gamut' | 'wcag2-regression'
 export type Strategy = 'convert' | 'expand' | 'grade' | 'fit'
@@ -27,6 +28,7 @@ export interface ParsedColor {
   input: string
   hex: string
   oklch: Oklch
+  alpha: number
   sourceGamut: 'srgb'
 }
 
@@ -35,6 +37,7 @@ export interface TargetOptions {
   strategy?: Strategy
   amount?: number
   format?: TokenFormat
+  math?: ColorMathPort
 }
 
 export interface GradeOptions extends TargetOptions {
@@ -44,6 +47,7 @@ export interface GradeOptions extends TargetOptions {
 export interface TransformResult {
   source: ParsedColor
   oklch: Oklch
+  alpha: number
   css: string
   cMax: number
   amount: number
@@ -63,13 +67,13 @@ export interface OkColorTargetConfig {
   strategy?: Strategy
   amount?: number
   format?: TokenFormat
+  math?: ColorMathPort
 }
 
 export interface OkColorCompileOptions {
   targets?: Record<string, OkColorTargetConfig>
   recipes?: Record<string, OkColorTargetConfig & { intent?: RecipeName; recipe?: RecipeName; lightness?: number }>
   audit?: {
-    contrast?: string[]
     failOn?: AuditFailureKind[]
   }
 }
@@ -90,6 +94,20 @@ export interface ApcaContrastResult {
   lc: number
   polarity: 'normal' | 'reverse' | 'none'
   advisory: 'pass-body' | 'pass-large' | 'fail'
+}
+
+export type ContrastPairStatus = 'evaluated' | 'skipped'
+export type ContrastPairSkippedReason = 'missing-background' | 'missing-foreground' | 'missing-target' | 'alpha-unsupported'
+
+export interface ContrastPairReport {
+  foreground: string
+  background: string
+  target: Gamut
+  status: ContrastPairStatus
+  wcag2Key?: string
+  apcaKey?: string
+  skippedReason?: ContrastPairSkippedReason
+  message?: string
 }
 
 export interface CompiledTokenReport {
@@ -120,6 +138,20 @@ export interface CompiledTokenReport {
   }
 }
 
+
+export type TokenParseDiagnosticKind =
+  | 'unsupported-token-shape'
+  | 'unsupported-color-space'
+  | 'invalid-color-components'
+
+export interface TokenParseDiagnostic {
+  token: string
+  kind: TokenParseDiagnosticKind
+  severity: 'warning'
+  path: string
+  message: string
+}
+
 export interface CompileAuditFailure {
   kind: AuditFailureKind
   token: string
@@ -127,8 +159,14 @@ export interface CompileAuditFailure {
   message: string
 }
 
+export const COMPILE_REPORT_SCHEMA_VERSION = 1 as const
+export type CompileReportSchemaVersion = typeof COMPILE_REPORT_SCHEMA_VERSION
+
 export interface CompileReport {
+  schemaVersion: CompileReportSchemaVersion
   tokens: CompiledTokenReport[]
+  diagnostics: TokenParseDiagnostic[]
+  contrastPairs: ContrastPairReport[]
   summary: {
     contrastPassed: boolean
     failureCount: number

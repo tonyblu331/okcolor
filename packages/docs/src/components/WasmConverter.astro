@@ -1,0 +1,1083 @@
+<section class="wasm-converter" data-ok-converter>
+  <div class="converter-hero">
+    <p class="converter-kicker">Live WASM lab</p>
+    <h2>Convert, fit, and visualize color in OKLCH.</h2>
+    <p>
+      The page runs the same Rust/WASM conversion engine as the package: type any supported CSS color, then compare
+      faithful conversion against controlled chroma expansion.
+    </p>
+  </div>
+
+  <div class="converter-grid">
+    <div class="converter-panel converter-controls" aria-label="Color converter controls">
+      <label class="converter-field">
+        <span>Input color</span>
+        <input data-color-input type="text" value="#ff5a00" spellcheck="false" autocomplete="off" />
+      </label>
+
+      <div class="converter-picker-row">
+        <label class="converter-color-picker">
+          <span>Picker</span>
+          <input data-color-picker type="color" value="#ff5a00" />
+        </label>
+        <div class="converter-examples" aria-label="Example colors">
+          <button type="button" data-example="#ff5a00">Orange</button>
+          <button type="button" data-example="rebeccapurple">Purple</button>
+          <button type="button" data-example="oklch(70% 0.22 145)">OKLCH</button>
+        </div>
+      </div>
+
+      <div class="converter-mode-group" aria-label="Chroma mode">
+        <button type="button" class="is-active" data-mode-button="expand" aria-pressed="true">
+          <strong>Expand</strong>
+          <span>Move toward the gamut edge</span>
+        </button>
+        <button type="button" data-mode-button="saturate" aria-pressed="false">
+          <strong>Saturate</strong>
+          <span>Boost chroma, then fit</span>
+        </button>
+      </div>
+
+      <div class="converter-row">
+        <label class="converter-field">
+          <span>Target gamut</span>
+          <select data-gamut-select>
+            <option value="p3">Display P3</option>
+            <option value="srgb">sRGB</option>
+          </select>
+        </label>
+        <label class="converter-field converter-range">
+          <span>Strength <b data-strength-label>72%</b></span>
+          <input data-strength type="range" min="0" max="1" step="0.01" value="0.72" />
+        </label>
+      </div>
+
+      <div class="converter-status" data-status role="status" aria-live="polite">Loading WASM engine...</div>
+    </div>
+
+    <div class="converter-panel converter-output" aria-label="Converted color output">
+      <div class="swatch-comparison">
+        <div class="swatch-card">
+          <span data-source-swatch></span>
+          <small>Source</small>
+        </div>
+        <div class="swatch-card is-result">
+          <span data-result-swatch></span>
+          <small>Result</small>
+        </div>
+      </div>
+
+      <dl class="converter-readout">
+        <div>
+          <dt>Faithful OKLCH</dt>
+          <dd><code data-oklch-output>...</code></dd>
+        </div>
+        <div>
+          <dt>Mode result</dt>
+          <dd><code data-result-output>...</code></dd>
+        </div>
+        <div>
+          <dt>sRGB fallback</dt>
+          <dd><code data-fallback-output>...</code></dd>
+        </div>
+        <div>
+          <dt>Gamut check</dt>
+          <dd><span data-gamut-output>...</span></dd>
+        </div>
+      </dl>
+
+      <div class="contrast-feedback" data-contrast-feedback aria-label="Contrast feedback">
+        <div>
+          <span>Best text on result</span>
+          <strong data-contrast-choice>...</strong>
+        </div>
+        <div>
+          <span>WCAG 2 ratio</span>
+          <strong data-contrast-ratio>...</strong>
+        </div>
+        <p data-contrast-note>Contrast is checked against black and white text using the same OKLCH luminance path.</p>
+      </div>
+
+      <div class="converter-css-block">
+        <div>
+          <span>CSS output</span>
+          <button type="button" data-copy-output>Copy</button>
+        </div>
+        <pre data-css-output><code>...</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="gamut-grid">
+    <figure class="gamut-panel">
+      <figcaption>
+        <strong>2D gamut slice</strong>
+        <span>Fixed lightness: chroma radius by hue.</span>
+      </figcaption>
+      <canvas data-gamut-2d aria-label="2D OKLCH gamut slice"></canvas>
+    </figure>
+    <figure class="gamut-panel">
+      <figcaption>
+        <strong>3D gamut volume</strong>
+        <span>Lightness rings projected across hue and chroma.</span>
+      </figcaption>
+      <canvas data-gamut-3d aria-label="3D OKLCH gamut volume"></canvas>
+    </figure>
+  </div>
+</section>
+
+<script>
+  import init, {
+    convert_color,
+    expand_oklch_chroma,
+    fit_oklch_gamut,
+    oklch_chroma_max,
+    oklch_in_gamut,
+    oklch_relative_luminance,
+  } from '../../../core-wasm/pkg/okcolor_core.js'
+  import wasmUrl from '../../../core-wasm/pkg/okcolor_core_bg.wasm?url'
+
+  const roots = document.querySelectorAll('[data-ok-converter]')
+
+  for (const root of roots) {
+    setupConverter(root)
+  }
+
+  async function setupConverter(root) {
+    const elements = {
+      input: root.querySelector('[data-color-input]'),
+      picker: root.querySelector('[data-color-picker]'),
+      modeButtons: root.querySelectorAll('[data-mode-button]'),
+      gamut: root.querySelector('[data-gamut-select]'),
+      strength: root.querySelector('[data-strength]'),
+      strengthLabel: root.querySelector('[data-strength-label]'),
+      status: root.querySelector('[data-status]'),
+      sourceSwatch: root.querySelector('[data-source-swatch]'),
+      resultSwatch: root.querySelector('[data-result-swatch]'),
+      oklchOutput: root.querySelector('[data-oklch-output]'),
+      resultOutput: root.querySelector('[data-result-output]'),
+      fallbackOutput: root.querySelector('[data-fallback-output]'),
+      gamutOutput: root.querySelector('[data-gamut-output]'),
+      contrastChoice: root.querySelector('[data-contrast-choice]'),
+      contrastRatio: root.querySelector('[data-contrast-ratio]'),
+      contrastNote: root.querySelector('[data-contrast-note]'),
+      cssOutput: root.querySelector('[data-css-output]'),
+      copyOutput: root.querySelector('[data-copy-output]'),
+      canvas2d: root.querySelector('[data-gamut-2d]'),
+      canvas3d: root.querySelector('[data-gamut-3d]'),
+      examples: root.querySelectorAll('[data-example]'),
+    }
+
+    const state = {
+      mode: 'expand',
+      ready: false,
+      lastCss: '',
+      lastResult: null,
+    }
+
+    bindConverterEvents(elements, state, render)
+
+    try {
+      await init({ module_or_path: wasmUrl })
+      state.ready = true
+      setStatus(elements, 'WASM engine ready. Try a hex, rgb(), hsl(), hwb(), named color, or OKLCH value.', 'ready')
+      render()
+    } catch (error) {
+      setStatus(elements, `WASM failed to load: ${error instanceof Error ? error.message : String(error)}`, 'error')
+    }
+
+    if ('ResizeObserver' in window) {
+      const observer = new ResizeObserver(() => {
+        window.requestAnimationFrame(render)
+      })
+      observer.observe(elements.canvas2d)
+      observer.observe(elements.canvas3d)
+    }
+
+    function render() {
+      if (!state.ready) return
+
+      const sourceText = elements.input.value.trim()
+      const targetGamut = elements.gamut.value
+      const strength = Number(elements.strength.value)
+      elements.strengthLabel.textContent = state.mode === 'expand' ? `${Math.round(strength * 100)}%` : `+${Math.round(strength * 100)}%`
+
+      const oklchCss = convert_color(sourceText, 'oklch')
+      const fallbackCss = convert_color(sourceText, 'hex') || sourceText
+
+      if (!oklchCss) {
+        state.lastResult = null
+        state.lastCss = ''
+        setStatus(elements, 'Unsupported color. Use hex, rgb(), hsl(), hwb(), named colors, color(srgb), or OKLCH.', 'error')
+        elements.oklchOutput.textContent = 'No conversion'
+        elements.resultOutput.textContent = 'No result'
+        elements.fallbackOutput.textContent = 'No fallback'
+        elements.gamutOutput.textContent = 'Waiting for a valid color'
+        elements.contrastChoice.textContent = 'No result'
+        elements.contrastRatio.textContent = 'No ratio'
+        elements.contrastNote.textContent = 'Enter a supported CSS color to see contrast feedback.'
+        elements.sourceSwatch.style.background = 'transparent'
+        elements.resultSwatch.style.background = 'transparent'
+        elements.cssOutput.textContent = '/* Enter a supported CSS color. */'
+        clearCanvas(elements.canvas2d)
+        clearCanvas(elements.canvas3d)
+        return
+      }
+
+      const source = parseOklch(oklchCss)
+      if (!source) {
+        setStatus(elements, 'The engine returned an OKLCH value that this demo could not parse.', 'error')
+        return
+      }
+
+      const result = transformColor(source, targetGamut, strength, state.mode)
+      const resultCss = formatOklch(result.color)
+      const resultFallback = fallbackCss
+      const sourceInTarget = oklch_in_gamut(source.l, source.c, source.h, targetGamut)
+      const resultInTarget = oklch_in_gamut(result.color.l, result.color.c, result.color.h, targetGamut)
+      const contrast = contrastSummary(result.color)
+      const modeLabel = state.mode === 'expand' ? 'expanded' : 'saturated'
+
+      state.lastResult = { source, result: result.color, targetGamut }
+      state.lastCss = buildCssOutput(fallbackCss, resultCss, targetGamut)
+
+      elements.oklchOutput.textContent = oklchCss
+      elements.resultOutput.textContent = resultCss
+      elements.fallbackOutput.textContent = resultFallback
+      elements.gamutOutput.textContent = `${targetGamutLabel(targetGamut)}: source ${sourceInTarget ? 'inside' : 'outside'}, result ${resultInTarget ? 'inside' : 'outside'} · Cmax ${formatMetric(result.cMax)}`
+      elements.contrastChoice.textContent = contrast.foreground
+      elements.contrastRatio.textContent = `${contrast.ratio.toFixed(2)}:1`
+      elements.contrastNote.textContent = `${contrast.status} for normal text against ${contrast.foreground.toLowerCase()} foreground. White ${contrast.whiteRatio.toFixed(2)}:1 · black ${contrast.blackRatio.toFixed(2)}:1.`
+      elements.cssOutput.textContent = state.lastCss
+      elements.sourceSwatch.style.background = oklchCss
+      elements.resultSwatch.style.background = resultCss
+
+      syncPicker(elements, fallbackCss)
+      setStatus(elements, result.neutralSkipped ? 'Neutral color detected: chroma expansion skipped to preserve gray intent.' : `Converted and ${modeLabel} through WASM.`, 'ready')
+      drawGamutSlice(elements.canvas2d, source, result.color, targetGamut)
+      drawGamutVolume(elements.canvas3d, source, result.color, targetGamut)
+    }
+  }
+
+  function bindConverterEvents(elements, state, render) {
+    elements.input.addEventListener('input', render)
+    elements.picker.addEventListener('input', () => {
+      elements.input.value = elements.picker.value
+      render()
+    })
+    elements.gamut.addEventListener('change', render)
+    elements.strength.addEventListener('input', render)
+
+    for (const button of elements.modeButtons) {
+      button.addEventListener('click', () => {
+        state.mode = button.dataset.modeButton
+        for (const candidate of elements.modeButtons) {
+          const active = candidate === button
+          candidate.classList.toggle('is-active', active)
+          candidate.setAttribute('aria-pressed', active ? 'true' : 'false')
+        }
+        render()
+      })
+    }
+
+    for (const example of elements.examples) {
+      example.addEventListener('click', () => {
+        elements.input.value = example.dataset.example
+        render()
+      })
+    }
+
+    elements.copyOutput.addEventListener('click', async () => {
+      if (!state.lastCss) return
+      try {
+        await navigator.clipboard.writeText(state.lastCss)
+        elements.copyOutput.textContent = 'Copied'
+        window.setTimeout(() => {
+          elements.copyOutput.textContent = 'Copy'
+        }, 1200)
+      } catch {
+        elements.copyOutput.textContent = 'Copy failed'
+        window.setTimeout(() => {
+          elements.copyOutput.textContent = 'Copy'
+        }, 1200)
+      }
+    })
+  }
+
+  function transformColor(source, targetGamut, strength, mode) {
+    if (mode === 'expand') {
+      const expanded = parseTransform(expand_oklch_chroma(source.l, source.c, source.h, targetGamut, strength))
+      if (expanded) return expanded
+    }
+
+    if (source.c < 0.02) {
+      return {
+        color: source,
+        cMax: oklch_chroma_max(source.l, source.h, targetGamut) || 0,
+        inGamut: oklch_in_gamut(source.l, source.c, source.h, targetGamut) || false,
+        neutralSkipped: true,
+      }
+    }
+
+    const boosted = {
+      l: source.l,
+      c: source.c * (1 + strength),
+      h: source.h,
+    }
+    const fitted = parseTransform(fit_oklch_gamut(boosted.l, boosted.c, boosted.h, targetGamut))
+    if (fitted) return fitted
+
+    return {
+      color: source,
+      cMax: source.c,
+      inGamut: oklch_in_gamut(source.l, source.c, source.h, targetGamut) || false,
+      neutralSkipped: false,
+    }
+  }
+
+  function parseTransform(value) {
+    if (!value) return null
+    try {
+      const parsed = JSON.parse(value)
+      return {
+        color: {
+          l: Number(parsed.l),
+          c: Number(parsed.c),
+          h: Number(parsed.h),
+        },
+        cMax: Number(parsed.cMax),
+        inGamut: Boolean(parsed.inGamut),
+        neutralSkipped: Boolean(parsed.neutralSkipped),
+      }
+    } catch {
+      return null
+    }
+  }
+
+  function parseOklch(value) {
+    const match = value.match(/oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)/i)
+    if (!match) return null
+    return {
+      l: Number(match[1]) / 100,
+      c: Number(match[2]),
+      h: Number(match[3]),
+    }
+  }
+
+  function formatOklch(color) {
+    return `oklch(${(color.l * 100).toFixed(2)}% ${color.c.toFixed(5)} ${normalizeHue(color.h).toFixed(2)})`
+  }
+
+  function buildCssOutput(fallbackCss, resultCss, targetGamut) {
+    const gamutMedia = targetGamut === 'p3' ? '@media (color-gamut: p3)' : '@supports (color: oklch(0.5 0.1 40))'
+
+    if (targetGamut === 'p3') {
+      return `:root {\n  --brand-color: ${fallbackCss};\n}\n\n${gamutMedia} {\n  @supports (color: oklch(0.5 0.1 40)) {\n    :root {\n      --brand-color: ${resultCss};\n    }\n  }\n}`
+    }
+
+    return `:root {\n  --brand-color: ${fallbackCss};\n}\n\n${gamutMedia} {\n  :root {\n    --brand-color: ${resultCss};\n  }\n}`
+  }
+
+  function contrastSummary(background) {
+    const y = oklch_relative_luminance(background.l, background.c, background.h)
+    const whiteRatio = wcagContrastRatio(1, y)
+    const blackRatio = wcagContrastRatio(0, y)
+    const foreground = whiteRatio >= blackRatio ? 'White' : 'Black'
+    const ratio = Math.max(whiteRatio, blackRatio)
+
+    return {
+      foreground,
+      ratio,
+      whiteRatio,
+      blackRatio,
+      status: ratio >= 4.5 ? 'Passes WCAG 2 AA' : 'Fails WCAG 2 AA',
+    }
+  }
+
+  function wcagContrastRatio(a, b) {
+    const lighter = Math.max(a, b)
+    const darker = Math.min(a, b)
+    return (lighter + 0.05) / (darker + 0.05)
+  }
+
+  function syncPicker(elements, fallbackCss) {
+    if (/^#[0-9a-f]{6}$/i.test(fallbackCss)) {
+      elements.picker.value = fallbackCss
+    }
+  }
+
+  function setStatus(elements, message, kind) {
+    elements.status.textContent = message
+    elements.status.dataset.kind = kind
+  }
+
+  function targetGamutLabel(value) {
+    return value === 'p3' ? 'Display P3' : 'sRGB'
+  }
+
+  function normalizeHue(value) {
+    return ((value % 360) + 360) % 360
+  }
+
+  function formatMetric(value) {
+    return Number.isFinite(value) ? value.toFixed(5) : 'n/a'
+  }
+
+  function clearCanvas(canvas) {
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const { width, height } = prepareCanvas(canvas)
+    ctx.clearRect(0, 0, width, height)
+  }
+
+  function prepareCanvas(canvas) {
+    const rect = canvas.getBoundingClientRect()
+    const width = Math.max(1, rect.width || 640)
+    const height = Math.max(1, rect.height || 360)
+    const ratio = Math.min(window.devicePixelRatio || 1, 2)
+
+    canvas.width = Math.floor(width * ratio)
+    canvas.height = Math.floor(height * ratio)
+
+    const ctx = canvas.getContext('2d')
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+
+    return { ctx, width, height }
+  }
+
+  function drawGamutSlice(canvas, source, result, targetGamut) {
+    const { ctx, width, height } = prepareCanvas(canvas)
+    const centerX = width / 2
+    const centerY = height / 2 + 10
+    const l = clamp(source.l, 0.02, 0.98)
+    const maxC = Math.max(getMaxChroma(l, 'p3'), getMaxChroma(l, 'srgb'), source.c, result.c, 0.16)
+    const scale = (Math.min(width, height) * 0.39) / maxC
+
+    ctx.clearRect(0, 0, width, height)
+    drawCanvasBackground(ctx, width, height)
+
+    for (let hue = 0; hue < 360; hue += 4) {
+      const max = oklch_chroma_max(l, hue, 'p3') || 0
+      const angle = toCanvasAngle(hue)
+      ctx.beginPath()
+      ctx.moveTo(centerX, centerY)
+      ctx.lineTo(centerX + Math.cos(angle) * max * scale, centerY + Math.sin(angle) * max * scale)
+      ctx.strokeStyle = `oklch(${(l * 100).toFixed(1)}% ${Math.min(max, 0.18).toFixed(3)} ${hue} / 0.22)`
+      ctx.lineWidth = 2
+      ctx.stroke()
+    }
+
+    drawGamutPolygon(ctx, l, 'p3', centerX, centerY, scale, 'oklch(0.68 0.18 44 / 0.22)', 'oklch(0.72 0.17 44)')
+    drawGamutPolygon(ctx, l, 'srgb', centerX, centerY, scale, 'oklch(0.72 0.02 160 / 0.12)', 'oklch(0.82 0.01 160)')
+
+    drawPolarGrid(ctx, centerX, centerY, scale, maxC)
+    drawPoint(ctx, source, centerX, centerY, scale, 'Source', 'oklch(0.86 0.04 160)')
+    drawPoint(ctx, result, centerX, centerY, scale, 'Result', targetGamut === 'p3' ? 'oklch(0.76 0.2 44)' : 'oklch(0.72 0.03 160)')
+
+    ctx.fillStyle = 'oklch(0.76 0.02 160)'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(`L ${(l * 100).toFixed(1)}%`, 18, 28)
+    ctx.fillText('sRGB', 18, height - 34)
+    ctx.fillText('P3', 18, height - 16)
+  }
+
+  function drawGamutPolygon(ctx, l, gamut, centerX, centerY, scale, fill, stroke) {
+    ctx.beginPath()
+    for (let hue = 0; hue <= 360; hue += 3) {
+      const max = oklch_chroma_max(l, hue, gamut) || 0
+      const angle = toCanvasAngle(hue)
+      const x = centerX + Math.cos(angle) * max * scale
+      const y = centerY + Math.sin(angle) * max * scale
+      if (hue === 0) ctx.moveTo(x, y)
+      else ctx.lineTo(x, y)
+    }
+    ctx.closePath()
+    ctx.fillStyle = fill
+    ctx.strokeStyle = stroke
+    ctx.lineWidth = 2
+    ctx.fill()
+    ctx.stroke()
+  }
+
+  function drawPolarGrid(ctx, centerX, centerY, scale, maxC) {
+    ctx.strokeStyle = 'oklch(0.72 0.01 160 / 0.18)'
+    ctx.lineWidth = 1
+    for (let ring = 0.25; ring <= 1; ring += 0.25) {
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, maxC * ring * scale, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+
+    for (let hue = 0; hue < 360; hue += 45) {
+      const angle = toCanvasAngle(hue)
+      ctx.beginPath()
+      ctx.moveTo(centerX, centerY)
+      ctx.lineTo(centerX + Math.cos(angle) * maxC * scale, centerY + Math.sin(angle) * maxC * scale)
+      ctx.stroke()
+    }
+  }
+
+  function drawGamutVolume(canvas, source, result, targetGamut) {
+    const { ctx, width, height } = prepareCanvas(canvas)
+    ctx.clearRect(0, 0, width, height)
+    drawCanvasBackground(ctx, width, height)
+
+    const project = (color) => projectOklch(color, width, height)
+    const levels = [0.12, 0.25, 0.38, 0.5, 0.62, 0.75, 0.88]
+    const hues = Array.from({ length: 25 }, (_, index) => index * 15)
+
+    drawVolumeGrid(ctx, width, height)
+    drawVolumeRings(ctx, levels, hues, 'srgb', project, 'oklch(0.82 0.01 160 / 0.28)')
+    drawVolumeRings(ctx, levels, hues, targetGamut, project, targetGamut === 'p3' ? 'oklch(0.72 0.18 44 / 0.56)' : 'oklch(0.88 0.01 160 / 0.48)')
+    drawVolumeMeridians(ctx, levels, [0, 60, 120, 180, 240, 300], targetGamut, project)
+
+    drawProjectedPoint(ctx, source, project, 'Source', 'oklch(0.9 0.03 160)')
+    drawProjectedPoint(ctx, result, project, 'Result', targetGamut === 'p3' ? 'oklch(0.77 0.2 44)' : 'oklch(0.82 0.02 160)')
+
+    ctx.fillStyle = 'oklch(0.76 0.02 160)'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText('L', width - 28, 28)
+    ctx.fillText('C', width - 58, height - 22)
+    ctx.fillText('H', 18, height - 22)
+  }
+
+  function drawVolumeGrid(ctx, width, height) {
+    ctx.strokeStyle = 'oklch(0.72 0.01 160 / 0.16)'
+    ctx.lineWidth = 1
+    for (let i = 0; i <= 6; i += 1) {
+      const y = 34 + i * ((height - 78) / 6)
+      ctx.beginPath()
+      ctx.moveTo(24, y)
+      ctx.lineTo(width - 24, y + 26)
+      ctx.stroke()
+    }
+  }
+
+  function drawVolumeRings(ctx, levels, hues, gamut, project, stroke) {
+    ctx.strokeStyle = stroke
+    ctx.lineWidth = gamut === 'p3' ? 1.8 : 1.2
+
+    for (const l of levels) {
+      ctx.beginPath()
+      for (let index = 0; index <= hues.length; index += 1) {
+        const hue = hues[index % hues.length]
+        const c = oklch_chroma_max(l, hue, gamut) || 0
+        const point = project({ l, c, h: hue })
+        if (index === 0) ctx.moveTo(point.x, point.y)
+        else ctx.lineTo(point.x, point.y)
+      }
+      ctx.stroke()
+    }
+  }
+
+  function drawVolumeMeridians(ctx, levels, hues, gamut, project) {
+    ctx.strokeStyle = 'oklch(0.72 0.18 44 / 0.24)'
+    ctx.lineWidth = 1
+
+    for (const hue of hues) {
+      ctx.beginPath()
+      levels.forEach((l, index) => {
+        const c = oklch_chroma_max(l, hue, gamut) || 0
+        const point = project({ l, c, h: hue })
+        if (index === 0) ctx.moveTo(point.x, point.y)
+        else ctx.lineTo(point.x, point.y)
+      })
+      ctx.stroke()
+    }
+  }
+
+  function drawPoint(ctx, color, centerX, centerY, scale, label, fill) {
+    const angle = toCanvasAngle(color.h)
+    const x = centerX + Math.cos(angle) * color.c * scale
+    const y = centerY + Math.sin(angle) * color.c * scale
+
+    ctx.beginPath()
+    ctx.arc(x, y, 6, 0, Math.PI * 2)
+    ctx.fillStyle = fill
+    ctx.strokeStyle = 'oklch(0.08 0.01 160)'
+    ctx.lineWidth = 2
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = 'oklch(0.9 0.02 160)'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(label, x + 10, y - 10)
+  }
+
+  function drawProjectedPoint(ctx, color, project, label, fill) {
+    const point = project(color)
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, 6.5, 0, Math.PI * 2)
+    ctx.fillStyle = fill
+    ctx.strokeStyle = 'oklch(0.08 0.01 160)'
+    ctx.lineWidth = 2
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = 'oklch(0.9 0.02 160)'
+    ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace'
+    ctx.fillText(label, point.x + 9, point.y - 9)
+  }
+
+  function projectOklch(color, width, height) {
+    const angle = (normalizeHue(color.h) * Math.PI) / 180
+    const x = Math.cos(angle) * color.c
+    const z = Math.sin(angle) * color.c
+    const scale = Math.min(width, height) * 1.25
+
+    return {
+      x: width / 2 + (x - z) * scale,
+      y: height * 0.84 - color.l * height * 0.68 + (x + z) * scale * 0.24,
+    }
+  }
+
+  function drawCanvasBackground(ctx, width, height) {
+    const gradient = ctx.createLinearGradient(0, 0, width, height)
+    gradient.addColorStop(0, 'oklch(0.12 0.006 160)')
+    gradient.addColorStop(1, 'oklch(0.08 0.008 44)')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, width, height)
+  }
+
+  function getMaxChroma(l, gamut) {
+    let max = 0
+    for (let hue = 0; hue < 360; hue += 10) {
+      max = Math.max(max, oklch_chroma_max(l, hue, gamut) || 0)
+    }
+    return max
+  }
+
+  function toCanvasAngle(hue) {
+    return ((normalizeHue(hue) - 90) * Math.PI) / 180
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value))
+  }
+</script>
+
+<style>
+  .wasm-converter {
+    container-type: inline-size;
+    display: grid;
+    gap: 1.25rem;
+    margin: 2rem 0;
+  }
+
+  :global(.sl-markdown-content:has(.wasm-converter)) {
+    max-width: 1180px;
+  }
+
+  .converter-hero {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 860px;
+  }
+
+  .converter-kicker {
+    width: fit-content;
+    margin: 0;
+    padding: 0.34rem 0.68rem;
+    border: 1px solid color-mix(in oklch, var(--sl-color-accent), transparent 46%);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--sl-color-accent-low), transparent 24%);
+    color: var(--sl-color-accent-high);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .converter-hero h2 {
+    max-width: 14ch;
+    margin: 0;
+    color: var(--sl-color-white);
+    font-size: clamp(2.25rem, 6.5vw, 4.6rem);
+    line-height: 0.92;
+    letter-spacing: -0.07em;
+  }
+
+  .converter-hero p:not(.converter-kicker) {
+    max-width: 68ch;
+    margin: 0;
+    color: var(--sl-color-gray-2);
+    font-size: 1rem;
+  }
+
+  .converter-grid,
+  .gamut-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+    gap: 1rem;
+  }
+
+  .converter-panel,
+  .gamut-panel {
+    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 32%);
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 12% 0%, oklch(0.72 0.18 44 / 0.12), transparent 32%),
+      color-mix(in oklch, var(--sl-color-black), var(--sl-color-white) 3%);
+    box-shadow: 0 18px 56px oklch(0 0 0 / 0.14);
+  }
+
+  .converter-controls,
+  .converter-output {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 2vw, 1.25rem);
+  }
+
+  .converter-field {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  .converter-field span,
+  .converter-color-picker span,
+  .converter-css-block > div span {
+    color: var(--sl-color-gray-3);
+    font-size: 0.78rem;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .converter-field input[type='text'],
+  .converter-field select {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 25%);
+    border-radius: 14px;
+    background: oklch(0.1 0.004 160 / 0.74);
+    color: var(--sl-color-white);
+    font: 0.95rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+    outline: none;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .converter-field input[type='text']:focus,
+  .converter-field select:focus,
+  .converter-range input:focus-visible,
+  .converter-mode-group button:focus-visible,
+  .converter-examples button:focus-visible,
+  .converter-css-block button:focus-visible {
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--sl-color-accent), transparent 72%);
+  }
+
+  .converter-picker-row,
+  .converter-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 0.85rem;
+    align-items: end;
+  }
+
+  .converter-color-picker {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .converter-color-picker input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.2rem;
+    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 25%);
+    border-radius: 14px;
+    background: oklch(0.1 0.004 160 / 0.74);
+  }
+
+  .converter-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .converter-examples button,
+  .converter-css-block button {
+    min-height: 38px;
+    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 26%);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--sl-color-gray-7), transparent 12%);
+    color: var(--sl-color-gray-2);
+    cursor: pointer;
+    font-weight: 720;
+    padding: 0.55rem 0.72rem;
+  }
+
+  .converter-examples button:active,
+  .converter-css-block button:active,
+  .converter-mode-group button:active {
+    transform: translateY(1px);
+  }
+
+  .converter-mode-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .converter-mode-group button {
+    display: grid;
+    gap: 0.26rem;
+    min-height: 88px;
+    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 26%);
+    border-radius: 18px;
+    background: oklch(0.1 0.004 160 / 0.54);
+    color: var(--sl-color-gray-2);
+    cursor: pointer;
+    padding: 0.85rem;
+    text-align: left;
+  }
+
+  .converter-mode-group button.is-active {
+    border-color: color-mix(in oklch, var(--sl-color-accent), transparent 16%);
+    background:
+      radial-gradient(circle at 12% 10%, oklch(0.74 0.18 44 / 0.16), transparent 46%),
+      oklch(0.14 0.018 44 / 0.84);
+    color: var(--sl-color-white);
+  }
+
+  .converter-mode-group strong {
+    font-size: 0.96rem;
+  }
+
+  .converter-mode-group span {
+    color: var(--sl-color-gray-3);
+    font-size: 0.8rem;
+  }
+
+  .converter-range input {
+    width: 100%;
+    accent-color: var(--sl-color-accent);
+  }
+
+  .converter-status {
+    min-height: 44px;
+    border-radius: 14px;
+    background: color-mix(in oklch, var(--sl-color-gray-7), transparent 16%);
+    color: var(--sl-color-gray-2);
+    font-size: 0.86rem;
+    line-height: 1.5;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .converter-status[data-kind='ready'] {
+    color: oklch(0.78 0.1 150);
+  }
+
+  .converter-status[data-kind='error'] {
+    color: oklch(0.78 0.16 25);
+  }
+
+  .swatch-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .swatch-card {
+    display: grid;
+    gap: 0.55rem;
+    min-height: 168px;
+    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 28%);
+    border-radius: 20px;
+    background-image:
+      linear-gradient(45deg, oklch(0.2 0.003 160) 25%, transparent 25%),
+      linear-gradient(-45deg, oklch(0.2 0.003 160) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, oklch(0.2 0.003 160) 75%),
+      linear-gradient(-45deg, transparent 75%, oklch(0.2 0.003 160) 75%);
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-size: 16px 16px;
+    overflow: hidden;
+    padding: 0.65rem;
+  }
+
+  .swatch-card span {
+    display: block;
+    min-height: 108px;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.2);
+  }
+
+  .swatch-card small {
+    color: var(--sl-color-gray-3);
+    font-size: 0.76rem;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .converter-readout {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0;
+  }
+
+  .converter-readout div {
+    display: grid;
+    gap: 0.24rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 50%);
+  }
+
+  .converter-readout dt {
+    color: var(--sl-color-gray-3);
+    font-size: 0.72rem;
+    font-weight: 780;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .converter-readout dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--sl-color-gray-2);
+    overflow-wrap: anywhere;
+  }
+
+  .converter-readout code {
+    font-size: 0.82rem;
+  }
+
+  .contrast-feedback {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    border: 1px solid color-mix(in oklch, var(--sl-color-accent), transparent 64%);
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 10% 0%, oklch(0.74 0.18 44 / 0.12), transparent 45%),
+      oklch(0.1 0.006 160 / 0.72);
+    padding: 0.9rem;
+  }
+
+  .contrast-feedback div {
+    display: grid;
+    gap: 0.28rem;
+  }
+
+  .contrast-feedback span {
+    color: var(--sl-color-gray-3);
+    font-size: 0.72rem;
+    font-weight: 780;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .contrast-feedback strong {
+    color: var(--sl-color-white);
+    font-size: 1.15rem;
+    letter-spacing: -0.03em;
+  }
+
+  .contrast-feedback p {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--sl-color-gray-3);
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .converter-css-block {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .converter-css-block > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .converter-css-block pre {
+    max-height: 260px;
+    margin: 0;
+    border: 1px solid color-mix(in oklch, var(--sl-color-gray-5), transparent 38%);
+    border-radius: 18px;
+    background: oklch(0.08 0.005 160);
+    color: oklch(0.86 0.02 160);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    overflow: auto;
+    padding: 1rem;
+  }
+
+  .gamut-panel {
+    display: grid;
+    gap: 0.8rem;
+    margin: 0;
+    overflow: hidden;
+    padding: 1rem;
+  }
+
+  .gamut-panel figcaption {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .gamut-panel strong {
+    color: var(--sl-color-white);
+  }
+
+  .gamut-panel span {
+    color: var(--sl-color-gray-3);
+    font-size: 0.82rem;
+    text-align: right;
+  }
+
+  .gamut-panel canvas {
+    display: block;
+    width: 100%;
+    height: 360px;
+    border-radius: 18px;
+    background: oklch(0.1 0.004 160);
+  }
+
+  @container (max-width: 940px) {
+    .converter-grid,
+    .gamut-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 980px) {
+    .converter-grid,
+    .gamut-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .converter-picker-row,
+    .converter-row,
+    .converter-mode-group,
+    .swatch-comparison,
+    .contrast-feedback {
+      grid-template-columns: 1fr;
+    }
+
+    .converter-hero h2 {
+      max-width: 10ch;
+    }
+
+    .gamut-panel figcaption {
+      display: grid;
+    }
+
+    .gamut-panel span {
+      text-align: left;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .converter-examples button:active,
+    .converter-css-block button:active,
+    .converter-mode-group button:active {
+      transform: none;
+    }
+  }
+</style>

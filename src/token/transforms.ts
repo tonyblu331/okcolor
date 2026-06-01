@@ -1,48 +1,47 @@
-import { expandOklchChroma, fitOklchGamut, oklchChromaMax, oklchInGamut } from '../wasm.js'
 import { clamp01, formatOklch, normalizeHue, parseColor, round, roundOklch } from './color.js'
+import { wasmColorMath } from './color-math-port.js'
+import type { ColorMathPort } from './color-math-port.js'
 import type { Gamut, GradeOptions, Oklch, ParsedColor, RecipeName, Strategy, TargetOptions, TransformResult } from './types.js'
 import { DEFAULT_AMOUNT, isRecipeName, NEUTRAL_CHROMA_THRESHOLD, RECIPE_NAMES } from './types.js'
 
-export function findChromaMax(l: number, h: number, gamut: Gamut = 'p3'): number {
-  return required(oklchChromaMax(l, h, toWasmGamut(gamut)), `Unsupported gamut: ${gamut}`)
+export function findChromaMax(l: number, h: number, gamut: Gamut = 'p3', math: ColorMathPort = wasmColorMath): number {
+  return required(math.chromaMax(l, h, gamut), `Unsupported gamut: ${gamut}`)
 }
 
 export function expandChroma(input: ParsedColor | string, options: TargetOptions = {}): TransformResult {
   const source = toParsedColor(input)
   const gamut = options.gamut ?? 'p3'
   const amount = clamp01(options.amount ?? DEFAULT_AMOUNT)
-  const result = required(
-    expandOklchChroma(source.oklch.l, source.oklch.c, source.oklch.h, toWasmGamut(gamut), amount),
-    `Unsupported gamut: ${gamut}`,
-  )
+  const math = options.math ?? wasmColorMath
+  const result = required(math.expandChroma(source.oklch, gamut, amount), `Unsupported gamut: ${gamut}`)
 
   return makeTransformResult(
     source,
-    { l: result.l, c: result.c, h: result.h },
+    result.oklch,
     gamut,
     result.cMax,
     amount,
     result.neutralSkipped,
     { strategy: 'expand' },
+    math,
   )
 }
 
 export function fitGamut(input: ParsedColor | string, options: TargetOptions = {}): TransformResult {
   const source = toParsedColor(input)
   const gamut = options.gamut ?? 'srgb'
-  const result = required(
-    fitOklchGamut(source.oklch.l, source.oklch.c, source.oklch.h, toWasmGamut(gamut)),
-    `Unsupported gamut: ${gamut}`,
-  )
+  const math = options.math ?? wasmColorMath
+  const result = required(math.fitGamut(source.oklch, gamut), `Unsupported gamut: ${gamut}`)
 
   return makeTransformResult(
     source,
-    { l: result.l, c: result.c, h: result.h },
+    result.oklch,
     gamut,
     result.cMax,
     0,
     result.neutralSkipped,
     { strategy: 'fit' },
+    math,
   )
 }
 
@@ -50,12 +49,20 @@ export function gradeColor(input: ParsedColor | string, options: GradeOptions): 
   const source = toParsedColor(input)
   const gamut = options.gamut ?? 'p3'
   const recipe = options.recipe
+  const math = options.math ?? wasmColorMath
   assertRecipeName(recipe)
-  if (recipe === 'literal')
-    return makeTransformResult(source, source.oklch, gamut, findChromaMax(source.oklch.l, source.oklch.h, gamut), 0, false, {
-      strategy: 'convert',
-      recipe,
-    })
+  if (recipe === 'literal') {
+    return makeTransformResult(
+      source,
+      source.oklch,
+      gamut,
+      findChromaMax(source.oklch.l, source.oklch.h, gamut, math),
+      0,
+      false,
+      { strategy: 'convert', recipe },
+      math,
+    )
+  }
 
   const amount = clamp01(options.amount ?? recipeDefaultAmount(recipe))
   let next = { ...source.oklch }
@@ -66,30 +73,31 @@ export function gradeColor(input: ParsedColor | string, options: GradeOptions): 
     next.l = clamp01(next.l + 0.025)
   } else if (recipe === 'deeper') {
     next.l = clamp01(next.l - 0.05)
-    next = expandOklch(next, gamut, amount * 0.7)
+    next = expandOklch(next, gamut, amount * 0.7, math)
   } else if (recipe === 'premium') {
     next.l = clamp01(next.l - 0.015)
-    next = expandOklch(next, gamut, amount * 0.65)
+    next = expandOklch(next, gamut, amount * 0.65, math)
   } else if (recipe === 'vivid') {
-    next = expandOklch(next, gamut, amount)
+    next = expandOklch(next, gamut, amount, math)
   } else if (recipe === 'warmer') {
     next.h = rotateTowardWarm(next.h)
   } else if (recipe === 'cooler') {
     next.h = rotateTowardCool(next.h)
   }
 
-  const cMax = findChromaMax(next.l, next.h, gamut)
+  const cMax = findChromaMax(next.l, next.h, gamut, math)
   next.c = Math.min(next.c, cMax)
-  return makeTransformResult(source, roundOklch(next), gamut, cMax, amount, false, { strategy: 'grade', recipe })
+  return makeTransformResult(source, roundOklch(next), gamut, cMax, amount, false, { strategy: 'grade', recipe }, math)
 }
 
 export function describeColor(input: string, options: TargetOptions = {}) {
   const source = parseColor(input)
   const gamut = options.gamut ?? 'p3'
   const amount = options.amount ?? DEFAULT_AMOUNT
-  const cMax = findChromaMax(source.oklch.l, source.oklch.h, gamut)
-  const expanded = expandChroma(source, { gamut, amount })
-  const premium = gradeColor(source, { recipe: 'premium', gamut, amount: 0.6 })
+  const math = options.math ?? wasmColorMath
+  const cMax = findChromaMax(source.oklch.l, source.oklch.h, gamut, math)
+  const expanded = expandChroma(source, { gamut, amount, math })
+  const premium = gradeColor(source, { recipe: 'premium', gamut, amount: 0.6, math })
 
   return {
     source,
@@ -99,7 +107,7 @@ export function describeColor(input: string, options: TargetOptions = {}) {
       availableChromaBudget: round(Math.max(0, cMax - source.oklch.c), 5),
     },
     suggestions: {
-      literal: formatOklch(source.oklch),
+      literal: formatOklch(source.oklch, source.alpha),
       [`${gamut} expand ${Math.round(amount * 100)}%`]: expanded.css,
       premium: premium.css,
     },
@@ -137,16 +145,15 @@ function makeTransformResult(
   amount: number,
   neutralSkipped = false,
   metadata: { strategy: Strategy; recipe?: RecipeName },
+  math: ColorMathPort,
 ): TransformResult {
   const rounded = roundOklch(oklch)
-  const inGamut = required(
-    oklchInGamut(rounded.l, rounded.c, rounded.h, toWasmGamut(gamut)),
-    `Unsupported gamut: ${gamut}`,
-  )
+  const inGamut = required(math.inGamut(rounded, gamut), `Unsupported gamut: ${gamut}`)
   return {
     source,
     oklch: rounded,
-    css: formatOklch(rounded),
+    alpha: source.alpha,
+    css: formatOklch(rounded, source.alpha),
     cMax,
     amount,
     gamut,
@@ -173,21 +180,14 @@ function shortestHueDelta(from: number, to: number): number {
   return ((to - from + 540) % 360) - 180
 }
 
-function expandOklch(source: Oklch, gamut: Gamut, amount: number): Oklch {
+function expandOklch(source: Oklch, gamut: Gamut, amount: number, math: ColorMathPort): Oklch {
   if (source.c < NEUTRAL_CHROMA_THRESHOLD) return source
-  const result = required(
-    expandOklchChroma(source.l, source.c, source.h, toWasmGamut(gamut), amount),
-    `Unsupported gamut: ${gamut}`,
-  )
-  return { l: result.l, c: result.c, h: result.h }
+  const result = required(math.expandChroma(source, gamut, amount), `Unsupported gamut: ${gamut}`)
+  return result.oklch
 }
 
 function toParsedColor(input: ParsedColor | string): ParsedColor {
   return typeof input === 'string' ? parseColor(input) : input
-}
-
-function toWasmGamut(gamut: Gamut): string {
-  return gamut === 'p3' ? 'p3' : 'srgb'
 }
 
 function required<T>(value: T | undefined, message: string): T {

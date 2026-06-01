@@ -12,6 +12,22 @@ export default defineConfig({
         src: './src/assets/hero.svg',
       },
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/tonyblu331/okcolor' }],
+      head: [
+        {
+          tag: 'meta',
+          attrs: {
+            property: 'og:image',
+            content: 'https://tonyblu331.github.io/okcolor/og.png',
+          },
+        },
+        {
+          tag: 'meta',
+          attrs: {
+            name: 'twitter:image',
+            content: 'https://tonyblu331.github.io/okcolor/og.png',
+          },
+        },
+      ],
       editLink: {
         baseUrl: 'https://github.com/tonyblu331/okcolor/edit/main/packages/docs/',
       },
@@ -29,6 +45,7 @@ export default defineConfig({
           items: [
             { label: 'Tailwind CSS v4', link: '/guides/tailwind/' },
             { label: 'Playground', link: '/guides/playground/' },
+            { label: 'Live Converter', link: '/guides/converter/' },
           ],
         },
         {
@@ -36,6 +53,7 @@ export default defineConfig({
           items: [
             { label: 'API', link: '/reference/api/' },
             { label: 'Benchmarks', link: '/reference/benchmarks/' },
+            { label: 'License', link: '/reference/license/' },
           ],
         },
       ],

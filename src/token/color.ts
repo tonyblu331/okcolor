@@ -11,11 +11,18 @@ export function parseOklchCss(input: string): Oklch | undefined {
 export function parseColor(input: string): ParsedColor {
   const trimmed = input.trim()
   const oklch = parseOklchCss(trimmed) ?? parseRequiredOklch(colorToOklch(trimmed), trimmed)
-  return { input: trimmed, hex: requiredConvert(trimmed, 'hex'), oklch, sourceGamut: 'srgb' }
+  const hex = requiredConvert(trimmed, 'hex')
+  return { input: trimmed, hex, oklch, alpha: alphaFromHex(hex), sourceGamut: 'srgb' }
 }
 
-export function formatOklch(oklch: Oklch): string {
-  return `oklch(${round(oklch.l * 100, 2)}% ${round(oklch.c, 5)} ${round(oklch.h, 2)})`
+export function formatOklch(oklch: Oklch, alpha = 1): string {
+  const body = `${round(oklch.l * 100, 2)}% ${round(oklch.c, 5)} ${round(oklch.h, 2)}`
+  return alpha < 1 ? `oklch(${body} / ${round(clamp01(alpha), 3)})` : `oklch(${body})`
+}
+
+export function withAlpha(color: ParsedColor, alpha: number): ParsedColor {
+  const clamped = clamp01(alpha)
+  return { ...color, alpha: clamped, hex: formatHexAlpha(color.hex, clamped) }
 }
 
 export function tokenNameToCssVar(name: string): string {
@@ -57,4 +64,19 @@ function requiredConvert(input: string, to: string): string {
   const result = convertColor(input, to)
   if (!result) throw new Error(`Cannot convert color: ${input}`)
   return result
+}
+
+function alphaFromHex(hex: string): number {
+  const value = hex.replace('#', '')
+  if (value.length !== 8) return 1
+  return parseInt(value.slice(6, 8), 16) / 255
+}
+
+function formatHexAlpha(hex: string, alpha: number): string {
+  const rgb = hex.slice(0, 7)
+  if (alpha >= 1) return rgb
+  const alphaHex = Math.round(clamp01(alpha) * 255)
+    .toString(16)
+    .padStart(2, '0')
+  return `${rgb}${alphaHex}`
 }
