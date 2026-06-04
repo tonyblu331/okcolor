@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 description = "OKLCH color engine — WASM bindings"
+repository = "https://github.com/tonyblu331/okcolor"
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -26,4 +27,3 @@ debug = true
 
 [dev-dependencies]
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
-

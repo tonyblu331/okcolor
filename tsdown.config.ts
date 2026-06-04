@@ -5,7 +5,10 @@ export default defineConfig({
   format: ['esm'],
   dts: true,
   splitting: false,
-  sourcemap: true,
+  sourcemap: false,
+  checks: {
+    pluginTimings: false,
+  },
   clean: true,
   outExtensions: () => ({ js: '.js', dts: '.d.ts' }),
   deps: {
