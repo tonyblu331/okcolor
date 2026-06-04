@@ -14,7 +14,7 @@ Use this for vanilla Vite, React, Vue, Preact, Lit, and other direct Vite apps.
 ```ts
 // vite.config.ts
 import { defineConfig } from 'vite'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [okColor()],
@@ -28,7 +28,7 @@ Astro exposes Vite configuration through the `vite` option in `astro.config.*`.
 ```ts
 // astro.config.ts
 import { defineConfig } from 'astro/config'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   vite: {
@@ -47,7 +47,7 @@ SvelteKit uses `vite.config.ts`. Add okcolor beside the SvelteKit plugin.
 // vite.config.ts
 import { sveltekit } from '@sveltejs/kit/vite'
 import { defineConfig } from 'vite'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [sveltekit(), okColor()],
@@ -62,7 +62,7 @@ Nuxt exposes Vite plugins through the `vite.plugins` option in `nuxt.config.ts`.
 
 ```ts
 // nuxt.config.ts
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineNuxtConfig({
   vite: {
@@ -81,7 +81,7 @@ Remix Vite uses a normal `vite.config.ts` with the Remix plugin.
 // vite.config.ts
 import { vitePlugin as remix } from '@remix-run/dev'
 import { defineConfig } from 'vite'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [remix(), okColor()],
@@ -97,7 +97,7 @@ SolidStart exposes Vite options through `app.config.ts`.
 ```ts
 // app.config.ts
 import { defineConfig } from '@solidjs/start/config'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   vite: {
@@ -118,7 +118,7 @@ import { qwikCity } from '@builder.io/qwik-city/vite'
 import { qwikVite } from '@builder.io/qwik/optimizer'
 import { defineConfig } from 'vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [qwikCity(), qwikVite(), tsconfigPaths({ root: '.' }), okColor()],
@@ -130,7 +130,7 @@ export default defineConfig({
 The token compiler works the same way in every Vite-based framework. Add `input`, `output`, and optionally `reportPath`:
 
 ```ts
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 okColor({
   input: 'src/tokens/colors.json',
@@ -157,10 +157,10 @@ The generated report starts with `schemaVersion: 1`; check that before reading n
 
 ## Browser UI recipe
 
-Use `okcolor/browser` only for intentional runtime tools such as color pickers, playgrounds, inspectors, or design-system editors. Do not import this in normal app code just to modernize CSS.
+Use `@tonybonet/okcolor/browser` only for intentional runtime tools such as color pickers, playgrounds, inspectors, or design-system editors. Do not import this in normal app code just to modernize CSS.
 
 ```ts
-import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
+import { colorToOklch, initOkColorBrowser, transformCss } from '@tonybonet/okcolor/browser'
 
 await initOkColorBrowser()
 
@@ -172,11 +172,11 @@ For normal app CSS, keep using the Vite plugin so conversion stays build-time an
 
 ## Not first-class yet
 
-Next.js, webpack-only apps, and older Create React App projects are not first-class plugin targets yet. Use `okcolor/core` for programmatic transforms, or run CLI audits in CI:
+Next.js, webpack-only apps, and older Create React App projects are not first-class plugin targets yet. Use `@tonybonet/okcolor/core` for programmatic transforms, or run CLI audits in CI:
 
 ```bash
-npx okcolor audit ./src --format=json
-npx okcolor check ./src --max-legacy-colors=10
+npx @tonybonet/okcolor audit ./src --format=json
+npx @tonybonet/okcolor check ./src --max-legacy-colors=10
 ```
 
 That is intentional. okcolor's primary package story is Vite-first until a dedicated PostCSS, webpack, or Next.js adapter has its own tests and maintenance budget.

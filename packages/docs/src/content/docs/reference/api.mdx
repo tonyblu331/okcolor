@@ -13,29 +13,29 @@ okcolor exposes three entry points:
 
 | Entry             | What you get                                      | Use when                                |
 | ----------------- | ------------------------------------------------- | --------------------------------------- |
-| `okcolor`         | Vite plugin factory                               | You're adding okcolor to a Vite project |
-| `okcolor/core`    | Node/programmatic transform, audit, token compiler | You are writing build scripts or adapters |
-| `okcolor/browser` | Browser WASM adapter                              | You intentionally ship a color tool UI  |
+| `@tonybonet/okcolor`         | Vite plugin factory                               | You're adding okcolor to a Vite project |
+| `@tonybonet/okcolor/core`    | Node/programmatic transform, audit, token compiler | You are writing build scripts or adapters |
+| `@tonybonet/okcolor/browser` | Browser WASM adapter                              | You intentionally ship a color tool UI  |
 
 ```ts
 // Vite plugin
-import { okColor, type OkColorOptions } from 'okcolor'
+import { okColor, type OkColorOptions } from '@tonybonet/okcolor'
 
 // Advanced build tooling
-import { transformCss, auditCss, compileTokens, expandChroma, describeColor, type ScanResult } from 'okcolor/core'
+import { transformCss, auditCss, compileTokens, expandChroma, describeColor, type ScanResult } from '@tonybonet/okcolor/core'
 
 // Advanced runtime color tools only
-import { initOkColorBrowser, colorToOklch } from 'okcolor/browser'
+import { initOkColorBrowser, colorToOklch } from '@tonybonet/okcolor/browser'
 ```
 
 ---
 
 ## Browser adapter
 
-`okcolor/browser` is the optional runtime seam for playgrounds, inspectors, color pickers, and design-system tools. It is not the default frontend app path. Normal apps should use the Vite plugin so okcolor runs during build and ships no runtime code.
+`@tonybonet/okcolor/browser` is the optional runtime seam for playgrounds, inspectors, color pickers, and design-system tools. It is not the default frontend app path. Normal apps should use the Vite plugin so okcolor runs during build and ships no runtime code.
 
 ```ts
-import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
+import { colorToOklch, initOkColorBrowser, transformCss } from '@tonybonet/okcolor/browser'
 
 await initOkColorBrowser()
 
@@ -45,7 +45,7 @@ console.log(transformCss('.btn { color: #ff5a00; }'))
 
 The adapter exposes `OKCOLOR_WASM_URL` for preloading/custom asset handling and throws a clear error if a WASM API is called before `initOkColorBrowser()`.
 
-The browser adapter is a separate package export. The root Vite/plugin entry and `okcolor/core` do not import it, so normal build-time usage stays tree-shakeable.
+The browser adapter is a separate package export. The root Vite/plugin entry and `@tonybonet/okcolor/core` do not import it, so normal build-time usage stays tree-shakeable.
 
 ---
 
@@ -87,7 +87,7 @@ function transformCss(input: string): string
 ### Examples
 
 ```ts
-import { transformCss } from 'okcolor/core'
+import { transformCss } from '@tonybonet/okcolor/core'
 
 // Hex to OKLCH
 transformCss('.btn { color: #ff0000; }')
@@ -168,7 +168,7 @@ interface ScanResult {
 ### Example
 
 ```ts
-import { auditCss } from 'okcolor/core'
+import { auditCss } from '@tonybonet/okcolor/core'
 
 const stats = auditCss(`
   .btn { color: #3b82f6; }
@@ -190,7 +190,7 @@ console.log(stats.gradient_count) // 1
 The token compiler works on color token JSON and emits fallback-first CSS, a structured report, and Design Tokens-compatible JSON.
 
 ```ts
-import { compileTokens, describeColor, expandChroma } from 'okcolor/core'
+import { compileTokens, describeColor, expandChroma } from '@tonybonet/okcolor/core'
 
 const result = await compileTokens('src/tokens/colors.json', {
   targets: {
@@ -409,7 +409,7 @@ function okColor(options?: Partial<OkColorOptions>): Plugin
 ### Usage
 
 ```ts
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
@@ -431,19 +431,19 @@ Embedded style transform failures are logged as `[okcolor]` warnings and return 
 
 ```bash
 # Audit a directory
-npx okcolor audit ./src
+npx @tonybonet/okcolor audit ./src
 
 # Convert a single color
-npx okcolor convert "#ff5a00" --to oklch
+npx @tonybonet/okcolor convert "#ff5a00" --to oklch
 
 # Compile token JSON into CSS and a report
-npx okcolor expand ./tokens.json --gamut p3 --out ./colors.css --report ./okcolor.report.json
+npx @tonybonet/okcolor expand ./tokens.json --gamut p3 --out ./colors.css --report ./okcolor.report.json
 
 # CI gate
-npx okcolor check ./src --max-legacy-colors=10
+npx @tonybonet/okcolor check ./src --max-legacy-colors=10
 
 # Diagnose issues
-npx okcolor doctor ./src
+npx @tonybonet/okcolor doctor ./src
 ```
 
 See the [CLI documentation](/okcolor/getting-started/cli/) for all commands and options.

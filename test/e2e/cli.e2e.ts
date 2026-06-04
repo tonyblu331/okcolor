@@ -556,14 +556,14 @@ describe('okcolor package tarball E2E', () => {
     await mkdir(packDir, { recursive: true })
     await mkdir(appDir, { recursive: true })
     await runNpm(['pack', '--pack-destination', packDir])
-    const tarball = join(packDir, 'okcolor-1.0.0.tgz')
+    const tarball = join(packDir, 'tonybonet-okcolor-1.0.0.tgz')
 
     await writeFile(join(appDir, 'package.json'), JSON.stringify({ type: 'module', private: true }))
     await runNpm(['install', '--ignore-scripts', tarball], appDir)
 
     const probe = `
-import { COMPILE_REPORT_SCHEMA_VERSION, colorToOklch, okColor, wasmColorMath } from 'okcolor'
-import { compileTokens, COMPILE_REPORT_SCHEMA_VERSION as CORE_COMPILE_REPORT_SCHEMA_VERSION, wasmColorMath as coreWasmColorMath } from 'okcolor/core'
+import { COMPILE_REPORT_SCHEMA_VERSION, colorToOklch, okColor, wasmColorMath } from '@tonybonet/okcolor'
+import { compileTokens, COMPILE_REPORT_SCHEMA_VERSION as CORE_COMPILE_REPORT_SCHEMA_VERSION, wasmColorMath as coreWasmColorMath } from '@tonybonet/okcolor/core'
 if (!colorToOklch('#ff0000')?.startsWith('oklch(')) throw new Error('colorToOklch failed')
 if (typeof okColor !== 'function') throw new Error('okColor export missing')
 if (typeof compileTokens !== 'function') throw new Error('compileTokens export missing')
@@ -583,7 +583,7 @@ console.log('ok')
     await mkdir(packDir, { recursive: true })
     await mkdir(join(appDir, 'src'), { recursive: true })
     await runNpm(['pack', '--pack-destination', packDir])
-    const tarball = join(packDir, 'okcolor-1.0.0.tgz')
+    const tarball = join(packDir, 'tonybonet-okcolor-1.0.0.tgz')
 
     await writeFile(join(appDir, 'package.json'), JSON.stringify({ type: 'module', private: true }))
     await runNpm(['install', '--ignore-scripts', tarball], appDir)
@@ -596,7 +596,7 @@ import {
   colorToOklch,
   initOkColorBrowser,
   transformCss,
-} from 'okcolor/browser'
+} from '@tonybonet/okcolor/browser'
 
 await initOkColorBrowser()
 document.querySelector('#app').textContent = [

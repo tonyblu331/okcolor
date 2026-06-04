@@ -1,6 +1,6 @@
 # okcolor
 
-[![npm](https://img.shields.io/npm/v/okcolor?label=okcolor&color=16a34a)](https://www.npmjs.com/package/okcolor)
+[![npm](https://img.shields.io/npm/v/@tonybonet/okcolor?label=okcolor&color=16a34a)](https://www.npmjs.com/package/@tonybonet/okcolor)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 ![okcolor repository card](packages/docs/public/og.png)
@@ -53,9 +53,9 @@ okcolor breaks that lock. Write your colors however you want — **Hex**, **RGB*
 ## Install
 
 ```bash
-npm install -D okcolor
-pnpm add -D okcolor
-bun add -D okcolor
+npm install -D @tonybonet/okcolor
+pnpm add -D @tonybonet/okcolor
+bun add -D @tonybonet/okcolor
 ```
 
 ## Usage
@@ -65,7 +65,7 @@ bun add -D okcolor
 ```ts
 // vite.config.ts
 import { defineConfig } from 'vite'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [
@@ -88,23 +88,23 @@ Works with Vite, Astro, SvelteKit, Nuxt, Remix Vite, SolidStart, Qwik, Vue, Reac
 
 ```bash
 # Audit color debt
-npx okcolor audit ./src
-npx okcolor audit ./src --format=json
+npx @tonybonet/okcolor audit ./src
+npx @tonybonet/okcolor audit ./src --format=json
 
 # CI gate
-npx okcolor check ./src --max-legacy-colors=10
+npx @tonybonet/okcolor check ./src --max-legacy-colors=10
 
 # Diagnose issues
-npx okcolor doctor ./src
+npx @tonybonet/okcolor doctor ./src
 
 # Convert a single color
-npx okcolor convert "#ff5a00" --to oklch
+npx @tonybonet/okcolor convert "#ff5a00" --to oklch
 
 # Compile color tokens with P3 enhancement
-npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
+npx @tonybonet/okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
 
 # Explain available chroma headroom
-npx okcolor describe "#ff5a00" --gamut p3
+npx @tonybonet/okcolor describe "#ff5a00" --gamut p3
 ```
 
 ### Advanced: programmatic Node API
@@ -112,7 +112,7 @@ npx okcolor describe "#ff5a00" --gamut p3
 Most frontend apps do not need this. Use it for build scripts, custom tooling, or adapters outside Vite.
 
 ```ts
-import { transformCss, auditCss } from 'okcolor/core'
+import { transformCss, auditCss } from '@tonybonet/okcolor/core'
 
 const result = transformCss(`
   .btn { color: #ff0000; }
@@ -128,7 +128,7 @@ console.log(stats.legacy_count) // number of legacy colors
 Use this only when you intentionally ship a color picker, inspector, playground, or docs demo. Build-time Vite usage remains the recommended app path.
 
 ```ts
-import { colorToOklch, initOkColorBrowser, transformCss } from 'okcolor/browser'
+import { colorToOklch, initOkColorBrowser, transformCss } from '@tonybonet/okcolor/browser'
 
 await initOkColorBrowser()
 
@@ -153,7 +153,7 @@ console.log(transformCss('.btn { color: #ff5a00; }'))
 ```
 
 ```bash
-npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
+npx @tonybonet/okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out ./colors.css --report ./okcolor.report.json
 ```
 
 The generated CSS keeps sRGB fallback values first, then emits guarded Display P3 OKLCH overrides. The report audits declared foreground/background pairs separately for fallback and P3 output.

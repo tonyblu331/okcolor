@@ -14,7 +14,7 @@ Add the plugin to your `vite.config.ts`:
 
 ```ts
 import { defineConfig } from 'vite'
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [okColor()],
@@ -78,7 +78,7 @@ interface OkColorOptions {
 The `ignoreComment` option lets you customize the comment that triggers the escape hatch:
 
 ```ts
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [
@@ -103,7 +103,7 @@ Custom ignore comments are restored through a private sentinel, so unrelated `ok
 If `input` and `output` are provided, the plugin compiles design-token JSON during `buildStart` instead of only transforming CSS modules:
 
 ```ts
-import { okColor } from 'okcolor'
+import { okColor } from '@tonybonet/okcolor'
 
 export default defineConfig({
   plugins: [
@@ -132,10 +132,10 @@ WCAG policy is build-time configuration. `audit.wcag2.level` can be `aa` or `aaa
 
 ## Browser runtime adapter
 
-Most apps should never import okcolor from application code. If you are intentionally building a color picker, inspector, playground, or design-system UI that needs live conversion in the browser, use `okcolor/browser`:
+Most apps should never import okcolor from application code. If you are intentionally building a color picker, inspector, playground, or design-system UI that needs live conversion in the browser, use `@tonybonet/okcolor/browser`:
 
 ```ts
-import { colorToOklch, initOkColorBrowser } from 'okcolor/browser'
+import { colorToOklch, initOkColorBrowser } from '@tonybonet/okcolor/browser'
 
 await initOkColorBrowser()
 console.log(colorToOklch('#ff5a00'))
@@ -154,8 +154,8 @@ Need the exact config shape for a Vite-based framework? See the [Framework Recip
 | Remix            | Yes   | Vite compiler                               |
 | SolidStart       | Yes   | Built on Vite                               |
 | Qwik             | Yes   | Built on Vite                               |
-| Next.js          | —     | Uses webpack/turbopack. Use `okcolor/core` or CLI audits until a dedicated adapter exists |
-| Create React App | —     | Uses webpack. Use `okcolor/core` or CLI audits until a dedicated adapter exists |
+| Next.js          | —     | Uses webpack/turbopack. Use `@tonybonet/okcolor/core` or CLI audits until a dedicated adapter exists |
+| Create React App | —     | Uses webpack. Use `@tonybonet/okcolor/core` or CLI audits until a dedicated adapter exists |
 
 ## Supported file types
 

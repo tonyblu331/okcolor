@@ -1,5 +1,5 @@
 {
-  "name": "okcolor",
+  "name": "@tonybonet/okcolor",
   "version": "1.0.0",
   "description": "Frontend-first, build-time OKLCH modernizer for Vite apps and design systems",
   "license": "MIT",

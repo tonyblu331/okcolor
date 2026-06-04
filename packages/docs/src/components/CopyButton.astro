@@ -1,7 +1,7 @@
 ---
 const { pkg = 'npm', cmd = '' } = Astro.props
 const displayPkg = pkg === 'pnpm' ? 'pnpm' : pkg === 'yarn' ? 'yarn' : 'npm'
-const displayCmd = cmd || (pkg === 'pnpm' ? 'pnpm add -D okcolor' : pkg === 'yarn' ? 'yarn add -D okcolor' : 'npm install -D okcolor')
+const displayCmd = cmd || (pkg === 'pnpm' ? 'pnpm add -D @tonybonet/okcolor' : pkg === 'yarn' ? 'yarn add -D @tonybonet/okcolor' : 'npm install -D @tonybonet/okcolor')
 ---
 
 <div class="install-row">

@@ -10,9 +10,9 @@ import TerminalDemo from '../../../components/TerminalDemo.astro'
 ## Usage
 
 ```bash
-npx okcolor audit ./src
-npx okcolor convert "#ff5a00" --to oklch
-npx okcolor expand ./tokens.json --gamut p3 --out ./colors.css --report ./okcolor.report.json
+npx @tonybonet/okcolor audit ./src
+npx @tonybonet/okcolor convert "#ff5a00" --to oklch
+npx @tonybonet/okcolor expand ./tokens.json --gamut p3 --out ./colors.css --report ./okcolor.report.json
 ```
 
 The CLI is the automation surface for okcolor: audit frontend color debt, convert individual colors, and compile design-token JSON into fallback-first CSS. For automatic CSS file transformation in apps, use the Vite plugin.
@@ -75,7 +75,7 @@ okcolor describe "#ff5a00" --gamut p3
 Scan CSS files and report legacy color usage. For token JSON, emit the token compiler report, including declared foreground/background contrast pairs. Recursively walks directories:
 
 ```bash
-npx okcolor audit ./src
+npx @tonybonet/okcolor audit ./src
 ```
 
 <TerminalDemo scenario="audit" />
@@ -84,7 +84,7 @@ Output options:
 
 ```bash
 # JSON output for automation
-npx okcolor audit ./src --format=json
+npx @tonybonet/okcolor audit ./src --format=json
 ```
 
 Directory traversal follows symlinked CSS files and directories, tracks real directory paths to avoid cycles, and warns instead of crashing on dangling symlinks.
@@ -129,12 +129,12 @@ okcolor keeps machine data and human diagnostics separate: JSON/CSS output is wr
 CI gate. Fails with exit code 1 if legacy colors exceed a limit. Use this to enforce color modernization in your pipeline:
 
 ```bash
-npx okcolor check ./src --max-legacy-colors=10
+npx @tonybonet/okcolor check ./src --max-legacy-colors=10
 ```
 
 ```bash
 # Allow named colors (gray, white, black are often fine as-is)
-npx okcolor check ./src --max-legacy-colors=10 --allow-named
+npx @tonybonet/okcolor check ./src --max-legacy-colors=10 --allow-named
 ```
 
 ### `okcolor doctor <path>`
@@ -142,7 +142,7 @@ npx okcolor check ./src --max-legacy-colors=10 --allow-named
 Diagnose color issues in your stylesheets: malformed values, extreme lightness, or unusual patterns:
 
 ```bash
-npx okcolor doctor ./src
+npx @tonybonet/okcolor doctor ./src
 ```
 
 <TerminalDemo scenario="doctor" />
@@ -236,10 +236,10 @@ npx okcolor doctor ./src
 
 ## Programmatic API
 
-The same engine is available programmatically via `okcolor/core`:
+The same engine is available programmatically via `@tonybonet/okcolor/core`:
 
 ```ts
-import { transformCss, auditCss } from 'okcolor/core'
+import { transformCss, auditCss } from '@tonybonet/okcolor/core'
 
 const result = transformCss(`
   .btn { color: #ff0000; }
