@@ -37,7 +37,7 @@ function showHelp(stream: 'stdout' | 'stderr' = 'stdout'): void {
     okcolor check <path> [--max-legacy-colors N] [--allow-named]
       CI gate — exit 1 if legacy colors exceed threshold.
 
-    okcolor doctor <path> [--format json]
+    okcolor scope <path> [--format json]
       Find color issues (malformed hex, low contrast, etc.).
 
     okcolor convert <color|tokens.json> [--to <space>] [--out <file>]
@@ -59,7 +59,7 @@ function showHelp(stream: 'stdout' | 'stderr' = 'stdout'): void {
   Examples:
     npx okcolor audit ./src
     npx okcolor check . --max-legacy-colors 10
-    npx okcolor doctor ./src --format json
+    npx okcolor scope ./src --format json
     npx okcolor convert "#ff0000" --to hsl
     npx okcolor expand ./tokens.json --gamut p3 --amount 0.75 --out colors.css
 `
@@ -68,7 +68,7 @@ function showHelp(stream: 'stdout' | 'stderr' = 'stdout'): void {
 }
 
 interface CliArgs {
-  command: 'help' | 'audit' | 'check' | 'doctor' | 'convert' | 'expand' | 'grade' | 'fit' | 'describe'
+  command: 'help' | 'audit' | 'check' | 'scope' | 'convert' | 'expand' | 'grade' | 'fit' | 'describe'
   path?: string
   format: 'pretty' | 'json'
   auditMode?: AuditMode
@@ -102,7 +102,7 @@ export function parseArgs(argv: string[]): CliArgs {
   }
 
   const command = args[0] as CliArgs['command']
-  if (!['help', 'audit', 'check', 'doctor', 'convert', 'expand', 'grade', 'fit', 'describe'].includes(command)) {
+  if (!['help', 'audit', 'check', 'scope', 'convert', 'expand', 'grade', 'fit', 'describe'].includes(command)) {
     return die(`Unknown command: ${command}`)
   }
 
@@ -536,7 +536,7 @@ async function runCheck(args: CliArgs): Promise<number> {
   }
 }
 
-async function runDoctor(args: CliArgs): Promise<number> {
+async function runScope(args: CliArgs): Promise<number> {
   const files = findCssFiles(validatePath(args.path!))
   const issues: Array<{ file: string; line: number; message: string; severity: 'warn' | 'error' }> = []
 
@@ -577,7 +577,7 @@ async function runDoctor(args: CliArgs): Promise<number> {
     return issues.some((i) => i.severity === 'error') ? 1 : 0
   }
 
-  console.log('\n  🔬  okcolor doctor\n')
+  console.log('\n  🔬  okcolor scope\n')
   console.log(`  Scanned ${files.length} file(s)`)
 
   if (issues.length === 0) {
@@ -756,14 +756,14 @@ async function main(): Promise<void> {
       }
       exitCode = await runCheck(args)
       break
-    case 'doctor':
+    case 'scope':
       if (!args.path) {
         console.error('Missing path argument')
         showHelp('stderr')
         process.exitCode = 1
         return
       }
-      exitCode = await runDoctor(args)
+      exitCode = await runScope(args)
       break
     case 'convert':
       if (!args.color && !args.path) {

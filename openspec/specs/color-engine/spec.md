@@ -41,7 +41,7 @@ oracle fixtures, tolerances, and DX behavior.
 |---------|---------|--------|
 | `okcolor audit <css-dir|tokens.json> [--mode css|tokens]` | Audit CSS color debt or token gamut/contrast safety | ✅ |
 | `okcolor check` | CI gate — fail on excess legacy colors | ✅ |
-| `okcolor doctor` | Diagnose malformed colors | ✅ |
+| `okcolor scope` | Diagnose malformed colors | ✅ |
 | `okcolor convert` | Convert a single color or token file | ✅ |
 | `okcolor expand` | Controlled wide-gamut OKLCH enhancement | ✅ |
 | `okcolor grade` | Apply named product recipe transform | ✅ |

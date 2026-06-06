@@ -44,7 +44,7 @@
 ## Phase 5: Testing Hardening
 
 - [x] 5.1 Add `tsc --noEmit` as npm test script dependency
-- [x] 5.2 Expand CLI tests: stdout assertions, exit codes for check/audit/doctor/convert
+- [x] 5.2 Expand CLI tests: stdout assertions, exit codes for check/audit/scope/convert
 - [x] 5.3 Add property-based u8 sRGB roundtrip tests with `proptest` (Rust) — generate random RGB triples, verify OKLCH roundtrip < 1e-4 error per channel
 - [x] 5.4 Add `processFiles` error resilience test (corrupted file doesn't crash scan)
   - Current scanner evidence: Rust scanner characterization tests cover `@supports`, `@supports selector()`, `@container style()`, and `@property` color/non-color syntax contexts across transform and audit counts.

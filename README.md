@@ -42,7 +42,7 @@ okcolor breaks that lock. Write your colors however you want — **Hex**, **RGB*
 | auto-detect legacy colors                 | ✓       | ✗      | ✗        | —       |
 | oklch-ignore escape hatch                 | ✓       | ✗      | ✗        | —       |
 | Build-time only (zero runtime)            | ✓       | ✗      | ✗        | ✓       |
-| CLI with audit / check / doctor           | ✓       | ✗      | ✗        | —       |
+| CLI with audit / check / scope            | ✓       | ✗      | ✗        | —       |
 | Token JSON → layered CSS                  | ✓       | ✗      | ✗        | —       |
 | P3 chroma expansion from OKLCH identity   | ✓       | ✗      | ✗        | —       |
 | Pair-based WCAG token contrast reports    | ✓       | ✗      | ✗        | —       |
@@ -95,7 +95,7 @@ npx @tonybonet/okcolor audit ./src --format=json
 npx @tonybonet/okcolor check ./src --max-legacy-colors=10
 
 # Diagnose issues
-npx @tonybonet/okcolor doctor ./src
+npx @tonybonet/okcolor scope ./src
 
 # Convert a single color
 npx @tonybonet/okcolor convert "#ff5a00" --to oklch

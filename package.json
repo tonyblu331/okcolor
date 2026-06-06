@@ -1,6 +1,6 @@
 {
   "name": "@tonybonet/okcolor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Frontend-first, build-time OKLCH modernizer for Vite apps and design systems",
   "license": "MIT",
   "author": "Antonio Bonet",

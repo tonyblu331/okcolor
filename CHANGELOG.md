@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated benchmark/package-size claims to match the current WASM build and `npm pack --dry-run`
 - Refactored token compiler architecture so Rust/WASM owns gamut and luminance math while TypeScript handles token orchestration, recipes, and reporting
 
+## [1.0.1] - 2026-06-06
+
+### Changed
+
+- Renamed the CLI diagnostic command from `doctor` to `scope`.
+
 ## [1.0.0] - 2026-05-24
 
 ### Added
